@@ -2,7 +2,6 @@ services:
   - type: web
     name: suvy-on-backend
     runtime: python
-    pythonVersion: 3.12.11
 
     buildCommand: pip install -r requirements.txt
 
