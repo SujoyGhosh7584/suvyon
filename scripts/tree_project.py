@@ -6,6 +6,7 @@ Generate the complete Suvyon project structure.
 Usage
 -----
 python scripts/tree_project.py
+docs/project_structure/project_tree.txt
 """
 
 from pathlib import Path

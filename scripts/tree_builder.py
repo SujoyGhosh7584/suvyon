@@ -26,7 +26,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from .tree_config import (
+from tree_config import (
     HEADER_TITLE,
     HEADER_WIDTH,
     IGNORED_DIRECTORIES,
@@ -37,7 +37,7 @@ from .tree_config import (
     is_directory_ignored,
     is_file_ignored,
 )
-from .tree_models import (
+from tree_models import (
     TreeNode,
     TreeOptions,
     TreeStatistics,

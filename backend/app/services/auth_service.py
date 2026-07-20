@@ -1,7 +1,10 @@
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.core.jwt import create_access_token
-from app.core.password import hash_password, verify_password
+from app.core.security import (
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 from app.exceptions.auth import (
     EmailAlreadyExistsError,
     InvalidCredentialsError,
@@ -42,11 +45,16 @@ class AuthService:
         user = User(
             full_name=full_name,
             email=email,
-            hashed_password=hash_password(password),
+            hashed_password=hash_password(
+                password,
+            ),
         )
 
         try:
-            self._user_repository.create(user)
+            self._user_repository.create(
+                user,
+            )
+
             self._user_repository.commit()
 
             return user
@@ -79,5 +87,5 @@ class AuthService:
             raise InvalidCredentialsError()
 
         return create_access_token(
-            user.id,
+            str(user.id),
         )

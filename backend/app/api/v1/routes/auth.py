@@ -1,9 +1,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies import get_auth_service
-from app.schemas.auth import LoginRequest, TokenResponse
+from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 
@@ -45,7 +46,10 @@ def register(
     summary="Authenticate a user",
 )
 def login(
-    request: LoginRequest,
+    form_data: Annotated[
+        OAuth2PasswordRequestForm,
+        Depends(),
+    ],
     auth_service: Annotated[
         AuthService,
         Depends(get_auth_service),
@@ -56,8 +60,8 @@ def login(
     """
 
     token = auth_service.login(
-        email=request.email,
-        password=request.password,
+        email=form_data.username,
+        password=form_data.password,
     )
 
     return TokenResponse(

@@ -17,8 +17,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .tree_builder import TreeBuilder
-from .tree_models import TreeOptions
+from tree_builder import TreeBuilder
+from tree_models import TreeOptions
 
 
 def generate_tree(
