@@ -50,12 +50,19 @@ class GroqProvider(BaseLLMProvider):
     def _build_payload(
         self, messages: list[LLMMessage], model: str, stream: bool = False, **kwargs
     ) -> dict:
-        return {
-            "model": model,
-            "messages": [{"role": m.role, "content": m.content} for m in messages],
-            "stream": stream,
-            **kwargs,
-        }
+        serialized = []
+        for m in messages:
+            msg: dict = {"role": m.role, "content": m.content or ""}
+            if m.tool_calls:
+                msg["tool_calls"] = m.tool_calls
+            if m.tool_call_id:
+                msg["tool_call_id"] = m.tool_call_id
+            serialized.append(msg)
+        payload = {"model": model, "messages": serialized, "stream": stream}
+        if "tools" in kwargs and kwargs["tools"]:
+            payload["tools"] = kwargs.pop("tools")
+        payload.update(kwargs)
+        return payload
 
     def chat(self, messages: list[LLMMessage], model: str, **kwargs) -> LLMResponse:
         with httpx.Client(timeout=60) as client:
@@ -67,15 +74,29 @@ class GroqProvider(BaseLLMProvider):
             response.raise_for_status()
             data = response.json()
 
-        choice = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]["message"]
         usage = data.get("usage", {})
 
+        # Parse tool calls if present
+        tool_calls = None
+        if choice.get("tool_calls"):
+            import json
+            tool_calls = [
+                {
+                    "id": tc["id"],
+                    "name": tc["function"]["name"],
+                    "arguments": json.loads(tc["function"]["arguments"]),
+                }
+                for tc in choice["tool_calls"]
+            ]
+
         return LLMResponse(
-            content=choice,
+            content=choice.get("content") or "",
             provider=self.provider_name,
             model=model,
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
+            tool_calls=tool_calls,
         )
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:

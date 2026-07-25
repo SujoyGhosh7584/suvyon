@@ -35,7 +35,7 @@ class Tool(Base, BaseModel):
     description: Mapped[str] = mapped_column(Text, nullable=False)
 
     category: Mapped[ToolCategory] = mapped_column(
-        SQLEnum(ToolCategory, name="tool_category"),
+        SQLEnum(ToolCategory, name="tool_category", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 

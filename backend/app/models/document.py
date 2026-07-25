@@ -46,7 +46,7 @@ class Document(Base, BaseModel):
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     status: Mapped[DocumentStatus] = mapped_column(
-        SQLEnum(DocumentStatus, name="document_status"),
+        SQLEnum(DocumentStatus, name="document_status", values_callable=lambda x: [e.value for e in x]),
         default=DocumentStatus.PENDING,
         nullable=False,
     )

@@ -5,8 +5,10 @@ from dataclasses import dataclass, field
 
 @dataclass
 class LLMMessage:
-    role: str  # "user" | "assistant" | "system"
+    role: str  # "user" | "assistant" | "system" | "tool"
     content: str
+    tool_calls: list[dict] | None = None
+    tool_call_id: str | None = None
 
 
 @dataclass
@@ -16,6 +18,7 @@ class LLMResponse:
     model: str
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
+    tool_calls: list[dict] | None = None
 
 
 @dataclass

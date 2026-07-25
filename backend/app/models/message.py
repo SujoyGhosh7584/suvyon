@@ -34,7 +34,7 @@ class Message(Base, BaseModel):
     )
 
     role: Mapped[MessageRole] = mapped_column(
-        SQLEnum(MessageRole, name="message_role"),
+        SQLEnum(MessageRole, name="message_role", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 

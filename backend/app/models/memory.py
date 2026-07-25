@@ -34,7 +34,7 @@ class Memory(Base, BaseModel):
     )
 
     scope: Mapped[MemoryScope] = mapped_column(
-        SQLEnum(MemoryScope, name="memory_scope"),
+        SQLEnum(MemoryScope, name="memory_scope", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         index=True,
     )

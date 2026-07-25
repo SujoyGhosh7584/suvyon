@@ -26,7 +26,6 @@ class Settings(BaseSettings):
     APP_NAME: str = "Suvyon"
     APP_VERSION: str = "1.0.0"
     APP_ENV: str = Field(default="development")
-    DEBUG: bool = False
 
     # --------------------------------------------------
     # API
@@ -69,6 +68,16 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
 
     GEMINI_API_KEY: str = ""
+
+    # --------------------------------------------------
+    # Search
+    # --------------------------------------------------
+
+    TAVILY_API_KEY: str = ""
+
+    SERPER_API_KEY: str = ""
+
+    BRAVE_API_KEY: str = ""
 
     # --------------------------------------------------
     # Email

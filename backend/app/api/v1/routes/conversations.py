@@ -167,6 +167,7 @@ def send_message(
     assistant_msg = chat_service.send_message(
         conversation=conversation,
         content=request.content,
+        knowledge_base_id=request.knowledge_base_id,
     )
     return MessageResponse.model_validate(assistant_msg)
 

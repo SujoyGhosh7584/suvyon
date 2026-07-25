@@ -48,7 +48,7 @@ class Integration(Base, BaseModel):
     )
 
     provider: Mapped[IntegrationProvider] = mapped_column(
-        SQLEnum(IntegrationProvider, name="integration_provider"),
+        SQLEnum(IntegrationProvider, name="integration_provider", values_callable=lambda x: [e.value for e in x]),
         nullable=False,
     )
 

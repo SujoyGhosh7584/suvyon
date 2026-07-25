@@ -2,11 +2,13 @@ from collections.abc import Iterator
 from uuid import UUID
 
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from app.ai.providers.base import LLMMessage
 from app.ai.router import route_chat, route_stream
 from app.models.conversation import Conversation
 from app.models.message import Message, MessageRole
+from app.rag.retriever import build_rag_prompt, retrieve_context
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
 from app.schemas.conversation import ConversationCreate, ConversationUpdate
@@ -17,9 +19,11 @@ class ChatService:
         self,
         conversation_repository: ConversationRepository,
         message_repository: MessageRepository,
+        session: Session | None = None,
     ) -> None:
         self._conversations = conversation_repository
         self._messages = message_repository
+        self._session = session
 
     # ------------------------------------------------------------------
     # Conversations
@@ -88,16 +92,22 @@ class ChatService:
             messages.append(LLMMessage(role="system", content=conversation.system_prompt))
 
         for msg in self._messages.get_by_conversation(conversation.id):
-            messages.append(LLMMessage(role=msg.role.value, content=msg.content))
+            messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
 
         messages.append(LLMMessage(role="user", content=new_content))
         return messages
 
-    def send_message(self, *, conversation: Conversation, content: str) -> Message:
-        """Persist user message, call LLM, persist and return assistant reply."""
+    def send_message(
+        self,
+        *,
+        conversation: Conversation,
+        content: str,
+        knowledge_base_id: UUID | None = None,
+    ) -> Message:
+        """Persist user message, optionally retrieve RAG context, call LLM, persist reply."""
         user_msg = Message(
             conversation_id=conversation.id,
-            role=MessageRole.USER,
+            role=MessageRole.USER.value,
             content=content,
         )
         try:
@@ -107,16 +117,19 @@ class ChatService:
             self._messages.rollback()
             raise
 
-        llm_messages = self._build_llm_history(conversation, content)
-        # Remove the user message we just appended — history already includes it
-        # Actually build history BEFORE persisting, so rebuild without the duplicate
-        llm_messages = []
+        # Build LLM message history
+        llm_messages: list[LLMMessage] = []
         if conversation.system_prompt:
-            llm_messages.append(
-                LLMMessage(role="system", content=conversation.system_prompt)
-            )
+            llm_messages.append(LLMMessage(role="system", content=conversation.system_prompt))
         for msg in self._messages.get_by_conversation(conversation.id):
-            llm_messages.append(LLMMessage(role=msg.role.value, content=msg.content))
+            llm_messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
+
+        # RAG: replace last user message with context-enriched prompt
+        if knowledge_base_id and self._session:
+            context = retrieve_context(self._session, knowledge_base_id, content)
+            if context:
+                rag_content = build_rag_prompt(context, content)
+                llm_messages[-1] = LLMMessage(role="user", content=rag_content)
 
         response = route_chat(
             llm_messages,
@@ -126,7 +139,7 @@ class ChatService:
 
         assistant_msg = Message(
             conversation_id=conversation.id,
-            role=MessageRole.ASSISTANT,
+            role=MessageRole.ASSISTANT.value,
             content=response.content,
             provider=response.provider,
             model=response.model,
@@ -150,7 +163,7 @@ class ChatService:
         """
         user_msg = Message(
             conversation_id=conversation.id,
-            role=MessageRole.USER,
+            role=MessageRole.USER.value,
             content=content,
         )
         try:
@@ -166,7 +179,7 @@ class ChatService:
                 LLMMessage(role="system", content=conversation.system_prompt)
             )
         for msg in self._messages.get_by_conversation(conversation.id):
-            llm_messages.append(LLMMessage(role=msg.role.value, content=msg.content))
+            llm_messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
 
         full_content = ""
         for chunk in route_stream(
@@ -180,7 +193,7 @@ class ChatService:
         # Persist the complete assistant reply
         assistant_msg = Message(
             conversation_id=conversation.id,
-            role=MessageRole.ASSISTANT,
+            role=MessageRole.ASSISTANT.value,
             content=full_content,
             provider=conversation.provider,
             model=conversation.model,

@@ -36,7 +36,7 @@ class User(Base, BaseModel):
 
     role: Mapped[UserRole] = mapped_column(
         String(50),
-        default=UserRole.USER,
+        default=UserRole.USER.value,
         nullable=False,
     )
 

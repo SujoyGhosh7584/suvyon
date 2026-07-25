@@ -8,9 +8,9 @@ from app.schemas.base import BaseSchema
 
 class MessageCreate(BaseSchema):
     content: str = Field(..., min_length=1, max_length=10000)
-    # Optional per-request override of provider/model
     provider: str | None = None
     model: str | None = None
+    knowledge_base_id: UUID | None = None
 
 
 class MessageResponse(BaseSchema):
