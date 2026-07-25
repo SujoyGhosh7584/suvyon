@@ -70,6 +70,13 @@ class BaseRepository(Generic[ModelType]):
 
         self.session.commit()
 
+    def refresh(self, entity: ModelType) -> None:
+        """
+        Refresh an entity's state from the database.
+        """
+
+        self.session.refresh(entity)
+
     def rollback(self) -> None:
         """
         Roll back the current transaction.

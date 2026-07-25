@@ -68,6 +68,7 @@ class WorkspaceService:
             )
 
             self._workspace_repository.commit()
+            self._workspace_repository.refresh(workspace)
 
             return workspace
 
@@ -110,17 +111,36 @@ class WorkspaceService:
         *,
         workspace: Workspace,
     ) -> None:
-        """
-        Delete a workspace.
-        """
-
         try:
-            self._workspace_repository.delete(
-                workspace,
-            )
-
+            self._workspace_repository.delete(workspace)
             self._workspace_repository.commit()
+        except SQLAlchemyError:
+            self._workspace_repository.rollback()
+            raise
 
+    def archive_workspace(self, *, workspace: Workspace) -> Workspace:
+        workspace.is_archived = True
+        try:
+            self._workspace_repository.commit()
+            return workspace
+        except SQLAlchemyError:
+            self._workspace_repository.rollback()
+            raise
+
+    def restore_workspace(self, *, workspace: Workspace) -> Workspace:
+        workspace.is_archived = False
+        try:
+            self._workspace_repository.commit()
+            return workspace
+        except SQLAlchemyError:
+            self._workspace_repository.rollback()
+            raise
+
+    def set_favourite(self, *, workspace: Workspace, value: bool) -> Workspace:
+        workspace.is_favourite = value
+        try:
+            self._workspace_repository.commit()
+            return workspace
         except SQLAlchemyError:
             self._workspace_repository.rollback()
             raise
