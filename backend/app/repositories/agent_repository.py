@@ -1,21 +1,25 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.models.agent import Agent
 from app.repositories.base_repository import BaseRepository
 
 
-class AgentRepository(BaseRepository):
-    def __init__(self, session: Session) -> None:
-        super().__init__(session)
+class AgentRepository(BaseRepository[Agent]):
+    model = Agent
 
     def get_by_workspace(self, workspace_id: UUID) -> list[Agent]:
-        return self._session.query(Agent).filter(Agent.workspace_id == workspace_id).all()
+        stmt = (
+            select(Agent)
+            .where(Agent.workspace_id == workspace_id)
+            .order_by(Agent.created_at.desc())
+        )
+        return list(self.session.execute(stmt).scalars().all())
 
     def get_by_id_and_workspace(self, agent_id: UUID, workspace_id: UUID) -> Agent | None:
-        return (
-            self._session.query(Agent)
-            .filter(Agent.id == agent_id, Agent.workspace_id == workspace_id)
-            .first()
+        stmt = select(Agent).where(
+            Agent.id == agent_id,
+            Agent.workspace_id == workspace_id,
         )
+        return self.session.execute(stmt).scalar_one_or_none()

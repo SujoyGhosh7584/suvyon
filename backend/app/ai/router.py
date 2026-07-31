@@ -19,7 +19,8 @@ from app.ai.registry import get_available_providers, get_provider
 _PROVIDER_DEFAULTS: dict[str, str] = {
     "groq": "llama-3.3-70b-versatile",
     "gemini": "gemini-2.0-flash",
-    "openrouter": "meta-llama/llama-3.3-70b-instruct:free",
+    # openrouter/free auto-picks a currently available free model
+    "openrouter": "openrouter/free",
 }
 
 
@@ -68,15 +69,15 @@ def route_chat(
             (p, _PROVIDER_DEFAULTS.get(p.provider_name, "")) for p in available
         ]
 
-    last_error: Exception | None = None
+    errors: list[str] = []
     for provider, model in providers_to_try:
         try:
             return provider.chat(messages, model, **kwargs)
         except Exception as exc:
-            last_error = exc
+            errors.append(f"{provider.provider_name}/{model}: {exc}")
             continue
 
-    raise RuntimeError(f"All providers failed. Last error: {last_error}")
+    raise RuntimeError("All providers failed. " + " | ".join(errors))
 
 
 def route_stream(

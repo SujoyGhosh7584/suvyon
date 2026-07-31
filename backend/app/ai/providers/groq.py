@@ -47,6 +47,28 @@ class GroqProvider(BaseLLMProvider):
             "Content-Type": "application/json",
         }
 
+    def _serialize_tool_calls(self, tool_calls: list[dict]) -> list[dict]:
+        """Convert internal tool_calls back to OpenAI wire format."""
+        import json
+
+        serialized = []
+        for tc in tool_calls:
+            if "function" in tc:
+                serialized.append(tc)
+                continue
+            args = tc.get("arguments", {})
+            serialized.append(
+                {
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {
+                        "name": tc["name"],
+                        "arguments": args if isinstance(args, str) else json.dumps(args),
+                    },
+                }
+            )
+        return serialized
+
     def _build_payload(
         self, messages: list[LLMMessage], model: str, stream: bool = False, **kwargs
     ) -> dict:
@@ -54,7 +76,7 @@ class GroqProvider(BaseLLMProvider):
         for m in messages:
             msg: dict = {"role": m.role, "content": m.content or ""}
             if m.tool_calls:
-                msg["tool_calls"] = m.tool_calls
+                msg["tool_calls"] = self._serialize_tool_calls(m.tool_calls)
             if m.tool_call_id:
                 msg["tool_call_id"] = m.tool_call_id
             serialized.append(msg)

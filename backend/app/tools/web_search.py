@@ -39,7 +39,11 @@ def _brave(query: str, max_results: int) -> str:
 
 
 def _duckduckgo(query: str, max_results: int) -> str:
-    from duckduckgo_search import DDGS
+    try:
+        from ddgs import DDGS
+    except ImportError:  # pragma: no cover - fallback for older installs
+        from duckduckgo_search import DDGS
+
     results = list(DDGS().text(query, max_results=max_results))
     return "\n\n".join(f"{r['title']}\n{r['body']}" for r in results) or "No results."
 
