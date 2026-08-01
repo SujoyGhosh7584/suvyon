@@ -87,6 +87,15 @@ class ChatService:
     def get_messages(self, *, conversation_id: UUID) -> list[Message]:
         return self._messages.get_by_conversation(conversation_id)
 
+    def _auto_generate_title(self, content: str) -> str:
+        cleaned = content.strip().replace("\n", " ")
+        words = cleaned.split()
+        if not words:
+            return "New conversation"
+        title = " ".join(words[:6])
+        title = title.strip(".,!?:;\"'").capitalize()
+        return title[:50] if title else "New conversation"
+
     def _classify_request(
         self,
         content: str,
@@ -119,6 +128,13 @@ class ChatService:
             "how much",
             "cost",
             "launch",
+            "search web",
+            "google",
+            "online",
+            "http",
+            "https",
+            "www",
+            "internet",
         )
         rag_keywords = (
             "document",
@@ -147,12 +163,29 @@ class ChatService:
             "extract",
             "tell me about",
             "based on",
+            "my doc",
+            "my docs",
+            "paper",
+            "notes",
         )
 
         if any(keyword in text for keyword in rag_keywords):
             return "rag"
         if any(keyword in text for keyword in web_keywords):
             return "web"
+
+        # Check if RAG yields context in active knowledge bases
+        if knowledge_bases and self._session:
+            for kb in knowledge_bases:
+                try:
+                    chunks, _ = retrieve_context_with_sources(
+                        self._session, kb.id, content, top_k=3
+                    )
+                    if chunks:
+                        return "rag"
+                except Exception:
+                    pass
+
         return "chat"
 
     def _get_active_knowledge_bases(self, workspace_id: UUID) -> list[KnowledgeBase]:
@@ -196,9 +229,9 @@ class ChatService:
             )
             if chunks:
                 context_parts.append(
-                    f"[Knowledge base: {kb.name}]\n" + "\n\n".join(chunks)
+                    f"[Knowledge Base: {kb.name}]\n" + "\n\n".join(chunks)
                 )
-                sources.extend([f"{kb.name}: {source}" for source in kb_sources])
+                sources.extend([f"{source}" for source in kb_sources])
 
         return "\n\n".join(context_parts), sources
 
@@ -263,7 +296,8 @@ class ChatService:
     ) -> str:
         if mode == "rag":
             if sources:
-                joined_sources = ", ".join(sources[:5])
+                unique_sources = list(dict.fromkeys(sources))
+                joined_sources = ", ".join(unique_sources[:5])
                 return f"Source: knowledge base context from {joined_sources}"
             return "Source: knowledge base context was not found"
         if mode == "web":
@@ -281,6 +315,14 @@ class ChatService:
         mode: str | None = None,
     ) -> Message:
         """Persist user message and route it to chat, web search, or RAG automatically."""
+        # Auto-update conversation title if default
+        if conversation.title in ("New conversation", "New chat"):
+            conversation.title = self._auto_generate_title(content)
+            try:
+                self._conversations.commit()
+            except Exception:
+                self._conversations.rollback()
+
         user_msg = Message(
             conversation_id=conversation.id,
             role=MessageRole.USER.value,
@@ -292,6 +334,7 @@ class ChatService:
         except SQLAlchemyError:
             self._messages.rollback()
             raise
+
 
         knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
         selected_mode = (
@@ -349,6 +392,13 @@ class ChatService:
         Persist user message, stream LLM tokens, then persist the
         full assistant reply once streaming is complete.
         """
+        if conversation.title in ("New conversation", "New chat"):
+            conversation.title = self._auto_generate_title(content)
+            try:
+                self._conversations.commit()
+            except Exception:
+                self._conversations.rollback()
+
         user_msg = Message(
             conversation_id=conversation.id,
             role=MessageRole.USER.value,
@@ -360,6 +410,7 @@ class ChatService:
         except SQLAlchemyError:
             self._messages.rollback()
             raise
+
 
         knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
         selected_mode = (

@@ -167,18 +167,24 @@ def send_message(
         workspace_id, conversation_id, current_user, workspace_service, chat_service
     )
     # Per-request provider/model override
-    if request.provider:
-        conversation.provider = request.provider
-    if request.model:
-        conversation.model = request.model
+    if request.provider is not None:
+        conversation.provider = request.provider if request.provider.strip() else None
+    if request.model is not None:
+        conversation.model = request.model if request.model.strip() else None
 
-    assistant_msg = chat_service.send_message(
-        conversation=conversation,
-        content=request.content,
-        knowledge_base_id=request.knowledge_base_id,
-        mode=request.mode,
-    )
-    return MessageResponse.model_validate(assistant_msg)
+    try:
+        assistant_msg = chat_service.send_message(
+            conversation=conversation,
+            content=request.content,
+            knowledge_base_id=request.knowledge_base_id,
+            mode=request.mode,
+        )
+        return MessageResponse.model_validate(assistant_msg)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc) or "Failed to generate AI response.",
+        )
 
 
 @router.post("/{conversation_id}/messages/stream")
@@ -197,18 +203,23 @@ def stream_message(
     conversation = _get_conversation_or_404(
         workspace_id, conversation_id, current_user, workspace_service, chat_service
     )
-    if request.provider:
-        conversation.provider = request.provider
-    if request.model:
-        conversation.model = request.model
+    if request.provider is not None:
+        conversation.provider = request.provider if request.provider.strip() else None
+    if request.model is not None:
+        conversation.model = request.model if request.model.strip() else None
 
     def event_stream():
-        for chunk in chat_service.stream_message(
-            conversation=conversation,
-            content=request.content,
-            mode=request.mode,
-        ):
-            yield f"data: {chunk}\n\n"
-        yield "data: [DONE]\n\n"
+        try:
+            for chunk in chat_service.stream_message(
+                conversation=conversation,
+                content=request.content,
+                mode=request.mode,
+            ):
+                yield f"data: {chunk}\n\n"
+            yield "data: [DONE]\n\n"
+        except Exception as exc:
+            yield f"data: Error: {str(exc)}\n\n"
+            yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+

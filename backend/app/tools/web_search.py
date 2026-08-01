@@ -11,7 +11,11 @@ def _tavily(query: str, max_results: int) -> str:
     )
     response.raise_for_status()
     results = response.json().get("results", [])
-    return "\n\n".join(f"{r['title']}\n{r['content']}" for r in results) or "No results."
+    formatted = [
+        f"Title: {r.get('title')}\nURL: {r.get('url')}\nContent: {r.get('content')}"
+        for r in results
+    ]
+    return "\n\n".join(formatted) or "No results."
 
 
 def _serper(query: str, max_results: int) -> str:
@@ -23,7 +27,11 @@ def _serper(query: str, max_results: int) -> str:
     )
     response.raise_for_status()
     items = response.json().get("organic", [])
-    return "\n\n".join(f"{r['title']}\n{r.get('snippet', '')}" for r in items) or "No results."
+    formatted = [
+        f"Title: {r.get('title')}\nURL: {r.get('link')}\nSnippet: {r.get('snippet', '')}"
+        for r in items
+    ]
+    return "\n\n".join(formatted) or "No results."
 
 
 def _brave(query: str, max_results: int) -> str:
@@ -35,17 +43,28 @@ def _brave(query: str, max_results: int) -> str:
     )
     response.raise_for_status()
     items = response.json().get("web", {}).get("results", [])
-    return "\n\n".join(f"{r['title']}\n{r.get('description', '')}" for r in items) or "No results."
+    formatted = [
+        f"Title: {r.get('title')}\nURL: {r.get('url')}\nSnippet: {r.get('description', '')}"
+        for r in items
+    ]
+    return "\n\n".join(formatted) or "No results."
 
 
 def _duckduckgo(query: str, max_results: int) -> str:
     try:
-        from ddgs import DDGS
-    except ImportError:  # pragma: no cover - fallback for older installs
-        from duckduckgo_search import DDGS
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            from duckduckgo_search import DDGS
 
-    results = list(DDGS().text(query, max_results=max_results))
-    return "\n\n".join(f"{r['title']}\n{r['body']}" for r in results) or "No results."
+        results = list(DDGS().text(query, max_results=max_results))
+        formatted = [
+            f"Title: {r.get('title')}\nURL: {r.get('href') or r.get('link')}\nSnippet: {r.get('body') or r.get('snippet')}"
+            for r in results
+        ]
+        return "\n\n".join(formatted) or "No results."
+    except Exception as e:
+        return f"DuckDuckGo search error: {e}"
 
 
 def web_search(query: str, max_results: int = 5) -> str:
@@ -62,9 +81,12 @@ def web_search(query: str, max_results: int = 5) -> str:
         if not key:
             continue
         try:
-            return fn(query, max_results)
+            res = fn(query, max_results)
+            if res and not res.startswith("DuckDuckGo search error"):
+                return res
         except Exception as exc:
             last_error = f"{name}: {exc}"
             continue
 
-    return f"All search providers failed. Last error: {last_error}"
+    return f"Web search could not return results. Details: {last_error}"
+

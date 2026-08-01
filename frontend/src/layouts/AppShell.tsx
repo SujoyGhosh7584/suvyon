@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import {
   Bot,
@@ -5,6 +6,8 @@ import {
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +27,7 @@ export function AppShell() {
   const { workspaceId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", workspaceId],
@@ -34,50 +38,87 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-mesh text-ink-950">
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
-        <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-ink-200/70 bg-white/55 px-4 py-5 backdrop-blur">
-          <button
-            type="button"
-            onClick={() => navigate("/app")}
-            className="mb-8 text-left"
-          >
-            <div className="font-display text-2xl font-extrabold tracking-tight">Suvyon</div>
-            <div className="mt-1 truncate text-xs text-ink-500">
-              {workspace?.name || "Workspace"}
-            </div>
-          </button>
+        <aside
+          className={cn(
+            "sticky top-0 flex h-screen shrink-0 flex-col border-r border-ink-200/70 bg-white/55 px-3 py-5 backdrop-blur transition-all duration-300",
+            isCollapsed ? "w-16" : "w-64",
+          )}
+        >
+          <div className="mb-6 flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={() => navigate("/app")}
+              className={cn("text-left overflow-hidden", isCollapsed && "w-0 hidden")}
+            >
+              <div className="font-display text-2xl font-extrabold tracking-tight">
+                Suvyon
+              </div>
+              <div className="truncate text-xs text-ink-500">
+                {workspace?.name || "Workspace"}
+              </div>
+            </button>
+            {isCollapsed && (
+              <button
+                type="button"
+                onClick={() => navigate("/app")}
+                className="font-display text-xl font-extrabold text-brand-600 px-1"
+                title="Suvyon"
+              >
+                S
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsCollapsed((prev) => !prev)}
+              className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition"
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+          </div>
 
           <nav className="flex flex-1 flex-col gap-1">
             {links.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={`/app/w/${workspaceId}/${to}`}
+                title={isCollapsed ? label : undefined}
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
                     isActive
                       ? "bg-ink-950 text-white"
                       : "text-ink-700 hover:bg-ink-100",
+                    isCollapsed && "justify-center px-0",
                   )
                 }
               >
                 <Icon size={18} />
-                {label}
+                {!isCollapsed && <span>{label}</span>}
               </NavLink>
             ))}
           </nav>
 
           <div className="mt-4 border-t border-ink-200/80 pt-4">
-            <div className="mb-3 truncate px-2 text-sm font-medium">{user?.full_name}</div>
+            {!isCollapsed && (
+              <div className="mb-3 truncate px-2 text-sm font-medium">
+                {user?.full_name}
+              </div>
+            )}
             <button
               type="button"
-              className="btn-ghost w-full justify-start"
+              className={cn(
+                "btn-ghost w-full justify-start",
+                isCollapsed && "justify-center px-0",
+              )}
+              title={isCollapsed ? "Sign out" : undefined}
               onClick={async () => {
                 await logout();
                 navigate("/login");
               }}
             >
               <LogOut size={16} />
-              Sign out
+              {!isCollapsed && <span>Sign out</span>}
             </button>
           </div>
         </aside>
@@ -89,3 +130,4 @@ export function AppShell() {
     </div>
   );
 }
+

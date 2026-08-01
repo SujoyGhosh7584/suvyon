@@ -7,9 +7,10 @@ Uses recursive splitting on paragraph → sentence → word boundaries.
 
 from dataclasses import dataclass
 
-CHUNK_SIZE = 512       # target characters per chunk
-CHUNK_OVERLAP = 64     # overlap between consecutive chunks
-MIN_CHUNK_SIZE = 50    # discard chunks smaller than this
+CHUNK_SIZE = 1200      # target characters per chunk
+CHUNK_OVERLAP = 200    # overlap between consecutive chunks
+MIN_CHUNK_SIZE = 40    # discard chunks smaller than this
+
 
 
 @dataclass

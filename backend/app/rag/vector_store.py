@@ -53,8 +53,11 @@ def similarity_search(
     if not chunk_ids:
         return []
 
-    return (
+    chunks = (
         session.query(DocumentChunk)
         .filter(DocumentChunk.id.in_(chunk_ids))
         .all()
     )
+    chunk_map = {c.id: c for c in chunks}
+    return [chunk_map[cid] for cid in chunk_ids if cid in chunk_map]
+
