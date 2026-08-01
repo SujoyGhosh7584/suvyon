@@ -68,7 +68,15 @@ class GeminiProvider(BaseLLMProvider):
                 self._url(model),
                 json=self._build_payload(contents, system_prompt),
             )
-            response.raise_for_status()
+            if response.is_error:
+                try:
+                    err_json = response.json()
+                    err_msg = err_json.get("error", {}).get("message", response.text)
+                    raise RuntimeError(f"Gemini API error ({response.status_code}): {err_msg}")
+                except Exception as exc:
+                    if isinstance(exc, RuntimeError):
+                        raise
+                    response.raise_for_status()
             data = response.json()
 
         content = data["candidates"][0]["content"]["parts"][0]["text"]
@@ -91,7 +99,16 @@ class GeminiProvider(BaseLLMProvider):
                 self._url(model, stream=True),
                 json=self._build_payload(contents, system_prompt),
             ) as response:
-                response.raise_for_status()
+                if response.is_error:
+                    response.read()
+                    try:
+                        err_json = response.json()
+                        err_msg = err_json.get("error", {}).get("message", response.text)
+                        raise RuntimeError(f"Gemini API error ({response.status_code}): {err_msg}")
+                    except Exception as exc:
+                        if isinstance(exc, RuntimeError):
+                            raise
+                        response.raise_for_status()
                 for line in response.iter_lines():
                     line = line.strip()
                     if not line or line in ("[", "]", ","):
@@ -111,6 +128,7 @@ class GeminiProvider(BaseLLMProvider):
                             yield text
                     except (json.JSONDecodeError, IndexError, KeyError):
                         continue
+
 
     def list_models(self) -> list[ModelInfo]:
         return _MODELS

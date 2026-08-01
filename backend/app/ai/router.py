@@ -88,28 +88,26 @@ def route_chat(
     model_id: str | None = None,
     **kwargs,
 ) -> LLMResponse:
-    """Send a chat request, with automatic failover across providers."""
-    providers_to_try: list[tuple[BaseLLMProvider, str]] = []
+    """Send a chat request. Explicit selection strictly targets requested provider."""
+    provider_name = provider_name.strip() if provider_name else None
+    model_id = model_id.strip() if model_id else None
 
-    try:
+    # If user explicitly selected a provider or model, strictly try that provider
+    if provider_name or model_id:
         provider, model = _resolve(provider_name, model_id)
-        providers_to_try.append((provider, model))
-    except ValueError:
-        pass
+        try:
+            return provider.chat(messages, model, **kwargs)
+        except Exception as exc:
+            raise RuntimeError(f"Selected provider '{provider.provider_name}' ({model}) failed: {exc}")
 
-    # Add remaining available providers as fallback
+    # Auto mode: try available providers with failover
     available = get_available_providers()
-    for p in available:
-        p_model = _PROVIDER_DEFAULTS.get(p.provider_name, "")
-        if not p_model:
-            models = p.list_models()
-            if models:
-                p_model = models[0].model_id
-        if (p, p_model) not in providers_to_try:
-            providers_to_try.append((p, p_model))
+    if not available:
+        raise ValueError("No LLM providers are configured. Please check your API keys in .env.")
 
-    if not providers_to_try:
-        raise ValueError("No LLM providers are configured. Please check your API keys.")
+    providers_to_try = [
+        (p, _PROVIDER_DEFAULTS.get(p.provider_name, "")) for p in available
+    ]
 
     errors: list[str] = []
     for provider, model in providers_to_try:
@@ -120,6 +118,7 @@ def route_chat(
             continue
 
     raise RuntimeError("All providers failed. " + " | ".join(errors))
+
 
 
 def route_stream(
