@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session
 from app.ai.providers.base import LLMMessage
 from app.ai.router import route_chat, route_stream
 from app.models.conversation import Conversation
+from app.models.knowledge_base import KnowledgeBase
 from app.models.message import Message, MessageRole
-from app.rag.retriever import build_rag_prompt, retrieve_context
+from app.rag.retriever import build_rag_prompt, retrieve_context_with_sources
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
 from app.schemas.conversation import ConversationCreate, ConversationUpdate
+from app.tools.web_search import web_search
 
 
 class ChatService:
@@ -35,7 +37,9 @@ class ChatService:
     def get_conversation(
         self, *, conversation_id: UUID, workspace_id: UUID
     ) -> Conversation | None:
-        return self._conversations.get_by_id_and_workspace(conversation_id, workspace_id)
+        return self._conversations.get_by_id_and_workspace(
+            conversation_id, workspace_id
+        )
 
     def create_conversation(
         self, *, workspace_id: UUID, data: ConversationCreate
@@ -83,19 +87,190 @@ class ChatService:
     def get_messages(self, *, conversation_id: UUID) -> list[Message]:
         return self._messages.get_by_conversation(conversation_id)
 
-    def _build_llm_history(
-        self, conversation: Conversation, new_content: str
-    ) -> list[LLMMessage]:
-        messages: list[LLMMessage] = []
+    def _classify_request(
+        self,
+        content: str,
+        knowledge_bases: list[KnowledgeBase] | None = None,
+    ) -> str:
+        text = content.lower()
+        web_keywords = (
+            "latest",
+            "news",
+            "today",
+            "current",
+            "recent",
+            "update",
+            "price",
+            "stock",
+            "weather",
+            "trend",
+            "what happened",
+            "breaking",
+            "release",
+            "forecast",
+            "upcoming",
+            "compare",
+            "vs",
+            "who is",
+            "who was",
+            "where is",
+            "where was",
+            "when did",
+            "how much",
+            "cost",
+            "launch",
+        )
+        rag_keywords = (
+            "document",
+            "documents",
+            "file",
+            "pdf",
+            "uploaded",
+            "upload",
+            "report",
+            "contract",
+            "knowledge base",
+            "workspace",
+            "resume",
+            "cv",
+            "candidate",
+            "profile",
+            "skills",
+            "experience",
+            "education",
+            "according to",
+            "from the docs",
+            "from the document",
+            "summarize",
+            "review",
+            "analyze",
+            "extract",
+            "tell me about",
+            "based on",
+        )
+
+        if any(keyword in text for keyword in rag_keywords):
+            return "rag"
+        if any(keyword in text for keyword in web_keywords):
+            return "web"
+        return "chat"
+
+    def _get_active_knowledge_bases(self, workspace_id: UUID) -> list[KnowledgeBase]:
+        if not self._session:
+            return []
+        return list(
+            self._session.query(KnowledgeBase)
+            .filter(
+                KnowledgeBase.workspace_id == workspace_id,
+                KnowledgeBase.is_active.is_(True),
+            )
+            .all()
+        )
+
+    def _build_rag_context(
+        self,
+        workspace_id: UUID,
+        query: str,
+        knowledge_base_id: UUID | None = None,
+    ) -> tuple[str, list[str]]:
+        if not self._session:
+            return "", []
+
+        knowledge_bases = self._get_active_knowledge_bases(workspace_id)
+        if knowledge_base_id:
+            knowledge_bases = [
+                kb for kb in knowledge_bases if str(kb.id) == str(knowledge_base_id)
+            ]
+
+        if not knowledge_bases:
+            return "", []
+
+        context_parts: list[str] = []
+        sources: list[str] = []
+        for kb in knowledge_bases:
+            chunks, kb_sources = retrieve_context_with_sources(
+                self._session,
+                kb.id,
+                query,
+                top_k=8,
+            )
+            if chunks:
+                context_parts.append(
+                    f"[Knowledge base: {kb.name}]\n" + "\n\n".join(chunks)
+                )
+                sources.extend([f"{kb.name}: {source}" for source in kb_sources])
+
+        return "\n\n".join(context_parts), sources
+
+    def _build_contextual_messages(
+        self,
+        *,
+        conversation: Conversation,
+        content: str,
+        mode: str,
+        knowledge_base_id: UUID | None = None,
+    ) -> tuple[list[LLMMessage], list[str]]:
+        llm_messages: list[LLMMessage] = []
 
         if conversation.system_prompt:
-            messages.append(LLMMessage(role="system", content=conversation.system_prompt))
+            llm_messages.append(
+                LLMMessage(role="system", content=conversation.system_prompt)
+            )
 
         for msg in self._messages.get_by_conversation(conversation.id):
-            messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
+            llm_messages.append(
+                LLMMessage(
+                    role=msg.role if isinstance(msg.role, str) else msg.role.value,
+                    content=msg.content,
+                )
+            )
 
-        messages.append(LLMMessage(role="user", content=new_content))
-        return messages
+        user_message = LLMMessage(role="user", content=content)
+
+        if mode == "web":
+            search_results = web_search(content, max_results=5)
+            user_message = LLMMessage(
+                role="user",
+                content=(
+                    "Use the following web search results to answer the user's question. "
+                    "Base your answer only on these results when possible. "
+                    "If the results are insufficient, say so clearly.\n\n"
+                    f"Search results:\n{search_results}\n\nQuestion: {content}"
+                ),
+            )
+        elif mode == "rag":
+            rag_context, rag_sources = self._build_rag_context(
+                conversation.workspace_id,
+                content,
+                knowledge_base_id=knowledge_base_id,
+            )
+            if rag_context:
+                user_message = LLMMessage(
+                    role="user",
+                    content=build_rag_prompt(rag_context, content),
+                )
+                return [*llm_messages, user_message], rag_sources
+            return [*llm_messages, user_message], []
+
+        return [*llm_messages, user_message], []
+
+    def _build_provenance_note(
+        self,
+        mode: str,
+        provider: str | None,
+        model: str | None,
+        sources: list[str] | None = None,
+    ) -> str:
+        if mode == "rag":
+            if sources:
+                joined_sources = ", ".join(sources[:5])
+                return f"Source: knowledge base context from {joined_sources}"
+            return "Source: knowledge base context was not found"
+        if mode == "web":
+            return "Source: web search"
+        provider_name = provider or "auto"
+        model_name = model or "default model"
+        return f"Source: direct LLM response via {provider_name} / {model_name}"
 
     def send_message(
         self,
@@ -103,8 +278,9 @@ class ChatService:
         conversation: Conversation,
         content: str,
         knowledge_base_id: UUID | None = None,
+        mode: str | None = None,
     ) -> Message:
-        """Persist user message, optionally retrieve RAG context, call LLM, persist reply."""
+        """Persist user message and route it to chat, web search, or RAG automatically."""
         user_msg = Message(
             conversation_id=conversation.id,
             role=MessageRole.USER.value,
@@ -117,19 +293,16 @@ class ChatService:
             self._messages.rollback()
             raise
 
-        # Build LLM message history
-        llm_messages: list[LLMMessage] = []
-        if conversation.system_prompt:
-            llm_messages.append(LLMMessage(role="system", content=conversation.system_prompt))
-        for msg in self._messages.get_by_conversation(conversation.id):
-            llm_messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
-
-        # RAG: replace last user message with context-enriched prompt
-        if knowledge_base_id and self._session:
-            context = retrieve_context(self._session, knowledge_base_id, content)
-            if context:
-                rag_content = build_rag_prompt(context, content)
-                llm_messages[-1] = LLMMessage(role="user", content=rag_content)
+        knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
+        selected_mode = (
+            mode or self._classify_request(content, knowledge_bases)
+        ).lower()
+        llm_messages, rag_sources = self._build_contextual_messages(
+            conversation=conversation,
+            content=content,
+            mode=selected_mode,
+            knowledge_base_id=knowledge_base_id,
+        )
 
         response = route_chat(
             llm_messages,
@@ -137,10 +310,20 @@ class ChatService:
             model_id=conversation.model,
         )
 
+        provenance_note = self._build_provenance_note(
+            selected_mode,
+            response.provider,
+            response.model,
+            sources=rag_sources if selected_mode == "rag" else None,
+        )
+        assistant_content = response.content
+        if provenance_note:
+            assistant_content = f"{assistant_content}\n\n---\n{provenance_note}"
+
         assistant_msg = Message(
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT.value,
-            content=response.content,
+            content=assistant_content,
             provider=response.provider,
             model=response.model,
             prompt_tokens=response.prompt_tokens,
@@ -155,7 +338,12 @@ class ChatService:
             raise
 
     def stream_message(
-        self, *, conversation: Conversation, content: str
+        self,
+        *,
+        conversation: Conversation,
+        content: str,
+        mode: str | None = None,
+        knowledge_base_id: UUID | None = None,
     ) -> Iterator[str]:
         """
         Persist user message, stream LLM tokens, then persist the
@@ -173,13 +361,16 @@ class ChatService:
             self._messages.rollback()
             raise
 
-        llm_messages: list[LLMMessage] = []
-        if conversation.system_prompt:
-            llm_messages.append(
-                LLMMessage(role="system", content=conversation.system_prompt)
-            )
-        for msg in self._messages.get_by_conversation(conversation.id):
-            llm_messages.append(LLMMessage(role=msg.role if isinstance(msg.role, str) else msg.role.value, content=msg.content))
+        knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
+        selected_mode = (
+            mode or self._classify_request(content, knowledge_bases)
+        ).lower()
+        llm_messages, _ = self._build_contextual_messages(
+            conversation=conversation,
+            content=content,
+            mode=selected_mode,
+            knowledge_base_id=knowledge_base_id,
+        )
 
         full_content = ""
         for chunk in route_stream(
@@ -190,7 +381,14 @@ class ChatService:
             full_content += chunk
             yield chunk
 
-        # Persist the complete assistant reply
+        provenance_note = self._build_provenance_note(
+            selected_mode,
+            conversation.provider,
+            conversation.model,
+        )
+        if provenance_note:
+            full_content = f"{full_content}\n\n---\n{provenance_note}"
+
         assistant_msg = Message(
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT.value,

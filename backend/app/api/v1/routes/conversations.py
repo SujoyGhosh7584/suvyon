@@ -32,7 +32,9 @@ def _get_workspace_or_404(
         owner_id=current_user.id,
     )
     if workspace is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found."
+        )
     return workspace
 
 
@@ -49,7 +51,9 @@ def _get_conversation_or_404(
         workspace_id=workspace_id,
     )
     if conversation is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found."
+        )
     return conversation
 
 
@@ -67,7 +71,9 @@ def list_conversations(
     ]
 
 
-@router.post("", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED
+)
 def create_conversation(
     workspace_id: UUID,
     request: ConversationCreate,
@@ -76,7 +82,9 @@ def create_conversation(
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ConversationResponse:
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
-    conversation = chat_service.create_conversation(workspace_id=workspace_id, data=request)
+    conversation = chat_service.create_conversation(
+        workspace_id=workspace_id, data=request
+    )
     return ConversationResponse.model_validate(conversation)
 
 
@@ -168,6 +176,7 @@ def send_message(
         conversation=conversation,
         content=request.content,
         knowledge_base_id=request.knowledge_base_id,
+        mode=request.mode,
     )
     return MessageResponse.model_validate(assistant_msg)
 
@@ -197,6 +206,7 @@ def stream_message(
         for chunk in chat_service.stream_message(
             conversation=conversation,
             content=request.content,
+            mode=request.mode,
         ):
             yield f"data: {chunk}\n\n"
         yield "data: [DONE]\n\n"

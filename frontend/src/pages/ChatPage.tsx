@@ -4,11 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Plus, Send, Trash2 } from "lucide-react";
 import { getErrorMessage } from "@/lib/api";
-import {
-  conversationsApi,
-  knowledgeApi,
-  modelsApi,
-} from "@/lib/services";
+import { conversationsApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +17,7 @@ export function ChatPage() {
   const [content, setContent] = useState("");
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
-  const [kbId, setKbId] = useState("");
+  const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
 
@@ -37,10 +33,6 @@ export function ChatPage() {
   const { data: models = [] } = useQuery({
     queryKey: ["models"],
     queryFn: modelsApi.list,
-  });
-  const { data: knowledgeBases = [] } = useQuery({
-    queryKey: ["knowledge-bases", workspaceId],
-    queryFn: () => knowledgeApi.list(workspaceId),
   });
 
   const providers = useMemo(
@@ -94,7 +86,8 @@ export function ChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: kbId || null,
+        knowledge_base_id: null,
+        mode: mode === "auto" ? null : mode,
       });
     },
     onSuccess: () => {
@@ -119,6 +112,18 @@ export function ChatPage() {
 
   const visibleMessages = [...messages, ...optimistic];
 
+  function renderMessageContent(content: string) {
+    const marker = "\n\n---\n";
+    const idx = content.indexOf(marker);
+    if (idx === -1) {
+      return { body: content, provenance: "" };
+    }
+    return {
+      body: content.slice(0, idx),
+      provenance: content.slice(idx + marker.length),
+    };
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -134,7 +139,8 @@ export function ChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: kbId || null,
+          knowledge_base_id: null,
+          mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({
           queryKey: ["messages", workspaceId, created.id],
@@ -224,16 +230,14 @@ export function ChatPage() {
             ))}
           </select>
           <select
-            className="input max-w-[200px]"
-            value={kbId}
-            onChange={(e) => setKbId(e.target.value)}
+            className="input max-w-[140px]"
+            value={mode}
+            onChange={(e) => setMode(e.target.value as "auto" | "chat" | "rag" | "web")}
           >
-            <option value="">No knowledge base</option>
-            {knowledgeBases.map((kb) => (
-              <option key={kb.id} value={kb.id}>
-                {kb.name}
-              </option>
-            ))}
+            <option value="auto">Auto</option>
+            <option value="chat">General</option>
+            <option value="rag">RAG</option>
+            <option value="web">Web</option>
           </select>
         </div>
 
@@ -257,7 +261,19 @@ export function ChatPage() {
               )}
             >
               {m.role === "assistant" ? (
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+                (() => {
+                  const { body, provenance } = renderMessageContent(m.content);
+                  return (
+                    <div className="space-y-2">
+                      {body ? <ReactMarkdown>{body}</ReactMarkdown> : null}
+                      {provenance ? (
+                        <div className="rounded-lg border border-ink-200/70 bg-white/70 px-3 py-2 text-xs text-ink-600">
+                          <span className="font-semibold text-ink-700">Source:</span> {provenance}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()
               ) : (
                 m.content
               )}
@@ -272,10 +288,13 @@ export function ChatPage() {
               {error}
             </div>
           )}
+          <div className="mb-3 text-xs text-ink-500">
+            Auto will use web search for current topics and your uploaded documents for document questions.
+          </div>
           <div className="flex gap-2">
             <textarea
               className="input min-h-[52px] resize-none"
-              placeholder="Ask anything…"
+              placeholder="Ask about your docs, the web, or anything else…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onKeyDown={(e) => {

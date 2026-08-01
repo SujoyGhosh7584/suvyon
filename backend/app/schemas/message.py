@@ -11,6 +11,7 @@ class MessageCreate(BaseSchema):
     provider: str | None = None
     model: str | None = None
     knowledge_base_id: UUID | None = None
+    mode: str | None = None
 
 
 class MessageResponse(BaseSchema):
