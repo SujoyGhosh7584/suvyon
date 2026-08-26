@@ -11,6 +11,9 @@ from sqlalchemy.orm import Session
 
 from app.models.chunk import DocumentChunk
 
+# Cosine distance (pgvector <=>). Lower is better; ~0.3-0.5 is typically relevant.
+MAX_COSINE_DISTANCE = 0.62
+
 
 def save_chunks(
     session: Session,
@@ -66,6 +69,7 @@ def similarity_search(
     knowledge_base_id: UUID,
     query_embedding: list[float],
     top_k: int = 5,
+    max_distance: float = MAX_COSINE_DISTANCE,
 ) -> list[DocumentChunk]:
     """
     Find the top_k most similar chunks using cosine similarity.
@@ -75,10 +79,25 @@ def similarity_search(
     """
     per_doc = max(3, top_k)
 
-    try:
-        session.execute(text("SET LOCAL ivfflat.probes = 10"))
-    except Exception:
-        pass
+    chunk_count = session.execute(
+        text(
+            "SELECT COUNT(*) FROM document_chunks WHERE knowledge_base_id = :kb_id"
+        ),
+        {"kb_id": str(knowledge_base_id)},
+    ).scalar() or 0
+
+    # IVFFlat is unreliable on tiny collections and can return zero neighbors.
+    if chunk_count < 40:
+        try:
+            session.execute(text("SET LOCAL enable_indexscan = off"))
+            session.execute(text("SET LOCAL enable_bitmapscan = off"))
+        except Exception:
+            pass
+    else:
+        try:
+            session.execute(text("SET LOCAL ivfflat.probes = 10"))
+        except Exception:
+            pass
 
     stmt = text("""
         WITH scored AS (
@@ -94,9 +113,10 @@ def similarity_search(
                    ) AS rn
             FROM scored
         )
-        SELECT id, document_id
+        SELECT id, document_id, dist
         FROM ranked
         WHERE rn <= :per_doc
+          AND dist <= :max_distance
         ORDER BY dist
         LIMIT :fetch_k
     """)
@@ -107,6 +127,7 @@ def similarity_search(
             "kb_id": str(knowledge_base_id),
             "embedding": str(query_embedding),
             "per_doc": per_doc,
+            "max_distance": max_distance,
             "fetch_k": max(top_k * 4, 40),
         },
     )

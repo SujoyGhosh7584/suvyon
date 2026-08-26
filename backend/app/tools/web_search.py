@@ -57,14 +57,64 @@ def _duckduckgo(query: str, max_results: int) -> str:
         except ImportError:
             from duckduckgo_search import DDGS
 
-        results = list(DDGS().text(query, max_results=max_results))
-        formatted = [
-            f"Title: {r.get('title')}\nURL: {r.get('href') or r.get('link')}\nSnippet: {r.get('body') or r.get('snippet')}"
-            for r in results
-        ]
-        return "\n\n".join(formatted) or "No results."
+        last_error = ""
+        backends: list[str | None] = [None, "lite", "html"]
+        for backend in backends:
+            try:
+                kwargs: dict = {"max_results": max_results}
+                if backend:
+                    kwargs["backend"] = backend
+                results = list(DDGS().text(query, **kwargs))
+                formatted = [
+                    f"Title: {r.get('title')}\nURL: {r.get('href') or r.get('link')}\nSnippet: {r.get('body') or r.get('snippet')}"
+                    for r in results
+                ]
+                joined = "\n\n".join(formatted)
+                if joined:
+                    return joined
+            except Exception as exc:
+                last_error = str(exc)
+                continue
+        instant = _ddg_instant(query)
+        if instant:
+            return instant
+        return f"DuckDuckGo search error: {last_error or 'no results'}"
     except Exception as e:
+        instant = _ddg_instant(query)
+        if instant:
+            return instant
         return f"DuckDuckGo search error: {e}"
+
+
+def _ddg_instant(query: str) -> str:
+    try:
+        response = httpx.get(
+            "https://api.duckduckgo.com/",
+            params={
+                "q": query,
+                "format": "json",
+                "no_html": 1,
+                "skip_disambig": 1,
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+        parts: list[str] = []
+        if data.get("AbstractText"):
+            parts.append(
+                f"Title: {data.get('Heading')}\nURL: {data.get('AbstractURL')}\nContent: {data.get('AbstractText')}"
+            )
+        for topic in data.get("RelatedTopics", [])[:5]:
+            if not isinstance(topic, dict):
+                continue
+            text = topic.get("Text")
+            url = topic.get("FirstURL")
+            if text:
+                parts.append(f"Title: {url or ''}\nURL: {url or ''}\nSnippet: {text}")
+        return "\n\n".join(parts)
+    except Exception:
+        return ""
 
 
 def web_search(query: str, max_results: int = 5) -> str:

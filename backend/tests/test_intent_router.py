@@ -15,8 +15,10 @@ def test_intent_router_classifies_web_search_and_rag():
     assert service._classify_request("Summarize the uploaded contract") == "rag"
     assert service._classify_request("Whose resume is it?") == "rag"
     assert service._classify_request("Explain machine learning basics") == "chat"
+    assert service._classify_request("What is the capital of France?") == "chat"
     # Live/web keywords should win over generic RAG phrases
     assert service._classify_request("tell me about the gold rate today") == "web"
+    assert service._classify_request("current gold rate") == "web"
 
 
 def test_provenance_note_lists_rag_sources():

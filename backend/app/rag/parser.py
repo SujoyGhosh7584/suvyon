@@ -35,17 +35,82 @@ def _parse_pdf(path: Path) -> str:
 
     doc = pymupdf.open(str(path))
     pages = []
-    for page in doc:
-        pages.append(page.get_text())
-    doc.close()
-    return "\n\n".join(pages)
+    try:
+        for page in doc:
+            pages.append(_pdf_page_text(page))
+    finally:
+        doc.close()
+    return "\n\n".join(p for p in pages if p.strip())
+
+
+def _pdf_page_text(page) -> str:
+    """Extract page text in visual reading order, including table-like blocks."""
+    blocks = page.get_text("blocks") or []
+    text_blocks = [
+        b for b in blocks if len(b) > 4 and isinstance(b[4], str) and b[4].strip()
+    ]
+    if text_blocks:
+        text_blocks.sort(key=lambda b: (round(b[1] / 12), b[0]))
+        text = "\n".join(b[4].strip() for b in text_blocks)
+        if text.strip():
+            return text
+
+    return (page.get_text("text") or "").strip()
 
 
 def _parse_docx(path: Path) -> str:
     from docx import Document
+    from docx.document import Document as DocxDocument
+    from docx.oxml.ns import qn
+    from docx.oxml.table import CT_Tbl
+    from docx.oxml.text.paragraph import CT_P
+    from docx.table import Table
+    from docx.text.paragraph import Paragraph
 
     doc = Document(str(path))
-    return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+    parts: list[str] = []
+
+    def iter_block_items(parent):
+        parent_elm = parent.element.body if isinstance(parent, DocxDocument) else parent._tc
+        for child in parent_elm.iterchildren():
+            if isinstance(child, CT_P):
+                yield Paragraph(child, parent)
+            elif isinstance(child, CT_Tbl):
+                yield Table(child, parent)
+
+    def table_text(table: Table) -> str:
+        rows = []
+        for row in table.rows:
+            cells = []
+            seen: set[str] = set()
+            for cell in row.cells:
+                value = " ".join(cell.text.split())
+                if not value or value in seen:
+                    continue
+                seen.add(value)
+                cells.append(value)
+            if cells:
+                rows.append(" | ".join(cells))
+        return "\n".join(rows)
+
+    for block in iter_block_items(doc):
+        if isinstance(block, Paragraph):
+            text = block.text.strip()
+            if text:
+                parts.append(text)
+        elif isinstance(block, Table):
+            text = table_text(block)
+            if text:
+                parts.append(text)
+
+    # Text boxes / shapes often hold resume sidebars that paragraphs miss.
+    for node in doc.element.iter(qn("w:txbxContent")):
+        texts = [t.text.strip() for t in node.iter(qn("w:t")) if t.text and t.text.strip()]
+        joined = " ".join(texts)
+        if joined and joined not in parts:
+            parts.append(joined)
+
+    return "\n".join(parts)
 
 
 def _parse_csv(path: Path) -> str:

@@ -29,6 +29,7 @@ export function ChatPage() {
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
+  const [isSending, setIsSending] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -186,6 +187,7 @@ export function ChatPage() {
       const text = content.trim();
       if (!text) return;
       setContent("");
+      setIsSending(true);
       try {
         await conversationsApi.sendMessage(workspaceId, created.id, {
           content: text,
@@ -202,6 +204,8 @@ export function ChatPage() {
         });
       } catch (err) {
         setError(getErrorMessage(err));
+      } finally {
+        setIsSending(false);
       }
       return;
     }
@@ -478,6 +482,11 @@ export function ChatPage() {
               )}
             </div>
           ))}
+          {(sendMessage.isPending || isSending) && (
+            <div className="max-w-3xl rounded-2xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
+              Thinking…
+            </div>
+          )}
           <div ref={bottomRef} />
         </div>
 
@@ -506,7 +515,12 @@ export function ChatPage() {
             />
             <button
               className="btn-primary px-4"
-              disabled={sendMessage.isPending || createConversation.isPending || !content.trim()}
+              disabled={
+                sendMessage.isPending ||
+                createConversation.isPending ||
+                isSending ||
+                !content.trim()
+              }
             >
               <Send size={16} />
             </button>

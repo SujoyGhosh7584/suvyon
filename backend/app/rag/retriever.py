@@ -15,7 +15,8 @@ from app.rag.vector_store import similarity_search
 
 CONTEXT_TEMPLATE = """Use the following context from one or more uploaded documents to answer the question.
 Cite which document each fact comes from when possible.
-If the context does not contain enough information, say so.
+Use every relevant detail in the context (roles, dates, companies, skills).
+If the context is about a different topic than the question, say the documents do not cover this.
 
 Context:
 {context}

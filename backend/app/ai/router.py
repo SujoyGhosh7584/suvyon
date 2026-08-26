@@ -129,8 +129,20 @@ def route_chat(
                     f"Selected provider '{provider.provider_name}' ({model}) failed "
                     "and tool failover exhausted. " + " | ".join(errors)
                 )
+            errors = [f"{provider.provider_name}/{model}: {exc}"]
+            for alt in get_available_providers():
+                if alt is provider:
+                    continue
+                alt_model = _default_model_for(alt.provider_name, tools=False)
+                if not alt_model:
+                    continue
+                try:
+                    return alt.chat(messages, alt_model, **kwargs)
+                except Exception as alt_exc:
+                    errors.append(f"{alt.provider_name}/{alt_model}: {alt_exc}")
             raise RuntimeError(
-                f"Selected provider '{provider.provider_name}' ({model}) failed: {exc}"
+                f"Selected provider '{provider.provider_name}' ({model}) failed: "
+                + " | ".join(errors)
             )
 
     available = get_available_providers()

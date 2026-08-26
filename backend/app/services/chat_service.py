@@ -110,6 +110,7 @@ class ChatService:
             "recent",
             "update",
             "price",
+            "rate",
             "stock",
             "weather",
             "trend",
@@ -122,6 +123,7 @@ class ChatService:
             "vs",
             "who is",
             "who was",
+            "who won",
             "where is",
             "where was",
             "when did",
@@ -135,6 +137,7 @@ class ChatService:
             "https",
             "www",
             "internet",
+            "live",
         )
         rag_keywords = (
             "document",
@@ -143,30 +146,16 @@ class ChatService:
             "pdf",
             "uploaded",
             "upload",
-            "report",
-            "contract",
             "knowledge base",
-            "workspace",
             "resume",
             "cv",
-            "candidate",
-            "profile",
-            "skills",
-            "experience",
-            "education",
             "according to",
             "from the docs",
             "from the document",
-            "summarize",
-            "review",
-            "analyze",
-            "extract",
-            "tell me about",
-            "based on",
             "my doc",
             "my docs",
-            "paper",
-            "notes",
+            "in the doc",
+            "in the document",
         )
 
         # Prefer live/web intents over RAG when both could match
@@ -175,8 +164,20 @@ class ChatService:
             return "web"
         if any(keyword in text for keyword in rag_keywords):
             return "rag"
+        if knowledge_bases and any(
+            hint in text
+            for hint in (
+                "experience",
+                "work ex",
+                "work history",
+                "skills",
+                "education",
+                "summarize",
+            )
+        ):
+            return "rag"
 
-        # Check if RAG yields context in active knowledge bases
+        # Only route to RAG when retrieved chunks are actually similar.
         if knowledge_bases and self._session:
             for kb in knowledge_bases:
                 try:
@@ -252,13 +253,21 @@ class ChatService:
                 LLMMessage(role="system", content=conversation.system_prompt)
             )
 
-        for msg in self._messages.get_by_conversation(conversation.id):
-            llm_messages.append(
-                LLMMessage(
-                    role=msg.role if isinstance(msg.role, str) else msg.role.value,
-                    content=msg.content,
-                )
-            )
+        history = self._messages.get_by_conversation(conversation.id)
+        # The current user turn is persisted before generation. Do not send it
+        # twice — Gemini rejects / blanks on consecutive user roles.
+        if (
+            history
+            and str(getattr(history[-1].role, "value", history[-1].role)) == "user"
+            and history[-1].content == content
+        ):
+            history = history[:-1]
+
+        for msg in history:
+            role = msg.role if isinstance(msg.role, str) else msg.role.value
+            if not (msg.content or "").strip():
+                continue
+            llm_messages.append(LLMMessage(role=role, content=msg.content))
 
         user_message = LLMMessage(role="user", content=content)
 
@@ -350,6 +359,8 @@ class ChatService:
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
         )
+        if selected_mode == "rag" and not rag_sources:
+            selected_mode = "chat"
 
         response = route_chat(
             llm_messages,
@@ -420,12 +431,14 @@ class ChatService:
         selected_mode = (
             mode or self._classify_request(content, knowledge_bases)
         ).lower()
-        llm_messages, _ = self._build_contextual_messages(
+        llm_messages, rag_sources = self._build_contextual_messages(
             conversation=conversation,
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
         )
+        if selected_mode == "rag" and not rag_sources:
+            selected_mode = "chat"
 
         full_content = ""
         for chunk in route_stream(
@@ -440,6 +453,7 @@ class ChatService:
             selected_mode,
             conversation.provider,
             conversation.model,
+            sources=rag_sources if selected_mode == "rag" else None,
         )
         if provenance_note:
             full_content = f"{full_content}\n\n---\n{provenance_note}"

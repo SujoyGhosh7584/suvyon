@@ -51,7 +51,12 @@ def process_document(
 
         for i in range(0, len(texts), EMBED_BATCH_SIZE):
             batch = texts[i:i + EMBED_BATCH_SIZE]
-            all_embeddings.extend(embed_texts(batch))
+            all_embeddings.extend(embed_texts(batch, task_type="RETRIEVAL_DOCUMENT"))
+
+        if len(all_embeddings) != len(chunks):
+            raise ValueError(
+                f"Embedding count mismatch: {len(all_embeddings)} vectors for {len(chunks)} chunks."
+            )
 
         # 4. Build chunk records
         chunk_records = [
