@@ -1,3 +1,6 @@
+import json
+import re
+import uuid
 from collections.abc import Iterator
 
 import httpx
@@ -10,21 +13,30 @@ _GROQ_API_URL = "https://api.groq.com/openai/v1"
 _MODELS = [
     ModelInfo(
         provider="groq",
+        model_id="llama-3.1-8b-instant",
+        display_name="LLaMA 3.1 8B Instant",
+        context_length=128000,
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        capabilities=["chat", "fast", "tools"],
+    ),
+    ModelInfo(
+        provider="groq",
+        model_id="openai/gpt-oss-20b",
+        display_name="GPT-OSS 20B",
+        context_length=131072,
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        capabilities=["chat", "reasoning", "tools"],
+    ),
+    ModelInfo(
+        provider="groq",
         model_id="llama-3.3-70b-versatile",
         display_name="LLaMA 3.3 70B",
         context_length=128000,
         cost_per_1k_input=0.0,
         cost_per_1k_output=0.0,
         capabilities=["chat", "reasoning"],
-    ),
-    ModelInfo(
-        provider="groq",
-        model_id="llama-3.1-8b-instant",
-        display_name="LLaMA 3.1 8B Instant",
-        context_length=128000,
-        cost_per_1k_input=0.0,
-        cost_per_1k_output=0.0,
-        capabilities=["chat", "fast"],
     ),
     ModelInfo(
         provider="groq",
@@ -36,6 +48,34 @@ _MODELS = [
         capabilities=["chat"],
     ),
 ]
+
+# llama-3.3 often emits XML-ish tool calls that Groq rejects; recover them.
+_FAILED_TOOL_RE = re.compile(
+    r"<function\s*=\s*(?P<name>[a-zA-Z0-9_]+)\s*(?P<args>\{.*?\})\s*</function>",
+    re.DOTALL,
+)
+_FAILED_TOOL_RE_ALT = re.compile(
+    r"<function=(?P<name>[a-zA-Z0-9_]+)\s*(?P<args>\{.*?\})",
+    re.DOTALL,
+)
+
+
+def _parse_failed_tool_generation(failed_generation: str) -> list[dict] | None:
+    text = failed_generation or ""
+    match = _FAILED_TOOL_RE.search(text) or _FAILED_TOOL_RE_ALT.search(text)
+    if not match:
+        return None
+    try:
+        args = json.loads(match.group("args"))
+    except json.JSONDecodeError:
+        return None
+    return [
+        {
+            "id": f"call_{uuid.uuid4().hex[:12]}",
+            "name": match.group("name"),
+            "arguments": args,
+        }
+    ]
 
 
 class GroqProvider(BaseLLMProvider):
@@ -49,8 +89,6 @@ class GroqProvider(BaseLLMProvider):
 
     def _serialize_tool_calls(self, tool_calls: list[dict]) -> list[dict]:
         """Convert internal tool_calls back to OpenAI wire format."""
-        import json
-
         serialized = []
         for tc in tool_calls:
             if "function" in tc:
@@ -79,6 +117,8 @@ class GroqProvider(BaseLLMProvider):
                 msg["tool_calls"] = self._serialize_tool_calls(m.tool_calls)
             if m.tool_call_id:
                 msg["tool_call_id"] = m.tool_call_id
+            if m.name and m.role == "tool":
+                msg["name"] = m.name
             serialized.append(msg)
         payload = {"model": model, "messages": serialized, "stream": stream}
         if "tools" in kwargs and kwargs["tools"]:
@@ -93,24 +133,45 @@ class GroqProvider(BaseLLMProvider):
                 headers=self._headers(),
                 json=self._build_payload(messages, model, stream=False, **kwargs),
             )
-            response.raise_for_status()
+            if response.status_code >= 400:
+                try:
+                    err = response.json().get("error", {})
+                except Exception:
+                    err = {}
+                failed_generation = err.get("failed_generation") or ""
+                recovered = _parse_failed_tool_generation(failed_generation)
+                if recovered and kwargs.get("tools"):
+                    return LLMResponse(
+                        content="",
+                        provider=self.provider_name,
+                        model=model,
+                        tool_calls=recovered,
+                    )
+                response.raise_for_status()
             data = response.json()
 
         choice = data["choices"][0]["message"]
         usage = data.get("usage", {})
 
-        # Parse tool calls if present
         tool_calls = None
         if choice.get("tool_calls"):
-            import json
-            tool_calls = [
-                {
-                    "id": tc["id"],
-                    "name": tc["function"]["name"],
-                    "arguments": json.loads(tc["function"]["arguments"]),
-                }
-                for tc in choice["tool_calls"]
-            ]
+            tool_calls = []
+            for tc in choice["tool_calls"]:
+                raw_args = tc["function"]["arguments"]
+                if isinstance(raw_args, dict):
+                    parsed_args = raw_args
+                else:
+                    try:
+                        parsed_args = json.loads(raw_args or "{}")
+                    except json.JSONDecodeError:
+                        parsed_args = {}
+                tool_calls.append(
+                    {
+                        "id": tc["id"],
+                        "name": tc["function"]["name"],
+                        "arguments": parsed_args,
+                    }
+                )
 
         return LLMResponse(
             content=choice.get("content") or "",
@@ -132,7 +193,6 @@ class GroqProvider(BaseLLMProvider):
                 response.raise_for_status()
                 for line in response.iter_lines():
                     if line.startswith("data: ") and line != "data: [DONE]":
-                        import json
                         chunk = json.loads(line[6:])
                         delta = chunk["choices"][0]["delta"].get("content", "")
                         if delta:

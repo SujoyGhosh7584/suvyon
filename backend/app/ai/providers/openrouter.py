@@ -80,6 +80,8 @@ class OpenRouterProvider(BaseLLMProvider):
                 msg["tool_calls"] = self._serialize_tool_calls(m.tool_calls)
             if m.tool_call_id:
                 msg["tool_call_id"] = m.tool_call_id
+            if m.name and m.role == "tool":
+                msg["name"] = m.name
             serialized.append(msg)
 
         payload: dict = {"model": model, "messages": serialized, "stream": stream}
@@ -103,14 +105,23 @@ class OpenRouterProvider(BaseLLMProvider):
 
         tool_calls = None
         if choice.get("tool_calls"):
-            tool_calls = [
-                {
-                    "id": tc["id"],
-                    "name": tc["function"]["name"],
-                    "arguments": json.loads(tc["function"]["arguments"]),
-                }
-                for tc in choice["tool_calls"]
-            ]
+            tool_calls = []
+            for tc in choice["tool_calls"]:
+                raw_args = tc["function"]["arguments"]
+                if isinstance(raw_args, dict):
+                    parsed_args = raw_args
+                else:
+                    try:
+                        parsed_args = json.loads(raw_args or "{}")
+                    except json.JSONDecodeError:
+                        parsed_args = {}
+                tool_calls.append(
+                    {
+                        "id": tc["id"],
+                        "name": tc["function"]["name"],
+                        "arguments": parsed_args,
+                    }
+                )
 
         return LLMResponse(
             content=choice.get("content") or "",

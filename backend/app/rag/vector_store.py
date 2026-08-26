@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.models.chunk import DocumentChunk, EMBEDDING_DIMENSIONS
+from app.models.chunk import DocumentChunk
 
 
 def save_chunks(
@@ -21,6 +21,46 @@ def save_chunks(
     session.flush()
 
 
+def _diversify_chunk_ids(
+    ranked: list[tuple[UUID, UUID]],
+    top_k: int,
+) -> list[UUID]:
+    """
+    Pick up to top_k chunk ids while covering as many documents as possible.
+
+    Strategy:
+    1. Take the best chunk from each distinct document (in score order).
+    2. Fill remaining slots with the next-best unused chunks by score.
+    """
+    if not ranked:
+        return []
+
+    selected: list[UUID] = []
+    selected_set: set[UUID] = set()
+    seen_docs: set[UUID] = set()
+
+    # Pass 1 — one best chunk per document
+    for chunk_id, document_id in ranked:
+        if document_id in seen_docs:
+            continue
+        selected.append(chunk_id)
+        selected_set.add(chunk_id)
+        seen_docs.add(document_id)
+        if len(selected) >= top_k:
+            return selected
+
+    # Pass 2 — fill remaining slots by original rank
+    for chunk_id, _document_id in ranked:
+        if chunk_id in selected_set:
+            continue
+        selected.append(chunk_id)
+        selected_set.add(chunk_id)
+        if len(selected) >= top_k:
+            break
+
+    return selected
+
+
 def similarity_search(
     session: Session,
     knowledge_base_id: UUID,
@@ -29,14 +69,36 @@ def similarity_search(
 ) -> list[DocumentChunk]:
     """
     Find the top_k most similar chunks using cosine similarity.
-    Requires pgvector extension enabled on the database.
+
+    Rank within each document first so later uploads cannot be crowded
+    out by a larger first file. Requires pgvector.
     """
+    per_doc = max(3, top_k)
+
+    try:
+        session.execute(text("SET LOCAL ivfflat.probes = 10"))
+    except Exception:
+        pass
+
     stmt = text("""
-        SELECT id
-        FROM document_chunks
-        WHERE knowledge_base_id = :kb_id
-        ORDER BY embedding <=> CAST(:embedding AS vector)
-        LIMIT :top_k
+        WITH scored AS (
+            SELECT id, document_id,
+                   embedding <=> CAST(:embedding AS vector) AS dist
+            FROM document_chunks
+            WHERE knowledge_base_id = :kb_id
+        ),
+        ranked AS (
+            SELECT id, document_id, dist,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY document_id ORDER BY dist
+                   ) AS rn
+            FROM scored
+        )
+        SELECT id, document_id
+        FROM ranked
+        WHERE rn <= :per_doc
+        ORDER BY dist
+        LIMIT :fetch_k
     """)
 
     result = session.execute(
@@ -44,11 +106,13 @@ def similarity_search(
         {
             "kb_id": str(knowledge_base_id),
             "embedding": str(query_embedding),
-            "top_k": top_k,
+            "per_doc": per_doc,
+            "fetch_k": max(top_k * 4, 40),
         },
     )
 
-    chunk_ids = [row[0] for row in result]
+    ranked = [(row[0], row[1]) for row in result]
+    chunk_ids = _diversify_chunk_ids(ranked, top_k)
 
     if not chunk_ids:
         return []
@@ -60,4 +124,3 @@ def similarity_search(
     )
     chunk_map = {c.id: c for c in chunks}
     return [chunk_map[cid] for cid in chunk_ids if cid in chunk_map]
-

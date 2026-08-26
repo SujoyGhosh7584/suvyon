@@ -13,7 +13,8 @@ from app.models.document import Document
 from app.rag.embeddings import embed_query
 from app.rag.vector_store import similarity_search
 
-CONTEXT_TEMPLATE = """Use the following context to answer the question.
+CONTEXT_TEMPLATE = """Use the following context from one or more uploaded documents to answer the question.
+Cite which document each fact comes from when possible.
 If the context does not contain enough information, say so.
 
 Context:

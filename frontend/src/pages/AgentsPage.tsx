@@ -16,11 +16,11 @@ export function AgentsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("Search Agent");
   const [instructions, setInstructions] = useState(
-    "You are a helpful assistant with web search capability.",
+    "You are a helpful assistant with web search capability. Always use web_search for current prices, news, scores, and live facts.",
   );
   const [description, setDescription] = useState("");
   const [provider, setProvider] = useState("groq");
-  const [model, setModel] = useState("llama-3.3-70b-versatile");
+  const [model, setModel] = useState("llama-3.1-8b-instant");
   const [selectedTools, setSelectedTools] = useState<string[]>(["web_search"]);
   const [error, setError] = useState("");
 
@@ -195,8 +195,12 @@ export function AgentsPage() {
                     className="input"
                     value={provider}
                     onChange={(e) => {
-                      setProvider(e.target.value);
-                      setModel("");
+                      const next = e.target.value;
+                      setProvider(next);
+                      const first = models.find((m) =>
+                        next ? m.provider === next : false,
+                      );
+                      setModel(first?.model_id || "");
                     }}
                   >
                     <option value="">Auto</option>

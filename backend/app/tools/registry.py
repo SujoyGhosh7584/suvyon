@@ -5,7 +5,11 @@ from app.tools.web_search import web_search
 TOOL_REGISTRY: dict[str, dict] = {
     "web_search": {
         "fn": web_search,
-        "description": "Search the web for current information.",
+        "description": (
+            "Search the live web for current information such as prices, news, "
+            "sports scores, weather, and recent events. Always use this tool for "
+            "up-to-date facts instead of answering from memory."
+        ),
         "parameters": {"query": "string"},
     },
     "calculator": {

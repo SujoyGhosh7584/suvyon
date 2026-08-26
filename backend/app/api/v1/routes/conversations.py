@@ -166,11 +166,10 @@ def send_message(
     conversation = _get_conversation_or_404(
         workspace_id, conversation_id, current_user, workspace_service, chat_service
     )
-    # Per-request provider/model override
-    if request.provider is not None:
-        conversation.provider = request.provider if request.provider.strip() else None
-    if request.model is not None:
-        conversation.model = request.model if request.model.strip() else None
+    # Always apply the UI selection for this request. Empty Auto/Default
+    # clears a leftover Groq id so Gemini/OpenRouter can actually run.
+    conversation.provider = (request.provider or "").strip() or None
+    conversation.model = (request.model or "").strip() or None
 
     try:
         assistant_msg = chat_service.send_message(
@@ -203,10 +202,8 @@ def stream_message(
     conversation = _get_conversation_or_404(
         workspace_id, conversation_id, current_user, workspace_service, chat_service
     )
-    if request.provider is not None:
-        conversation.provider = request.provider if request.provider.strip() else None
-    if request.model is not None:
-        conversation.model = request.model if request.model.strip() else None
+    conversation.provider = (request.provider or "").strip() or None
+    conversation.model = (request.model or "").strip() or None
 
     def event_stream():
         try:

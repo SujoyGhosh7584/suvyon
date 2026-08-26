@@ -9,6 +9,7 @@ class LLMMessage:
     content: str
     tool_calls: list[dict] | None = None
     tool_call_id: str | None = None
+    name: str | None = None  # tool name for role="tool" messages
 
 
 @dataclass

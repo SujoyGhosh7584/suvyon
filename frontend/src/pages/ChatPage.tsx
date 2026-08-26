@@ -64,6 +64,12 @@ export function ChatPage() {
   }, [conversationId]);
 
   useEffect(() => {
+    if (!conversationId || !activeConversation) return;
+    setProvider(activeConversation.provider || "");
+    setModel(activeConversation.model || "");
+  }, [conversationId, activeConversation?.id]);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, optimistic]);
 
@@ -386,8 +392,12 @@ export function ChatPage() {
               value={provider}
               onChange={(e) => {
                 setError("");
-                setProvider(e.target.value);
-                setModel("");
+                const nextProvider = e.target.value;
+                setProvider(nextProvider);
+                const first = models.find((m) =>
+                  nextProvider ? m.provider === nextProvider : true,
+                );
+                setModel(nextProvider && first ? first.model_id : "");
               }}
             >
               <option value="">Auto provider</option>

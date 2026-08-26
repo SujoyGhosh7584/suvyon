@@ -169,10 +169,12 @@ class ChatService:
             "notes",
         )
 
-        if any(keyword in text for keyword in rag_keywords):
-            return "rag"
+        # Prefer live/web intents over RAG when both could match
+        # (e.g. "tell me about the gold rate today").
         if any(keyword in text for keyword in web_keywords):
             return "web"
+        if any(keyword in text for keyword in rag_keywords):
+            return "rag"
 
         # Check if RAG yields context in active knowledge bases
         if knowledge_bases and self._session:
@@ -225,7 +227,7 @@ class ChatService:
                 self._session,
                 kb.id,
                 query,
-                top_k=8,
+                top_k=12,
             )
             if chunks:
                 context_parts.append(
@@ -265,9 +267,11 @@ class ChatService:
             user_message = LLMMessage(
                 role="user",
                 content=(
-                    "Use the following web search results to answer the user's question. "
-                    "Base your answer only on these results when possible. "
-                    "If the results are insufficient, say so clearly.\n\n"
+                    "You have live web search results below. Answer the user's question "
+                    "using these results. Extract concrete facts (prices, scores, dates, "
+                    "numbers, names) when present. Cite source URLs. Do not say you lack "
+                    "access to real-time data when the results contain relevant information. "
+                    "Only say results are insufficient if they truly do not answer the question.\n\n"
                     f"Search results:\n{search_results}\n\nQuestion: {content}"
                 ),
             )

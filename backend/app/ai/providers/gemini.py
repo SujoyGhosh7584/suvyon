@@ -1,4 +1,5 @@
 import json
+import uuid
 from collections.abc import Iterator
 
 import httpx
@@ -11,38 +12,135 @@ _GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta"
 _MODELS = [
     ModelInfo(
         provider="gemini",
+        model_id="gemini-flash-latest",
+        display_name="Gemini Flash (Latest)",
+        context_length=1048576,
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        capabilities=["chat", "vision", "fast", "tools"],
+    ),
+    ModelInfo(
+        provider="gemini",
+        model_id="gemini-3.5-flash",
+        display_name="Gemini 3.5 Flash",
+        context_length=1048576,
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        capabilities=["chat", "vision", "fast", "tools"],
+    ),
+    ModelInfo(
+        provider="gemini",
         model_id="gemini-2.0-flash",
         display_name="Gemini 2.0 Flash",
         context_length=1048576,
         cost_per_1k_input=0.0,
         cost_per_1k_output=0.0,
-        capabilities=["chat", "vision", "fast"],
+        capabilities=["chat", "vision", "fast", "tools"],
     ),
     ModelInfo(
         provider="gemini",
-        model_id="gemini-1.5-pro",
-        display_name="Gemini 1.5 Pro",
-        context_length=2097152,
+        model_id="gemini-3.5-flash-lite",
+        display_name="Gemini 3.5 Flash Lite",
+        context_length=1048576,
         cost_per_1k_input=0.0,
         cost_per_1k_output=0.0,
-        capabilities=["chat", "vision", "reasoning", "long-context"],
+        capabilities=["chat", "fast"],
     ),
 ]
 
 
+def _openai_tools_to_gemini(tools: list[dict] | None) -> list[dict] | None:
+    """Convert OpenAI-style tool schemas to Gemini functionDeclarations."""
+    if not tools:
+        return None
+    declarations = []
+    for tool in tools:
+        fn = tool.get("function") if isinstance(tool, dict) else None
+        if not fn:
+            continue
+        decl: dict = {
+            "name": fn["name"],
+            "description": fn.get("description") or "",
+        }
+        params = fn.get("parameters")
+        if params:
+            decl["parameters"] = params
+        declarations.append(decl)
+    if not declarations:
+        return None
+    return [{"functionDeclarations": declarations}]
+
+
 def _to_gemini_messages(messages: list[LLMMessage]) -> tuple[str | None, list[dict]]:
-    """Convert LLMMessages to Gemini format, extracting system prompt."""
-    system_prompt = None
-    contents = []
+    """Convert LLMMessages to Gemini format, including tool calls/results."""
+    system_parts: list[str] = []
+    contents: list[dict] = []
 
     for m in messages:
         if m.role == "system":
-            system_prompt = m.content
-        else:
-            role = "user" if m.role == "user" else "model"
-            contents.append({"role": role, "parts": [{"text": m.content}]})
+            if m.content:
+                system_parts.append(m.content)
+            continue
 
+        if m.role == "tool":
+            fn_response: dict = {
+                "name": m.name or "tool",
+                "response": {"result": m.content or ""},
+            }
+            if m.tool_call_id:
+                fn_response["id"] = m.tool_call_id
+            contents.append(
+                {
+                    "role": "user",
+                    "parts": [{"functionResponse": fn_response}],
+                }
+            )
+            continue
+
+        if m.role == "assistant":
+            parts: list[dict] = []
+            if m.content:
+                parts.append({"text": m.content})
+            if m.tool_calls:
+                for tc in m.tool_calls:
+                    part: dict = {
+                        "functionCall": {
+                            "name": tc["name"],
+                            "args": tc.get("arguments") or {},
+                        }
+                    }
+                    if tc.get("id"):
+                        part["functionCall"]["id"] = tc["id"]
+                    if tc.get("thought_signature"):
+                        part["thoughtSignature"] = tc["thought_signature"]
+                    parts.append(part)
+            if parts:
+                contents.append({"role": "model", "parts": parts})
+            continue
+
+        # user (and any other role treated as user)
+        contents.append({"role": "user", "parts": [{"text": m.content or ""}]})
+
+    system_prompt = "\n\n".join(system_parts) if system_parts else None
     return system_prompt, contents
+
+
+def _parse_tool_calls(parts: list[dict]) -> list[dict] | None:
+    tool_calls = []
+    for part in parts:
+        fc = part.get("functionCall")
+        if not fc:
+            continue
+        call = {
+            "id": fc.get("id") or f"call_{uuid.uuid4().hex[:12]}",
+            "name": fc["name"],
+            "arguments": fc.get("args") or {},
+        }
+        signature = part.get("thoughtSignature") or fc.get("thoughtSignature")
+        if signature:
+            call["thought_signature"] = signature
+        tool_calls.append(call)
+    return tool_calls or None
 
 
 class GeminiProvider(BaseLLMProvider):
@@ -53,11 +151,25 @@ class GeminiProvider(BaseLLMProvider):
         return f"{_GEMINI_API_URL}/models/{model}:{action}?key={settings.GEMINI_API_KEY}"
 
     def _build_payload(
-        self, messages: list[LLMMessage], system_prompt: str | None, **kwargs
+        self,
+        contents: list[dict],
+        system_prompt: str | None,
+        **kwargs,
     ) -> dict:
-        payload: dict = {"contents": messages}
+        payload: dict = {"contents": contents}
         if system_prompt:
             payload["systemInstruction"] = {"parts": [{"text": system_prompt}]}
+
+        tools = _openai_tools_to_gemini(kwargs.pop("tools", None))
+        if tools:
+            payload["tools"] = tools
+            # Encourage the model to call tools when they are relevant
+            payload["toolConfig"] = {
+                "functionCallingConfig": {"mode": "AUTO"}
+            }
+
+        # Ignore unknown OpenAI-style kwargs that Gemini does not accept
+        kwargs.pop("tool_choice", None)
         return payload
 
     def chat(self, messages: list[LLMMessage], model: str, **kwargs) -> LLMResponse:
@@ -66,7 +178,7 @@ class GeminiProvider(BaseLLMProvider):
         with httpx.Client(timeout=60) as client:
             response = client.post(
                 self._url(model),
-                json=self._build_payload(contents, system_prompt),
+                json=self._build_payload(contents, system_prompt, **kwargs),
             )
             if response.is_error:
                 try:
@@ -79,7 +191,14 @@ class GeminiProvider(BaseLLMProvider):
                     response.raise_for_status()
             data = response.json()
 
-        content = data["candidates"][0]["content"]["parts"][0]["text"]
+        parts = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [])
+        )
+        text_parts = [p.get("text", "") for p in parts if p.get("text")]
+        content = "".join(text_parts)
+        tool_calls = _parse_tool_calls(parts)
         usage = data.get("usageMetadata", {})
 
         return LLMResponse(
@@ -88,6 +207,7 @@ class GeminiProvider(BaseLLMProvider):
             model=model,
             prompt_tokens=usage.get("promptTokenCount"),
             completion_tokens=usage.get("candidatesTokenCount"),
+            tool_calls=tool_calls,
         )
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
@@ -97,7 +217,7 @@ class GeminiProvider(BaseLLMProvider):
             with client.stream(
                 "POST",
                 self._url(model, stream=True),
-                json=self._build_payload(contents, system_prompt),
+                json=self._build_payload(contents, system_prompt, **kwargs),
             ) as response:
                 if response.is_error:
                     response.read()
@@ -113,7 +233,6 @@ class GeminiProvider(BaseLLMProvider):
                     line = line.strip()
                     if not line or line in ("[", "]", ","):
                         continue
-                    # Strip leading comma from array items
                     if line.startswith(","):
                         line = line[1:]
                     try:
@@ -128,7 +247,6 @@ class GeminiProvider(BaseLLMProvider):
                             yield text
                     except (json.JSONDecodeError, IndexError, KeyError):
                         continue
-
 
     def list_models(self) -> list[ModelInfo]:
         return _MODELS
