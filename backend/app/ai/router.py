@@ -17,22 +17,22 @@ from app.ai.registry import get_available_providers, get_provider
 
 # Default model per provider when none is specified
 _PROVIDER_DEFAULTS: dict[str, str] = {
-    "groq": "llama-3.1-8b-instant",
+    "groq": "openai/gpt-oss-20b",
     "gemini": "gemini-flash-latest",
-    # openrouter/free auto-picks a currently available free model
     "openrouter": "openrouter/free",
 }
 
-# Preferred models when the request includes tools (function calling)
 _TOOL_MODEL_DEFAULTS: dict[str, str] = {
-    "groq": "llama-3.1-8b-instant",
+    "groq": "openai/gpt-oss-20b",
     "gemini": "gemini-flash-latest",
     "openrouter": "openrouter/free",
 }
 
-# Known-bad tool models → safer substitutes for the same provider
-_TOOL_MODEL_FALLBACKS: dict[str, str] = {
-    "llama-3.3-70b-versatile": "llama-3.1-8b-instant",
+# Retired Groq SKUs (decommissioned 16 Aug 2026) and other aliases
+_MODEL_ALIASES: dict[str, str] = {
+    "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+    "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+    "gemma2-9b-it": "openai/gpt-oss-20b",
     "gemini-2.5-flash": "gemini-flash-latest",
     "gemini-2.5-pro": "gemini-flash-latest",
     "gemini-2.5-flash-lite": "gemini-flash-latest",
@@ -64,8 +64,8 @@ def _resolve(
     provider_name = provider_name.strip() if provider_name else None
     model_id = model_id.strip() if model_id else None
 
-    if tools and model_id in _TOOL_MODEL_FALLBACKS:
-        model_id = _TOOL_MODEL_FALLBACKS[model_id]
+    if model_id in _MODEL_ALIASES:
+        model_id = _MODEL_ALIASES[model_id]
 
     available_providers = get_available_providers()
     if not available_providers:

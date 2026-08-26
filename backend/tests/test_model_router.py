@@ -26,7 +26,7 @@ class _FakeProvider:
 
 
 def test_resolve_does_not_keep_groq_model_on_gemini(monkeypatch):
-    groq = _FakeProvider("groq", ["llama-3.1-8b-instant"])
+    groq = _FakeProvider("groq", ["openai/gpt-oss-20b"])
     gemini = _FakeProvider("gemini", ["gemini-flash-latest"])
 
     monkeypatch.setattr(
@@ -42,8 +42,18 @@ def test_resolve_does_not_keep_groq_model_on_gemini(monkeypatch):
 
     provider, model = llm_router._resolve(
         "gemini",
-        "llama-3.1-8b-instant",
+        "openai/gpt-oss-20b",
         tools=False,
     )
     assert provider.provider_name == "gemini"
     assert model == "gemini-flash-latest"
+
+
+def test_resolve_rewrites_retired_groq_model(monkeypatch):
+    groq = _FakeProvider("groq", ["openai/gpt-oss-20b"])
+    monkeypatch.setattr(llm_router, "get_available_providers", lambda: [groq])
+    monkeypatch.setattr(llm_router, "get_provider", lambda name: groq if name == "groq" else None)
+
+    provider, model = llm_router._resolve("groq", "llama-3.1-8b-instant", tools=True)
+    assert provider.provider_name == "groq"
+    assert model == "openai/gpt-oss-20b"

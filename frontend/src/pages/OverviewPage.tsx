@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, FileText, MessageSquare } from "lucide-react";
+import { Bot, FileText, MessageSquare, Sparkles } from "lucide-react";
 import {
   agentsApi,
   conversationsApi,
@@ -39,30 +39,42 @@ export function OverviewPage() {
       value: conversations.length,
       to: `/app/w/${workspaceId}/chat`,
       icon: MessageSquare,
+      tint: "bg-violet-100 text-violet-700",
+      ring: "hover:border-violet-300",
     },
     {
       label: "Agents",
       value: agents.length,
       to: `/app/w/${workspaceId}/agents`,
       icon: Bot,
+      tint: "bg-teal-100 text-teal-700",
+      ring: "hover:border-teal-300",
     },
     {
       label: "Knowledge bases",
       value: knowledgeBases.length,
       to: `/app/w/${workspaceId}/knowledge`,
       icon: FileText,
+      tint: "bg-amber-100 text-amber-800",
+      ring: "hover:border-amber-300",
     },
     {
       label: "Documents",
       value: documents.length,
       to: `/app/w/${workspaceId}/knowledge`,
       icon: FileText,
+      tint: "bg-sky-100 text-sky-700",
+      ring: "hover:border-sky-300",
     },
   ];
 
   return (
     <div className="space-y-8">
-      <div>
+      <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 to-white p-6">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-800">
+          <Sparkles size={12} />
+          Overview
+        </div>
         <h1 className="font-display text-3xl font-extrabold tracking-tight">
           {workspace?.name || "Workspace"}
         </h1>
@@ -72,9 +84,9 @@ export function OverviewPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map(({ label, value, to, icon: Icon }) => (
-          <Link key={label} to={to} className="card p-5 transition hover:border-accent/40">
-            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-accent-muted text-accent">
+        {cards.map(({ label, value, to, icon: Icon, tint, ring }) => (
+          <Link key={label} to={to} className={`card p-5 transition ${ring}`}>
+            <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}>
               <Icon size={18} />
             </div>
             <div className="text-3xl font-semibold">{value}</div>

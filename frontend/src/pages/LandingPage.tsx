@@ -24,7 +24,8 @@ export function LandingPage() {
               AI operating workspace
             </p>
             <h1 className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-ink-950 md:text-6xl">
-              Suvyon
+              Research and agents,
+              <span className="block text-accent">without the busywork.</span>
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-600">
               Research, chat, and orchestrate tool-using agents in one workspace —

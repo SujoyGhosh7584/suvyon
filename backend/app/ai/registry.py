@@ -13,8 +13,8 @@ from app.ai.providers.openrouter import OpenRouterProvider
 # All registered providers — add new ones here only
 _PROVIDERS: list[BaseLLMProvider] = [
     GroqProvider(),
-    GeminiProvider(),
     OpenRouterProvider(),
+    GeminiProvider(),
 ]
 
 

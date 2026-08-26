@@ -1,9 +1,11 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import { Bot, Plus, Send, Trash2 } from "lucide-react";
+import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
+import { sendOnEnter } from "@/lib/keyboard";
 import { agentsApi, modelsApi } from "@/lib/services";
 import type { ChatHistoryItem } from "@/types/api";
 import { cn } from "@/lib/utils";
@@ -20,13 +22,14 @@ export function AgentsPage() {
   );
   const [description, setDescription] = useState("");
   const [provider, setProvider] = useState("groq");
-  const [model, setModel] = useState("llama-3.1-8b-instant");
+  const [model, setModel] = useState("openai/gpt-oss-20b");
   const [selectedTools, setSelectedTools] = useState<string[]>(["web_search"]);
   const [error, setError] = useState("");
 
   const [message, setMessage] = useState("");
   const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [running, setRunning] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: agents = [] } = useQuery({
     queryKey: ["agents", workspaceId],
@@ -51,6 +54,14 @@ export function AgentsPage() {
     [models],
   );
   const providerModels = models.filter((m) => !provider || m.provider === provider);
+  const usesWebSearch = (selectedAgent?.tools || "").includes("web_search");
+  const statusSteps = usesWebSearch
+    ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
+    : ["Thinking…", "Preparing a reply…"];
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [history, running]);
 
   const createAgent = useMutation({
     mutationFn: () =>
@@ -288,17 +299,25 @@ export function AgentsPage() {
           </div>
         ) : (
           <>
-            <div className="border-b border-ink-200/70 p-4">
-              <div className="text-lg font-semibold">{selectedAgent?.name || "Agent"}</div>
-              <div className="mt-1 text-sm text-ink-500">
-                {selectedAgent?.provider || "auto"} / {selectedAgent?.model || "default"} · tools:{" "}
-                {selectedAgent?.tools || "none"}
+            <div className="border-b border-teal-100 bg-gradient-to-r from-teal-50 to-white p-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-white">
+                  <Bot size={16} />
+                </span>
+                <div>
+                  <div className="text-lg font-semibold">{selectedAgent?.name || "Agent"}</div>
+                  <div className="text-sm text-ink-500">
+                    {selectedAgent?.provider || "auto"} / {selectedAgent?.model || "default"} · tools:{" "}
+                    {selectedAgent?.tools || "none"}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto p-5">
-              {history.length === 0 && (
+            <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(13,148,136,0.08),transparent_40%)] p-5">
+              {history.length === 0 && !running && (
                 <p className="text-sm text-ink-500">
-                  Ask this agent something. If it has web_search, it can look things up.
+                  Ask this agent something. Press Enter to send, Shift+Enter for a new line.
+                  {usesWebSearch ? " Live questions will search the web first." : ""}
                 </p>
               )}
               {history.map((item, idx) => (
@@ -307,8 +326,8 @@ export function AgentsPage() {
                   className={cn(
                     "max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed",
                     item.role === "user"
-                      ? "ml-auto bg-ink-950 text-white"
-                      : "bg-ink-50 text-ink-900",
+                      ? "ml-auto bg-teal-800 text-white"
+                      : "bg-white text-ink-900 shadow-sm ring-1 ring-teal-100",
                   )}
                 >
                   {item.role === "assistant" ? (
@@ -318,8 +337,10 @@ export function AgentsPage() {
                   )}
                 </div>
               ))}
+              <StatusBubble active={running} steps={statusSteps} />
+              <div ref={bottomRef} />
             </div>
-            <form onSubmit={runAgent} className="border-t border-ink-200/70 p-4">
+            <form onSubmit={runAgent} className="border-t border-teal-100 bg-white/80 p-4">
               {error && (
                 <div className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
@@ -328,11 +349,16 @@ export function AgentsPage() {
               <div className="flex gap-2">
                 <textarea
                   className="input min-h-[52px] resize-none"
-                  placeholder="Message this agent…"
+                  placeholder="Message this agent… (Enter to send)"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={sendOnEnter}
                 />
-                <button className="btn-primary px-4" disabled={running || !message.trim()}>
+                <button
+                  type="submit"
+                  className="btn-primary px-4"
+                  disabled={running || !message.trim()}
+                >
                   <Send size={16} />
                 </button>
               </div>

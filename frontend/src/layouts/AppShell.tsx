@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   Bot,
   FileText,
@@ -21,13 +21,32 @@ const links = [
   { to: "agents", label: "Agents", icon: Bot },
   { to: "knowledge", label: "Knowledge", icon: FileText },
   { to: "settings", label: "Settings", icon: Settings },
-];
+] as const;
+
+const sectionThemes: Record<string, string> = {
+  overview: "section-overview",
+  chat: "section-chat",
+  agents: "section-agents",
+  knowledge: "section-knowledge",
+  settings: "section-settings",
+};
+
+const navActive: Record<string, string> = {
+  overview: "bg-sky-700 text-white",
+  chat: "bg-violet-700 text-white",
+  agents: "bg-teal-700 text-white",
+  knowledge: "bg-amber-700 text-white",
+  settings: "bg-slate-800 text-white",
+};
 
 export function AppShell() {
   const { workspaceId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const currentSection =
+    links.find((link) => location.pathname.includes(`/${link.to}`))?.to || "overview";
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", workspaceId],
@@ -87,7 +106,7 @@ export function AppShell() {
                   cn(
                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
                     isActive
-                      ? "bg-ink-950 text-white"
+                      ? navActive[to]
                       : "text-ink-700 hover:bg-ink-100",
                     isCollapsed && "justify-center px-0",
                   )
@@ -123,7 +142,12 @@ export function AppShell() {
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 p-6 md:p-8">
+        <main
+          className={cn(
+            "min-w-0 flex-1 p-6 md:p-8",
+            sectionThemes[currentSection],
+          )}
+        >
           <Outlet />
         </main>
       </div>

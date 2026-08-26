@@ -47,7 +47,10 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div>
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-50 to-white p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+          Account
+        </p>
         <h1 className="font-display text-3xl font-extrabold">Settings</h1>
         <p className="mt-2 text-ink-600">Manage your profile and account security.</p>
       </div>

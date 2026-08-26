@@ -13,39 +13,21 @@ _GROQ_API_URL = "https://api.groq.com/openai/v1"
 _MODELS = [
     ModelInfo(
         provider="groq",
-        model_id="llama-3.1-8b-instant",
-        display_name="LLaMA 3.1 8B Instant",
-        context_length=128000,
+        model_id="openai/gpt-oss-20b",
+        display_name="GPT-OSS 20B",
+        context_length=131072,
         cost_per_1k_input=0.0,
         cost_per_1k_output=0.0,
         capabilities=["chat", "fast", "tools"],
     ),
     ModelInfo(
         provider="groq",
-        model_id="openai/gpt-oss-20b",
-        display_name="GPT-OSS 20B",
+        model_id="openai/gpt-oss-120b",
+        display_name="GPT-OSS 120B",
         context_length=131072,
         cost_per_1k_input=0.0,
         cost_per_1k_output=0.0,
         capabilities=["chat", "reasoning", "tools"],
-    ),
-    ModelInfo(
-        provider="groq",
-        model_id="llama-3.3-70b-versatile",
-        display_name="LLaMA 3.3 70B",
-        context_length=128000,
-        cost_per_1k_input=0.0,
-        cost_per_1k_output=0.0,
-        capabilities=["chat", "reasoning"],
-    ),
-    ModelInfo(
-        provider="groq",
-        model_id="gemma2-9b-it",
-        display_name="Gemma 2 9B",
-        context_length=8192,
-        cost_per_1k_input=0.0,
-        cost_per_1k_output=0.0,
-        capabilities=["chat"],
     ),
 ]
 
@@ -147,7 +129,10 @@ class GroqProvider(BaseLLMProvider):
                         model=model,
                         tool_calls=recovered,
                     )
-                response.raise_for_status()
+                detail = err.get("message") or response.text
+                raise RuntimeError(
+                    f"Groq API error ({response.status_code}) for {model}: {detail}"
+                )
             data = response.json()
 
         choice = data["choices"][0]["message"]

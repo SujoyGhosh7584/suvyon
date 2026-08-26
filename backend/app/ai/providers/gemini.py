@@ -170,8 +170,14 @@ class GeminiProvider(BaseLLMProvider):
 
     def _url(self, model: str, stream: bool = False) -> str:
         action = "streamGenerateContent" if stream else "generateContent"
-        suffix = "&alt=sse" if stream else ""
-        return f"{_GEMINI_API_URL}/models/{model}:{action}?key={settings.GEMINI_API_KEY}{suffix}"
+        suffix = "?alt=sse" if stream else ""
+        return f"{_GEMINI_API_URL}/models/{model}:{action}{suffix}"
+
+    def _headers(self) -> dict:
+        return {
+            "x-goog-api-key": settings.GEMINI_API_KEY,
+            "Content-Type": "application/json",
+        }
 
     def _build_payload(
         self,
@@ -186,24 +192,27 @@ class GeminiProvider(BaseLLMProvider):
         tools = _openai_tools_to_gemini(kwargs.pop("tools", None))
         if tools:
             payload["tools"] = tools
-            # Encourage the model to call tools when they are relevant
             payload["toolConfig"] = {
                 "functionCallingConfig": {"mode": "AUTO"}
+            }
+        else:
+            # Disable thinking only on plain chat so tool follow-ups still work
+            # on Gemini 3.x (they need thought signatures with function calls).
+            payload["generationConfig"] = {
+                "thinkingConfig": {"thinkingBudget": 0}
             }
 
         # Ignore unknown OpenAI-style kwargs that Gemini does not accept
         kwargs.pop("tool_choice", None)
-
-        generation_config: dict = {}
-        # Prevent thinking-only empty replies on Gemini 2.5/3.x.
-        generation_config["thinkingConfig"] = {"thinkingBudget": 0}
-        if generation_config:
-            payload["generationConfig"] = generation_config
         return payload
 
     def _post_generate(self, model: str, payload: dict) -> dict:
         with httpx.Client(timeout=60) as client:
-            response = client.post(self._url(model), json=payload)
+            response = client.post(
+                self._url(model),
+                headers=self._headers(),
+                json=payload,
+            )
             if response.is_error:
                 try:
                     err_json = response.json()
@@ -272,6 +281,7 @@ class GeminiProvider(BaseLLMProvider):
             with client.stream(
                 "POST",
                 self._url(model, stream=True),
+                headers=self._headers(),
                 json=payload,
             ) as response:
                 if response.is_error:

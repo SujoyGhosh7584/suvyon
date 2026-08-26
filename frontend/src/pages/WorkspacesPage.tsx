@@ -38,7 +38,7 @@ export function WorkspacesPage() {
         <div className="mb-8">
           <div className="font-display text-3xl font-extrabold">Your workspaces</div>
           <p className="mt-2 text-ink-600">
-            Choose a workspace to chat, run agents, and manage knowledge.
+            Pick a space for chat, agents, and knowledge — each with its own files and history.
           </p>
         </div>
 

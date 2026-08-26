@@ -12,7 +12,9 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
+import { sendOnEnter } from "@/lib/keyboard";
 import { conversationsApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
@@ -340,8 +342,8 @@ export function ChatPage() {
         </div>
       </aside>
 
-      <section className="card flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-200/70 p-3 md:px-4">
+      <section className="card flex min-w-0 flex-1 flex-col overflow-hidden border-violet-200/70">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-3 md:px-4">
           <div className="flex items-center gap-2">
             {activeConversation && editingId !== activeConversation.id ? (
               <div className="flex items-center gap-2">
@@ -483,9 +485,16 @@ export function ChatPage() {
             </div>
           ))}
           {(sendMessage.isPending || isSending) && (
-            <div className="max-w-3xl rounded-2xl bg-ink-50 px-4 py-3 text-sm text-ink-500">
-              Thinking…
-            </div>
+            <StatusBubble
+              active
+              steps={
+                mode === "web"
+                  ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
+                  : mode === "rag"
+                    ? ["Searching your documents…", "Writing an answer…"]
+                    : ["Thinking…", "Writing an answer…"]
+              }
+            />
           )}
           <div ref={bottomRef} />
         </div>
@@ -497,7 +506,7 @@ export function ChatPage() {
             </div>
           )}
           <div className="mb-3 text-xs text-ink-500">
-            Auto mode automatically searches web topics or queries your knowledge base documents when relevant.
+            Enter to send · Shift+Enter for a new line. Auto mode can search the web or your docs.
           </div>
           <div className="flex gap-2">
             <textarea
@@ -505,16 +514,11 @@ export function ChatPage() {
               placeholder="Ask about your docs, the web, or anything else…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  const form = e.currentTarget.form;
-                  if (form) form.requestSubmit();
-                }
-              }}
+              onKeyDown={sendOnEnter}
             />
             <button
               className="btn-primary px-4"
+              type="submit"
               disabled={
                 sendMessage.isPending ||
                 createConversation.isPending ||

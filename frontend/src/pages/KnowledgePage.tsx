@@ -72,10 +72,13 @@ export function KnowledgePage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display text-3xl font-extrabold">Knowledge</h1>
+      <div className="rounded-3xl border border-amber-100 bg-gradient-to-r from-amber-50 to-white p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800">
+          Knowledge
+        </p>
+        <h1 className="font-display text-3xl font-extrabold">Your documents</h1>
         <p className="mt-2 text-ink-600">
-          Create knowledge bases and upload documents for RAG-backed chat.
+          Create knowledge bases and upload files so chat can answer from them.
         </p>
       </div>
 
@@ -84,8 +87,8 @@ export function KnowledgePage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card p-5">
-          <div className="mb-4 flex items-center gap-2 font-semibold">
+        <div className="card border-amber-100 p-5">
+          <div className="mb-4 flex items-center gap-2 font-semibold text-amber-950">
             <Plus size={16} />
             New knowledge base
           </div>
@@ -138,8 +141,8 @@ export function KnowledgePage() {
           </div>
         </div>
 
-        <div className="card p-5">
-          <div className="mb-4 flex items-center gap-2 font-semibold">
+        <div className="card border-amber-100 p-5">
+          <div className="mb-4 flex items-center gap-2 font-semibold text-amber-950">
             <FileUp size={16} />
             Upload document
           </div>
