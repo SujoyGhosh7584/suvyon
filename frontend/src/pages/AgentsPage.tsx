@@ -115,10 +115,10 @@ export function AgentsPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
-      <aside className="panel flex w-72 shrink-0 flex-col overflow-hidden">
-        <div className="flex items-center justify-between border-b border-ink-200/70 p-4">
-          <div className="font-semibold">Agents</div>
+    <div className="flex h-[calc(100vh-2.75rem)] gap-4">
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-stage bg-ink-950 text-white">
+        <div className="flex items-center justify-between border-b border-white/10 p-4">
+          <div className="font-display font-bold">Agents</div>
           <button
             type="button"
             className="btn-ghost px-2 py-2"
@@ -133,7 +133,7 @@ export function AgentsPage() {
               key={a.id}
               className={cn(
                 "group mb-1 flex items-center gap-1 rounded-xl px-2 py-2 text-sm",
-                a.id === agentId ? "bg-ink-950 text-white" : "hover:bg-ink-50",
+                a.id === agentId ? "bg-rose-500 text-white" : "text-ink-200 hover:bg-white/10",
               )}
             >
               <Link
@@ -145,7 +145,7 @@ export function AgentsPage() {
                 <div
                   className={cn(
                     "truncate text-xs",
-                    a.id === agentId ? "text-white/70" : "text-ink-400",
+                    a.id === agentId ? "text-white/80" : "text-ink-400",
                   )}
                 >
                   {a.tools || "no tools"}
@@ -163,7 +163,7 @@ export function AgentsPage() {
         </div>
       </aside>
 
-      <section className="card flex min-w-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-stage bg-white shadow-panel">
         {showCreate ? (
           <div className="overflow-y-auto p-6">
             <h2 className="text-xl font-semibold">Create agent</h2>

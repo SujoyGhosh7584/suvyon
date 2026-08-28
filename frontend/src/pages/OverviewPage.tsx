@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, FileText, MessageSquare, Sparkles } from "lucide-react";
+import { ArrowUpRight, Bot, FileText, MessageSquare, Sparkles } from "lucide-react";
 import {
   agentsApi,
   conversationsApi,
@@ -39,71 +39,76 @@ export function OverviewPage() {
       value: conversations.length,
       to: `/app/w/${workspaceId}/chat`,
       icon: MessageSquare,
-      tint: "bg-violet-100 text-violet-700",
-      ring: "hover:border-violet-300",
+      className: "from-violet-600 to-indigo-600",
     },
     {
       label: "Agents",
       value: agents.length,
       to: `/app/w/${workspaceId}/agents`,
       icon: Bot,
-      tint: "bg-teal-100 text-teal-700",
-      ring: "hover:border-teal-300",
+      className: "from-rose-500 to-orange-400",
     },
     {
       label: "Knowledge bases",
       value: knowledgeBases.length,
       to: `/app/w/${workspaceId}/knowledge`,
       icon: FileText,
-      tint: "bg-amber-100 text-amber-800",
-      ring: "hover:border-amber-300",
+      className: "from-amber-500 to-yellow-400",
     },
     {
       label: "Documents",
       value: documents.length,
       to: `/app/w/${workspaceId}/knowledge`,
       icon: FileText,
-      tint: "bg-sky-100 text-sky-700",
-      ring: "hover:border-sky-300",
+      className: "from-sky-500 to-cyan-400",
     },
   ];
 
   return (
     <div className="space-y-8">
-      <div className="rounded-3xl border border-sky-100 bg-gradient-to-r from-sky-50 to-white p-6">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-800">
-          <Sparkles size={12} />
-          Overview
+      <div className="relative overflow-hidden rounded-[2rem] bg-ink-950 p-8 text-white shadow-panel">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-indigo-500/40 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-40 w-40 rounded-full bg-rose-500/30 blur-3xl" />
+        <div className="relative">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200">
+            <Sparkles size={12} />
+            Overview
+          </div>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
+            {workspace?.name || "Workspace"}
+          </h1>
+          <p className="mt-3 max-w-2xl text-ink-300">
+            {workspace?.description || "Chat, run search agents, and ground answers in your files."}
+          </p>
         </div>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">
-          {workspace?.name || "Workspace"}
-        </h1>
-        <p className="mt-2 max-w-2xl text-ink-600">
-          {workspace?.description || "Your AI operating surface for chat, agents, and knowledge."}
-        </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {cards.map(({ label, value, to, icon: Icon, tint, ring }) => (
-          <Link key={label} to={to} className={`card p-5 transition ${ring}`}>
-            <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tint}`}>
-              <Icon size={18} />
+        {cards.map(({ label, value, to, icon: Icon, className }) => (
+          <Link
+            key={label}
+            to={to}
+            className={`group relative overflow-hidden rounded-[1.6rem] bg-gradient-to-br ${className} p-5 text-white shadow-panel transition hover:-translate-y-0.5`}
+          >
+            <Icon className="mb-8 opacity-80" size={22} />
+            <div className="font-display text-4xl font-extrabold">{value}</div>
+            <div className="mt-1 flex items-center justify-between text-sm text-white/85">
+              {label}
+              <ArrowUpRight size={16} className="opacity-0 transition group-hover:opacity-100" />
             </div>
-            <div className="text-3xl font-semibold">{value}</div>
-            <div className="mt-1 text-sm text-ink-500">{label}</div>
           </Link>
         ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="card p-5">
-          <div className="mb-4 font-semibold">Recent conversations</div>
-          <div className="space-y-2">
+        <div className="rounded-[1.6rem] bg-white p-6 shadow-panel">
+          <div className="mb-4 font-display text-lg font-bold">Recent conversations</div>
+          <div className="space-y-1">
             {conversations.slice(0, 5).map((c) => (
               <Link
                 key={c.id}
                 to={`/app/w/${workspaceId}/chat/${c.id}`}
-                className="block rounded-xl px-3 py-2 text-sm hover:bg-ink-50"
+                className="block rounded-2xl px-3 py-2.5 text-sm hover:bg-violet-50"
               >
                 {c.title}
               </Link>
@@ -113,14 +118,14 @@ export function OverviewPage() {
             )}
           </div>
         </div>
-        <div className="card p-5">
-          <div className="mb-4 font-semibold">Agents</div>
-          <div className="space-y-2">
+        <div className="rounded-[1.6rem] bg-white p-6 shadow-panel">
+          <div className="mb-4 font-display text-lg font-bold">Agents</div>
+          <div className="space-y-1">
             {agents.slice(0, 5).map((a) => (
               <Link
                 key={a.id}
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
-                className="block rounded-xl px-3 py-2 text-sm hover:bg-ink-50"
+                className="block rounded-2xl px-3 py-2.5 text-sm hover:bg-rose-50"
               >
                 {a.name}
                 <span className="ml-2 text-ink-400">{a.tools || "no tools"}</span>

@@ -215,15 +215,15 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-4">
+    <div className="flex h-[calc(100vh-2.75rem)] gap-4">
       <aside
         className={cn(
-          "panel flex shrink-0 flex-col overflow-hidden transition-all duration-300",
+          "flex shrink-0 flex-col overflow-hidden rounded-stage bg-ink-950 text-white transition-all duration-300",
           isSidebarCollapsed ? "w-14" : "w-72",
         )}
       >
-        <div className="flex items-center justify-between border-b border-ink-200/70 p-3">
-          {!isSidebarCollapsed && <div className="font-semibold px-1">Chats</div>}
+        <div className="flex items-center justify-between border-b border-white/10 p-3">
+          {!isSidebarCollapsed && <div className="px-1 font-display font-bold">Threads</div>}
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -235,7 +235,7 @@ export function ChatPage() {
             </button>
             <button
               type="button"
-              className="btn-ghost px-2 py-2 text-ink-500 hover:text-ink-900"
+              className="btn-ghost px-2 py-2"
               onClick={() => setIsSidebarCollapsed((prev) => !prev)}
               title={isSidebarCollapsed ? "Expand chats panel" : "Collapse chats panel"}
             >
@@ -254,8 +254,8 @@ export function ChatPage() {
               <div
                 key={c.id}
                 className={cn(
-                  "group mb-1 flex items-center gap-1 rounded-xl px-2 py-2 text-sm",
-                  c.id === conversationId ? "bg-ink-950 text-white" : "hover:bg-ink-50",
+                  "group mb-1 flex items-center gap-1 rounded-2xl px-2 py-2 text-sm",
+                  c.id === conversationId ? "bg-violet-500 text-white" : "text-ink-200 hover:bg-white/10",
                 )}
               >
                 {editingId === c.id ? (
@@ -329,20 +329,20 @@ export function ChatPage() {
                 className={cn(
                   "mb-2 flex h-9 w-9 items-center justify-center rounded-xl font-medium text-xs transition",
                   c.id === conversationId
-                    ? "bg-ink-950 text-white"
-                    : "bg-ink-100 text-ink-700 hover:bg-ink-200",
+                    ? "bg-violet-500 text-white"
+                    : "bg-white/10 text-ink-200 hover:bg-white/20",
                 )}
               >
                 {c.title.charAt(0).toUpperCase()}
               </Link>
             ))}
           {!isSidebarCollapsed && conversations.length === 0 && (
-            <p className="px-2 py-4 text-sm text-ink-500">No chats yet.</p>
+            <p className="px-2 py-4 text-sm text-ink-400">No chats yet.</p>
           )}
         </div>
       </aside>
 
-      <section className="card flex min-w-0 flex-1 flex-col overflow-hidden border-violet-200/70">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-stage bg-white shadow-panel">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-3 md:px-4">
           <div className="flex items-center gap-2">
             {activeConversation && editingId !== activeConversation.id ? (
@@ -461,8 +461,8 @@ export function ChatPage() {
               className={cn(
                 "max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed",
                 m.role === "user"
-                  ? "ml-auto bg-ink-950 text-white"
-                  : "bg-ink-50 text-ink-900",
+                  ? "ml-auto bg-violet-600 text-white"
+                  : "bg-violet-50 text-ink-900",
               )}
             >
               {m.role === "assistant" ? (

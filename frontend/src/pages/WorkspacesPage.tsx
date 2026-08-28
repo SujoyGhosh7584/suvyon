@@ -33,16 +33,16 @@ export function WorkspacesPage() {
   const archived = workspaces.filter((w) => w.is_archived);
 
   return (
-    <div className="min-h-screen bg-mesh px-6 py-10">
+    <div className="min-h-screen bg-mesh px-6 py-10 text-white">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <div className="font-display text-3xl font-extrabold">Your workspaces</div>
-          <p className="mt-2 text-ink-600">
+          <div className="font-display text-4xl font-extrabold">Your workspaces</div>
+          <p className="mt-2 text-ink-300">
             Pick a space for chat, agents, and knowledge — each with its own files and history.
           </p>
         </div>
 
-        <div className="card mb-8 p-6">
+        <div className="mb-8 rounded-[1.75rem] bg-white p-6 text-ink-950 shadow-panel">
           <div className="mb-4 flex items-center gap-2 font-semibold">
             <Plus size={18} />
             Create workspace
@@ -83,7 +83,7 @@ export function WorkspacesPage() {
               <button
                 key={ws.id}
                 type="button"
-                className="card p-5 text-left transition hover:-translate-y-0.5 hover:border-accent/40"
+                className="rounded-[1.6rem] bg-white p-6 text-left text-ink-950 shadow-panel transition hover:-translate-y-1 hover:shadow-glow"
                 onClick={() => {
                   setWorkspaceId(ws.id);
                   navigate(`/app/w/${ws.id}/overview`);
@@ -105,7 +105,7 @@ export function WorkspacesPage() {
 
         {archived.length > 0 && (
           <div className="mt-10">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-500">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-ink-300">
               <Archive size={16} />
               Archived
             </div>

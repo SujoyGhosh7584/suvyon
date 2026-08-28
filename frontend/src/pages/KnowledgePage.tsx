@@ -72,12 +72,12 @@ export function KnowledgePage() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-3xl border border-amber-100 bg-gradient-to-r from-amber-50 to-white p-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-800">
-          Knowledge
+      <div className="relative overflow-hidden rounded-[2rem] bg-amber-950 p-8 text-amber-50 shadow-panel">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">
+          Library
         </p>
-        <h1 className="font-display text-3xl font-extrabold">Your documents</h1>
-        <p className="mt-2 text-ink-600">
+        <h1 className="font-display text-4xl font-extrabold">Knowledge</h1>
+        <p className="mt-2 max-w-2xl text-amber-100/80">
           Create knowledge bases and upload files so chat can answer from them.
         </p>
       </div>
@@ -131,7 +131,7 @@ export function KnowledgePage() {
                 </button>
                 <button
                   type="button"
-                  className="btn-ghost px-2 py-2"
+                  className="btn-quiet px-2 py-2"
                   onClick={() => deleteKb.mutate(kb.id)}
                 >
                   <Trash2 size={14} />
@@ -193,7 +193,7 @@ export function KnowledgePage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-ghost px-2 py-2"
+                  className="btn-quiet px-2 py-2"
                   onClick={() => deleteDoc.mutate(doc.id)}
                 >
                   <Trash2 size={14} />

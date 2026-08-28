@@ -14,9 +14,9 @@ body,
 
 body {
   margin: 0;
-  font-family: Figtree, system-ui, sans-serif;
-  color: #142020;
-  background: #f3efe6;
+  font-family: Outfit, system-ui, sans-serif;
+  color: #12101f;
+  background: #070b14;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -25,76 +25,87 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #9bb8b8;
+  background: #6e6794;
   border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: content-box;
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply btn bg-ink-950 text-white hover:bg-ink-800;
+    @apply btn bg-indigo-600 text-white shadow-glow hover:bg-indigo-500;
   }
 
   .btn-accent {
-    @apply btn bg-accent text-white hover:bg-teal-700;
+    @apply btn bg-rose-500 text-white hover:bg-rose-400;
   }
 
   .btn-ghost {
-    @apply btn bg-transparent text-ink-800 hover:bg-ink-100;
+    @apply btn bg-transparent text-ink-200 hover:bg-white/10 hover:text-white;
+  }
+
+  .btn-quiet {
+    @apply btn bg-transparent text-ink-700 hover:bg-ink-100;
   }
 
   .btn-outline {
-    @apply btn border border-ink-200 bg-white/70 text-ink-800 hover:bg-white;
+    @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-50;
   }
 
   .input {
-    @apply w-full rounded-xl border border-ink-200 bg-white/80 px-3.5 py-2.5 text-sm text-ink-950 placeholder:text-ink-400 outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20;
+    @apply w-full rounded-2xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-950 placeholder:text-ink-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20;
   }
 
   .label {
-    @apply mb-1.5 block text-sm font-medium text-ink-700;
+    @apply mb-1.5 block text-sm font-medium text-ink-600;
   }
 
   .card {
-    @apply rounded-2xl border border-ink-200/80 bg-white/80 shadow-panel backdrop-blur;
+    @apply rounded-stage border border-white/70 bg-white shadow-panel;
   }
 
   .panel {
-    @apply rounded-2xl border border-ink-200/70 bg-white/70 backdrop-blur;
+    @apply rounded-stage border border-ink-200/60 bg-white/90 backdrop-blur;
+  }
+
+  .stage {
+    @apply min-h-full rounded-stage bg-stage p-5 md:p-7;
   }
 
   .section-overview {
     background:
-      radial-gradient(ellipse at 0% 0%, rgba(14, 165, 233, 0.14), transparent 42%);
+      radial-gradient(ellipse at 0% 0%, rgba(99, 102, 241, 0.18), transparent 42%),
+      linear-gradient(180deg, #fbfaff, #eef2ff);
   }
 
   .section-chat {
     background:
-      radial-gradient(ellipse at 100% 0%, rgba(124, 58, 237, 0.14), transparent 46%);
+      radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, 0.2), transparent 46%),
+      linear-gradient(180deg, #faf5ff, #f5f3ff);
   }
 
   .section-agents {
     background:
-      radial-gradient(ellipse at 0% 0%, rgba(13, 148, 136, 0.16), transparent 44%);
+      radial-gradient(ellipse at 0% 0%, rgba(244, 63, 94, 0.16), transparent 44%),
+      linear-gradient(180deg, #fff1f2, #fff7ed);
   }
 
   .section-knowledge {
     background:
-      radial-gradient(ellipse at 100% 0%, rgba(217, 119, 6, 0.14), transparent 46%);
+      radial-gradient(ellipse at 100% 0%, rgba(245, 158, 11, 0.2), transparent 46%),
+      linear-gradient(180deg, #fffbeb, #fefce8);
   }
 
   .section-settings {
     background:
-      radial-gradient(ellipse at 0% 0%, rgba(71, 85, 105, 0.12), transparent 42%);
+      radial-gradient(ellipse at 0% 0%, rgba(148, 163, 184, 0.2), transparent 42%),
+      linear-gradient(180deg, #f8fafc, #eef2f6);
   }
 }

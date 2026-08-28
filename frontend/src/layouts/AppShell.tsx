@@ -16,11 +16,11 @@ import { workspacesApi } from "@/lib/services";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { to: "overview", label: "Overview", icon: LayoutDashboard },
-  { to: "chat", label: "Chat", icon: MessageSquare },
-  { to: "agents", label: "Agents", icon: Bot },
-  { to: "knowledge", label: "Knowledge", icon: FileText },
-  { to: "settings", label: "Settings", icon: Settings },
+  { to: "overview", label: "Overview", icon: LayoutDashboard, hint: "Home" },
+  { to: "chat", label: "Chat", icon: MessageSquare, hint: "Talk" },
+  { to: "agents", label: "Agents", icon: Bot, hint: "Tools" },
+  { to: "knowledge", label: "Knowledge", icon: FileText, hint: "Docs" },
+  { to: "settings", label: "Settings", icon: Settings, hint: "You" },
 ] as const;
 
 const sectionThemes: Record<string, string> = {
@@ -32,11 +32,11 @@ const sectionThemes: Record<string, string> = {
 };
 
 const navActive: Record<string, string> = {
-  overview: "bg-sky-700 text-white",
-  chat: "bg-violet-700 text-white",
-  agents: "bg-teal-700 text-white",
-  knowledge: "bg-amber-700 text-white",
-  settings: "bg-slate-800 text-white",
+  overview: "bg-indigo-500 text-white shadow-glow",
+  chat: "bg-violet-500 text-white shadow-glow",
+  agents: "bg-rose-500 text-white shadow-glow",
+  knowledge: "bg-amber-500 text-ink-950",
+  settings: "bg-slate-100 text-ink-950",
 };
 
 export function AppShell() {
@@ -54,33 +54,45 @@ export function AppShell() {
     enabled: !!workspaceId,
   });
 
+  const initials = (user?.full_name || "S")
+    .split(" ")
+    .map((p) => p[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="min-h-screen bg-mesh text-ink-950">
-      <div className="mx-auto flex min-h-screen max-w-[1600px]">
+    <div className="min-h-screen bg-ink-950 text-white">
+      <div className="mx-auto flex min-h-screen max-w-[1680px] gap-3 p-3">
         <aside
           className={cn(
-            "sticky top-0 flex h-screen shrink-0 flex-col border-r border-ink-200/70 bg-white/55 px-3 py-5 backdrop-blur transition-all duration-300",
-            isCollapsed ? "w-16" : "w-64",
+            "sticky top-3 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 backdrop-blur-xl transition-all duration-300",
+            isCollapsed ? "w-[4.5rem]" : "w-64",
           )}
         >
-          <div className="mb-6 flex items-center justify-between px-1">
+          <div className="mb-8 flex items-center justify-between px-1">
             <button
               type="button"
               onClick={() => navigate("/app")}
-              className={cn("text-left overflow-hidden", isCollapsed && "w-0 hidden")}
+              className={cn("text-left overflow-hidden", isCollapsed && "hidden")}
             >
-              <div className="font-display text-2xl font-extrabold tracking-tight">
-                Suvyon
-              </div>
-              <div className="truncate text-xs text-ink-500">
-                {workspace?.name || "Workspace"}
+              <div className="flex items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 font-display text-lg font-extrabold">
+                  S
+                </span>
+                <span>
+                  <div className="font-display text-lg font-extrabold tracking-tight">Suvyon</div>
+                  <div className="truncate text-[11px] uppercase tracking-[0.18em] text-ink-400">
+                    {workspace?.name || "Workspace"}
+                  </div>
+                </span>
               </div>
             </button>
             {isCollapsed && (
               <button
                 type="button"
                 onClick={() => navigate("/app")}
-                className="font-display text-xl font-extrabold text-brand-600 px-1"
+                className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 font-display text-lg font-extrabold"
                 title="Suvyon"
               >
                 S
@@ -89,45 +101,54 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => setIsCollapsed((prev) => !prev)}
-              className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-100 hover:text-ink-900 transition"
+              className="rounded-xl p-1.5 text-ink-400 hover:bg-white/10 hover:text-white"
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           </div>
 
-          <nav className="flex flex-1 flex-col gap-1">
-            {links.map(({ to, label, icon: Icon }) => (
+          <nav className="flex flex-1 flex-col gap-1.5">
+            {links.map(({ to, label, icon: Icon, hint }) => (
               <NavLink
                 key={to}
                 to={`/app/w/${workspaceId}/${to}`}
                 title={isCollapsed ? label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                    isActive
-                      ? navActive[to]
-                      : "text-ink-700 hover:bg-ink-100",
+                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition",
+                    isActive ? navActive[to] : "text-ink-300 hover:bg-white/10 hover:text-white",
                     isCollapsed && "justify-center px-0",
                   )
                 }
               >
                 <Icon size={18} />
-                {!isCollapsed && <span>{label}</span>}
+                {!isCollapsed && (
+                  <span className="flex flex-1 items-center justify-between">
+                    {label}
+                    <span className="text-[10px] uppercase tracking-wider opacity-60">{hint}</span>
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>
 
-          <div className="mt-4 border-t border-ink-200/80 pt-4">
+          <div className="mt-4 border-t border-white/10 pt-4">
             {!isCollapsed && (
-              <div className="mb-3 truncate px-2 text-sm font-medium">
-                {user?.full_name}
+              <div className="mb-3 flex items-center gap-3 px-1">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/30 text-xs font-bold text-indigo-100">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{user?.full_name}</div>
+                  <div className="truncate text-[11px] text-ink-400">{user?.email}</div>
+                </div>
               </div>
             )}
             <button
               type="button"
               className={cn(
-                "btn-ghost w-full justify-start",
+                "flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm text-ink-300 hover:bg-white/10 hover:text-white",
                 isCollapsed && "justify-center px-0",
               )}
               title={isCollapsed ? "Sign out" : undefined}
@@ -144,14 +165,15 @@ export function AppShell() {
 
         <main
           className={cn(
-            "min-w-0 flex-1 p-6 md:p-8",
+            "min-w-0 flex-1 overflow-hidden rounded-stage border border-white/10",
             sectionThemes[currentSection],
           )}
         >
-          <Outlet />
+          <div className="h-[calc(100vh-1.5rem)] overflow-auto p-5 md:p-7">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
   );
 }
-
