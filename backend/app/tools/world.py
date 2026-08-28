@@ -1,4 +1,4 @@
-from __future__ import annotations
+import json
 
 import httpx
 
@@ -54,12 +54,20 @@ def weather(location: str) -> str:
         highs = daily.get("temperature_2m_max") or []
         lows = daily.get("temperature_2m_min") or []
         rain = daily.get("precipitation_sum") or []
+        day_rows = []
         for index, day in enumerate(days[:3]):
             hi = highs[index] if index < len(highs) else "?"
             lo = lows[index] if index < len(lows) else "?"
             precip = rain[index] if index < len(rain) else "?"
+            day_rows.append({"date": day, "high": hi, "low": lo, "precip": precip})
             lines.append(f"- {day}: high {hi}°C / low {lo}°C, precip {precip} mm")
-        return "\n".join(lines)
+        payload = {
+            "label": label,
+            "temperature": current.get("temperature"),
+            "wind": current.get("windspeed"),
+            "days": day_rows,
+        }
+        return "\n".join(lines) + f"\n\n[[suvyon:weather]]{json.dumps(payload)}[[/suvyon:weather]]"
     except Exception as exc:
         return f"Tool error: weather failed ({exc})."
 

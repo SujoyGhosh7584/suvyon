@@ -5,16 +5,17 @@ import {
   Check,
   Edit2,
   PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Send,
   Trash2,
   X,
 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
+import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
+import { splitProvenance } from "@/lib/messageFormat";
 import { conversationsApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
@@ -154,18 +155,6 @@ export function ChatPage() {
 
   const visibleMessages = [...messages, ...optimistic];
 
-  function renderMessageContent(content: string) {
-    const marker = "\n\n---\n";
-    const idx = content.indexOf(marker);
-    if (idx === -1) {
-      return { body: content, provenance: "" };
-    }
-    return {
-      body: content.slice(0, idx),
-      provenance: content.slice(idx + marker.length),
-    };
-  }
-
   function startRename(id: string, currentTitle: string) {
     setEditingId(id);
     setEditingTitle(currentTitle);
@@ -218,13 +207,21 @@ export function ChatPage() {
     <div className="flex h-[calc(100vh-2.75rem)] gap-4">
       <aside
         className={cn(
-          "flex shrink-0 flex-col overflow-hidden rounded-stage bg-ink-950 text-white transition-all duration-300",
-          isSidebarCollapsed ? "w-14" : "w-72",
+          "relative flex shrink-0 flex-col rounded-stage bg-ink-950 text-white transition-all duration-300",
+          isSidebarCollapsed ? "w-14 overflow-visible" : "w-72 overflow-hidden",
         )}
       >
+        {isSidebarCollapsed && (
+          <div className="flex justify-center border-b border-white/10 py-2">
+            <SidebarExpandTab
+              label="Expand chats panel"
+              onClick={() => setIsSidebarCollapsed(false)}
+            />
+          </div>
+        )}
         <div className="flex items-center justify-between border-b border-white/10 p-3">
           {!isSidebarCollapsed && <div className="px-1 font-display font-bold">Threads</div>}
-          <div className="flex items-center gap-1">
+          <div className={cn("flex items-center gap-1", isSidebarCollapsed && "mx-auto")}>
             <button
               type="button"
               className="btn-ghost px-2 py-2"
@@ -233,18 +230,16 @@ export function ChatPage() {
             >
               <Plus size={16} />
             </button>
-            <button
-              type="button"
-              className="btn-ghost px-2 py-2"
-              onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-              title={isSidebarCollapsed ? "Expand chats panel" : "Collapse chats panel"}
-            >
-              {isSidebarCollapsed ? (
-                <PanelLeftOpen size={16} />
-              ) : (
+            {!isSidebarCollapsed && (
+              <button
+                type="button"
+                className="btn-ghost px-2 py-2"
+                onClick={() => setIsSidebarCollapsed(true)}
+                title="Collapse chats panel"
+              >
                 <PanelLeftClose size={16} />
-              )}
-            </button>
+              </button>
+            )}
           </div>
         </div>
 
@@ -467,16 +462,11 @@ export function ChatPage() {
             >
               {m.role === "assistant" ? (
                 (() => {
-                  const { body, provenance } = renderMessageContent(m.content);
+                  const { body, provenance } = splitProvenance(m.content);
                   return (
-                    <div className="space-y-2">
-                      {body ? <MessageContent content={body} /> : null}
-                      {provenance ? (
-                        <div className="rounded-lg border border-ink-200/70 bg-white/70 px-3 py-2 text-xs text-ink-600">
-                          <span className="font-semibold text-ink-700">Source:</span> {provenance}
-                        </div>
-                      ) : null}
-                    </div>
+                    <MessageContent
+                      content={provenance ? `${body}\n\n${provenance}` : body}
+                    />
                   );
                 })()
               ) : (

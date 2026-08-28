@@ -7,12 +7,12 @@ import {
   LogOut,
   MessageSquare,
   PanelLeftClose,
-  PanelLeftOpen,
   Settings,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { workspacesApi } from "@/lib/services";
+import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -63,14 +63,22 @@ export function AppShell() {
 
   return (
     <div className="min-h-screen bg-ink-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-[1680px] gap-3 p-3">
+      <div className="relative mx-auto flex min-h-screen max-w-[1680px] gap-3 overflow-visible p-3">
         <aside
           className={cn(
-            "sticky top-3 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 backdrop-blur-xl transition-all duration-300",
-            isCollapsed ? "w-[4.5rem]" : "w-64",
+            "sticky top-3 z-20 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 backdrop-blur-xl transition-all duration-300",
+            isCollapsed ? "w-[4.5rem] overflow-visible" : "w-64",
           )}
         >
-          <div className="mb-8 flex items-center justify-between px-1">
+          {isCollapsed && (
+            <div className="mb-3 flex justify-center">
+              <SidebarExpandTab
+                label="Expand sidebar"
+                onClick={() => setIsCollapsed(false)}
+              />
+            </div>
+          )}
+          <div className={cn("mb-8 flex items-center px-1", isCollapsed ? "flex-col gap-3" : "justify-between")}>
             <button
               type="button"
               onClick={() => navigate("/app")}
@@ -98,14 +106,16 @@ export function AppShell() {
                 S
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => setIsCollapsed((prev) => !prev)}
-              className="rounded-xl p-1.5 text-ink-400 hover:bg-white/10 hover:text-white"
-              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {isCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-            </button>
+            {!isCollapsed && (
+              <button
+                type="button"
+                className="rounded-xl p-1.5 text-ink-400 hover:bg-white/10 hover:text-white"
+                title="Collapse sidebar"
+                onClick={() => setIsCollapsed(true)}
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            )}
           </div>
 
           <nav className="flex flex-1 flex-col gap-1.5">

@@ -34,8 +34,9 @@ _SYNTHESIZE_PROMPT = (
     "Using the tool results above, answer the user's request now. "
     "Extract concrete facts from those results. Cite source URLs when present. "
     "If an email was drafted but not sent, show the draft and ask for confirmation. "
-    "If images, storyboards, QR codes, or diagrams were generated, include their markdown "
-    "and keep any [[suvyon:...]] markers unchanged. "
+    "If images, storyboards, QR codes, diagrams, or weather cards were generated, include their markdown "
+    "and keep any [[suvyon:...]] markers unchanged. Cite web sources as Markdown links [title](url). "
+    "Reply in Markdown, never HTML. "
     "Do not call tools again."
 )
 

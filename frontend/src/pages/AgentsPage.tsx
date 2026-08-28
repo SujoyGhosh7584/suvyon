@@ -75,9 +75,9 @@ export function AgentsPage() {
 
   const [showCreate, setShowCreate] = useState(false);
   const [templateId, setTemplateId] = useState<(typeof AGENT_TEMPLATES)[number]["id"]>("search");
-  const [name, setName] = useState(AGENT_TEMPLATES[0].name);
-  const [instructions, setInstructions] = useState(AGENT_TEMPLATES[0].instructions);
-  const [description, setDescription] = useState(AGENT_TEMPLATES[0].description);
+  const [name, setName] = useState<string>(AGENT_TEMPLATES[0].name);
+  const [instructions, setInstructions] = useState<string>(AGENT_TEMPLATES[0].instructions);
+  const [description, setDescription] = useState<string>(AGENT_TEMPLATES[0].description);
   const [provider, setProvider] = useState("groq");
   const [model, setModel] = useState("openai/gpt-oss-20b");
   const [selectedTools, setSelectedTools] = useState<string[]>([...AGENT_TEMPLATES[0].tools]);

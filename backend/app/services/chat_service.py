@@ -247,6 +247,16 @@ class ChatService:
         knowledge_base_id: UUID | None = None,
     ) -> tuple[list[LLMMessage], list[str]]:
         llm_messages: list[LLMMessage] = []
+        llm_messages.append(
+            LLMMessage(
+                role="system",
+                content=(
+                    "You are Suvyon. Reply in GitHub-flavored Markdown: headings, lists, "
+                    "tables, fenced code blocks with a language tag, and markdown links. "
+                    "Never emit HTML tags such as <p>, <div>, or <br>."
+                ),
+            )
+        )
 
         if conversation.system_prompt:
             llm_messages.append(
@@ -278,12 +288,14 @@ class ChatService:
                 content=(
                     "You have live web search results below. Answer the user's question "
                     "using these results. Extract concrete facts (prices, scores, dates, "
-                    "numbers, names) when present. Cite source URLs. Do not say you lack "
-                    "access to real-time data when the results contain relevant information. "
-                    "Only say results are insufficient if they truly do not answer the question.\n\n"
+                    "numbers, names) when present. Cite every source as a Markdown link "
+                    "[title](url). Do not say you lack access to real-time data when the "
+                    "results contain relevant information. Only say results are insufficient "
+                    "if they truly do not answer the question. Do not use HTML.\n\n"
                     f"Search results:\n{search_results}\n\nQuestion: {content}"
                 ),
             )
+            return [*llm_messages, user_message], self._source_links_from_search(search_results)
         elif mode == "rag":
             rag_context, rag_sources = self._build_rag_context(
                 conversation.workspace_id,
@@ -300,6 +312,18 @@ class ChatService:
 
         return [*llm_messages, user_message], []
 
+    def _source_links_from_search(self, search_results: str) -> list[str]:
+        links: list[str] = []
+        title = "Source"
+        for raw in search_results.splitlines():
+            if raw.startswith("Title:"):
+                title = raw[6:].strip() or "Source"
+            elif raw.startswith("URL:"):
+                url = raw[4:].strip()
+                if url.startswith("http"):
+                    links.append(f"[{title}]({url})")
+        return list(dict.fromkeys(links))
+
     def _build_provenance_note(
         self,
         mode: str,
@@ -314,6 +338,8 @@ class ChatService:
                 return f"Source: knowledge base context from {joined_sources}"
             return "Source: knowledge base context was not found"
         if mode == "web":
+            if sources:
+                return "Sources:\n" + "\n".join(f"- {item}" for item in sources)
             return "Source: web search"
         provider_name = provider or "auto"
         model_name = model or "default model"
@@ -353,13 +379,13 @@ class ChatService:
         selected_mode = (
             mode or self._classify_request(content, knowledge_bases)
         ).lower()
-        llm_messages, rag_sources = self._build_contextual_messages(
+        llm_messages, extra_sources = self._build_contextual_messages(
             conversation=conversation,
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
         )
-        if selected_mode == "rag" and not rag_sources:
+        if selected_mode == "rag" and not extra_sources:
             selected_mode = "chat"
 
         response = route_chat(
@@ -372,7 +398,7 @@ class ChatService:
             selected_mode,
             response.provider,
             response.model,
-            sources=rag_sources if selected_mode == "rag" else None,
+            sources=extra_sources if selected_mode in {"rag", "web"} else None,
         )
         assistant_content = response.content
         if provenance_note:
@@ -431,13 +457,13 @@ class ChatService:
         selected_mode = (
             mode or self._classify_request(content, knowledge_bases)
         ).lower()
-        llm_messages, rag_sources = self._build_contextual_messages(
+        llm_messages, extra_sources = self._build_contextual_messages(
             conversation=conversation,
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
         )
-        if selected_mode == "rag" and not rag_sources:
+        if selected_mode == "rag" and not extra_sources:
             selected_mode = "chat"
 
         full_content = ""
@@ -453,7 +479,7 @@ class ChatService:
             selected_mode,
             conversation.provider,
             conversation.model,
-            sources=rag_sources if selected_mode == "rag" else None,
+            sources=extra_sources if selected_mode in {"rag", "web"} else None,
         )
         if provenance_note:
             full_content = f"{full_content}\n\n---\n{provenance_note}"
