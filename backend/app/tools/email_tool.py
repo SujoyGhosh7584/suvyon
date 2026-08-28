@@ -31,6 +31,7 @@ _CONFIRM_EXACT = {
 _CONFIRM_PHRASES = (
     "send it",
     "send this",
+    "send now",
     "send the email",
     "yes send",
     "yes, send",
@@ -42,8 +43,13 @@ _CONFIRM_PHRASES = (
 
 
 def app_password(value: str) -> str:
-    """Google App Passwords are shown with spaces; SMTP expects 16 characters."""
-    return "".join((value or "").split())
+    """Google App Passwords are shown with spaces; SMTP expects 16 characters.
+
+    Unquoted .env values like SMTP_PASSWORD=abcd efgh ijkl mnop are truncated
+    at the first space by dotenv. Quote the value or omit spaces.
+    """
+    cleaned = (value or "").strip().strip('"').strip("'")
+    return "".join(cleaned.split())
 
 
 def smtp_connection_settings(username: str = "") -> tuple[str, int, bool]:
@@ -129,8 +135,8 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
             f"{draft}"
         )
 
-    username = (settings.SMTP_USERNAME or "").strip()
-    from_email = (settings.SMTP_FROM_EMAIL or username).strip()
+    username = (settings.SMTP_USERNAME or "").strip().strip('"').strip("'")
+    from_email = (settings.SMTP_FROM_EMAIL or username).strip().strip('"').strip("'")
     host, port, use_ssl = smtp_connection_settings(username)
     password = app_password(settings.SMTP_PASSWORD or "")
     if not host or not from_email:
@@ -140,6 +146,12 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
             "(SMTP_HOST can stay smtp.gmail.com). Email was not sent.\n\n"
             f"{draft}"
         )
+    if username.lower().endswith(("@gmail.com", "@googlemail.com")) and len(password) != 16:
+        return (
+            "Tool error: Gmail SMTP_PASSWORD must be a 16-character App Password "
+            "(not your normal Gmail password). Put it in quotes in .env, or remove spaces. "
+            f"Loaded length was {len(password)}. Email was not sent.\n\n{draft}"
+        )
 
     message = EmailMessage()
     message["From"] = from_email
@@ -148,15 +160,35 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
     message.set_content(body_text)
 
     try:
-        client_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
-        with client_cls(host, port, timeout=20) as smtp:
-            if not use_ssl:
-                smtp.starttls()
-            if username:
-                smtp.login(username, password)
-            smtp.send_message(message)
+        _smtp_send(host, port, use_ssl, username, password, message)
     except Exception as exc:
-        hint = _smtp_error_hint(str(exc))
-        return f"Tool error: failed to send email ({exc}).{hint}\n\n{draft}"
+        if not use_ssl and host.lower() == "smtp.gmail.com":
+            try:
+                _smtp_send(host, 465, True, username, password, message)
+            except Exception as ssl_exc:
+                hint = _smtp_error_hint(f"{exc} {ssl_exc}")
+                return f"Tool error: failed to send email ({ssl_exc}).{hint}\n\n{draft}"
+        else:
+            hint = _smtp_error_hint(str(exc))
+            return f"Tool error: failed to send email ({exc}).{hint}\n\n{draft}"
 
     return f"Email sent successfully to {recipient} with subject “{subject_text}”."
+
+
+def _smtp_send(
+    host: str,
+    port: int,
+    use_ssl: bool,
+    username: str,
+    password: str,
+    message: EmailMessage,
+) -> None:
+    client_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
+    with client_cls(host, port, timeout=20) as smtp:
+        smtp.ehlo()
+        if not use_ssl:
+            smtp.starttls()
+            smtp.ehlo()
+        if username:
+            smtp.login(username, password)
+        smtp.send_message(message)

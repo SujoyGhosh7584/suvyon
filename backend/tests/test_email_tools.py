@@ -55,6 +55,9 @@ def test_send_email_sends_after_confirmation(monkeypatch):
         def __exit__(self, *args):
             return False
 
+        def ehlo(self):
+            return None
+
         def starttls(self):
             return None
 
@@ -102,6 +105,9 @@ def test_gmail_app_password_strips_spaces(monkeypatch):
         def __exit__(self, *args):
             return False
 
+        def ehlo(self):
+            return None
+
         def starttls(self):
             return None
 
@@ -113,6 +119,7 @@ def test_gmail_app_password_strips_spaces(monkeypatch):
             captured["sent"] = True
 
     monkeypatch.setattr(email_tools.smtplib, "SMTP", lambda *args, **kwargs: FakeSMTP())
+    monkeypatch.setattr(email_tools.smtplib, "SMTP_SSL", lambda *args, **kwargs: FakeSMTP())
     monkeypatch.setattr(
         email_tools,
         "settings",
@@ -133,3 +140,5 @@ def test_gmail_app_password_strips_spaces(monkeypatch):
     assert "sent successfully" in result
     assert captured["password"] == "abcdefghijklmnop"
     assert email_tools.app_password("abcd efgh ijkl mnop") == "abcdefghijklmnop"
+    assert email_tools.app_password('"abcdefghijklmnop"') == "abcdefghijklmnop"
+    assert email_tools.user_confirmed_send("send now")
