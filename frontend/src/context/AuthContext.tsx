@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { clearTokens, getAccessToken, setTokens } from "@/lib/api";
+import { useWorkspace } from "@/context/WorkspaceContext";
 import { authApi, usersApi } from "@/lib/services";
 import type { User } from "@/types/api";
 
@@ -17,6 +19,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { setWorkspaceId } = useWorkspace();
 
   const refreshUser = useCallback(async () => {
     if (!getAccessToken()) {
@@ -34,6 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {
         clearTokens();
         setUser(null);
+        setWorkspaceId(null);
+        queryClient.clear();
       } finally {
         setLoading(false);
       }
@@ -43,8 +49,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const tokens = await authApi.login(email, password);
     setTokens(tokens.access_token, tokens.refresh_token);
+    setWorkspaceId(null);
+    queryClient.clear();
     await refreshUser();
-  }, [refreshUser]);
+  }, [queryClient, refreshUser, setWorkspaceId]);
 
   const register = useCallback(
     async (fullName: string, email: string, password: string) => {
@@ -62,8 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       clearTokens();
       setUser(null);
+      setWorkspaceId(null);
+      queryClient.clear();
     }
-  }, []);
+  }, [queryClient, setWorkspaceId]);
 
   const value = useMemo(
     () => ({ user, loading, login, register, logout, refreshUser }),

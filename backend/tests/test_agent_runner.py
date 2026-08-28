@@ -38,7 +38,7 @@ def test_run_agent_synthesizes_after_repeated_tool_calls(monkeypatch):
     monkeypatch.setattr(
         runner,
         "_call_tool",
-        lambda name, arguments: "Title: Live score\nURL: https://example.com\nContent: IND 420/6",
+        lambda name, arguments, **kwargs: "Title: Live score\nURL: https://example.com\nContent: IND 420/6",
     )
 
     agent = SimpleNamespace(
@@ -56,3 +56,43 @@ def test_run_agent_synthesizes_after_repeated_tool_calls(monkeypatch):
 
 def test_web_search_hint_includes_score():
     assert runner._needs_web_search("What is the score of IND vs SL 2nd test day 4?")
+
+
+def test_run_agent_blocks_send_email_until_user_confirms(monkeypatch):
+    def fake_route_chat(messages, provider_name=None, model_id=None, **kwargs):
+        if kwargs.get("tools"):
+            return LLMResponse(
+                content="",
+                provider="groq",
+                model="llama-3.1-8b-instant",
+                tool_calls=[
+                    {
+                        "id": "call_1",
+                        "name": "send_email",
+                        "arguments": {
+                            "to": "ada@example.com",
+                            "subject": "Meeting",
+                            "body": "See you at 3.",
+                        },
+                    }
+                ],
+            )
+        tool_text = " ".join(m.content for m in messages if getattr(m, "role", None) == "tool")
+        return LLMResponse(
+            content=tool_text,
+            provider="groq",
+            model="llama-3.1-8b-instant",
+        )
+
+    monkeypatch.setattr(runner, "route_chat", fake_route_chat)
+    agent = SimpleNamespace(
+        instructions="You are an email assistant.",
+        tools="draft_email,send_email",
+        provider="groq",
+        model="llama-3.1-8b-instant",
+    )
+    result = runner.run_agent(
+        agent,
+        "Send an email to ada@example.com about moving the meeting to 3pm",
+    )
+    assert "BLOCKED" in result

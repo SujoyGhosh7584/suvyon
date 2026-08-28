@@ -78,7 +78,7 @@ export function OverviewPage() {
             {workspace?.name || "Workspace"}
           </h1>
           <p className="mt-3 max-w-2xl text-ink-300">
-            {workspace?.description || "Chat, run search agents, and ground answers in your files."}
+            {workspace?.description || "Chat, run search or email agents, and ground answers in your files."}
           </p>
         </div>
       </div>

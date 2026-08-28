@@ -6,17 +6,17 @@ type WorkspaceContextValue = {
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
-const STORAGE_KEY = "suvyon_workspace_id";
+export const WORKSPACE_STORAGE_KEY = "suvyon_workspace_id";
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [workspaceId, setWorkspaceIdState] = useState<string | null>(
-    () => localStorage.getItem(STORAGE_KEY),
+    () => localStorage.getItem(WORKSPACE_STORAGE_KEY),
   );
 
   const setWorkspaceId = (id: string | null) => {
     setWorkspaceIdState(id);
-    if (id) localStorage.setItem(STORAGE_KEY, id);
-    else localStorage.removeItem(STORAGE_KEY);
+    if (id) localStorage.setItem(WORKSPACE_STORAGE_KEY, id);
+    else localStorage.removeItem(WORKSPACE_STORAGE_KEY);
   };
 
   const value = useMemo(

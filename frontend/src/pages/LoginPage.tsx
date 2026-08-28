@@ -1,22 +1,17 @@
 import { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthScreen } from "@/components/AuthScreen";
+import { SignedInNotice } from "@/components/GuestAuth";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
 
 export function LoginPage() {
-  const { user, login, loading } = useAuth();
+  const { user, login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  if (!loading && user) {
-    const redirect = (location.state as { from?: string } | null)?.from || "/app";
-    return <Navigate to={redirect} replace />;
-  }
 
   return (
     <AuthScreen
@@ -31,6 +26,8 @@ export function LoginPage() {
         </>
       }
     >
+      <SignedInNotice intent="login" />
+      {!user && (
       <form
         className="space-y-4"
         onSubmit={async (e) => {
@@ -83,6 +80,7 @@ export function LoginPage() {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      )}
     </AuthScreen>
   );
 }

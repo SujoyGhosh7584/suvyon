@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Bot, FileSearch, Sparkles } from "lucide-react";
+import { Bot, FileSearch, Mail, Sparkles } from "lucide-react";
 
 export function AuthScreen({
   title,
@@ -36,6 +36,7 @@ export function AuthScreen({
             {[
               { icon: Sparkles, text: "Auto-route Groq, Gemini, OpenRouter" },
               { icon: Bot, text: "Web-search agents for scores and news" },
+              { icon: Mail, text: "Email agents that send only after you confirm" },
               { icon: FileSearch, text: "Resume and PDF knowledge bases" },
             ].map(({ icon: Icon, text }) => (
               <div

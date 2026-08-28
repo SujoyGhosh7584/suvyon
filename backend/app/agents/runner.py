@@ -15,9 +15,27 @@ _TOOL_SYSTEM_SUFFIX = (
     "access real-time data when tool results are available."
 )
 
+_EMAIL_SYSTEM_SUFFIX = (
+    "\n\nYou can draft and send email. For any request to write, edit, or send a message, "
+    "first call draft_email with to, subject, and body. Show the draft and ask if the "
+    "user wants changes or wants it sent. Call send_email only after they explicitly "
+    "confirm (for example 'send it'). Never claim an email was sent unless send_email "
+    "returned a success message."
+)
+
+_STUDIO_SYSTEM_SUFFIX = (
+    "\n\nYou have creative tools. For pictures, call generate_image and include the markdown "
+    "image in your reply. If the user asks for a video, clip, or trailer, call "
+    "generate_storyboard (paid text-to-video APIs are not used). For voiceover, call "
+    "generate_speech. Keep [[suvyon:storyboard]] and [[suvyon:speak]] markers intact."
+)
+
 _SYNTHESIZE_PROMPT = (
-    "Using the tool results above, answer the user's question now. "
-    "Extract scores, dates, and other facts. Cite source URLs. "
+    "Using the tool results above, answer the user's request now. "
+    "Extract concrete facts from those results. Cite source URLs when present. "
+    "If an email was drafted but not sent, show the draft and ask for confirmation. "
+    "If images, storyboards, QR codes, or diagrams were generated, include their markdown "
+    "and keep any [[suvyon:...]] markers unchanged. "
     "Do not call tools again."
 )
 
@@ -59,6 +77,10 @@ def _build_messages(agent: Agent, history: list[dict], user_content: str) -> lis
     tool_names = _get_agent_tools(agent)
     if "web_search" in tool_names:
         instructions = instructions.rstrip() + _TOOL_SYSTEM_SUFFIX
+    if "draft_email" in tool_names or "send_email" in tool_names:
+        instructions = instructions.rstrip() + _EMAIL_SYSTEM_SUFFIX
+    if any(name in tool_names for name in ("generate_image", "generate_storyboard", "generate_speech")):
+        instructions = instructions.rstrip() + _STUDIO_SYSTEM_SUFFIX
 
     messages = [LLMMessage(role="system", content=instructions)]
     for h in history:
@@ -83,13 +105,24 @@ def _normalize_arguments(arguments) -> dict:
     return {}
 
 
-def _call_tool(name: str, arguments) -> str:
+def _call_tool(name: str, arguments, *, user_content: str = "") -> str:
     tool = get_tool(name)
     if not tool:
         return f"Unknown tool: {name}"
 
     args = _normalize_arguments(arguments)
     fn = tool["fn"]
+
+    if name in {"draft_email", "send_email"}:
+        to = str(args.get("to") or args.get("recipient") or args.get("email") or "").strip()
+        subject = str(args.get("subject") or args.get("title") or "").strip()
+        body = str(args.get("body") or args.get("message") or args.get("content") or "").strip()
+        try:
+            if name == "send_email":
+                return fn(to=to, subject=subject, body=body, user_content=user_content)
+            return fn(to=to, subject=subject, body=body)
+        except Exception as exc:
+            return f"Tool error: {exc}"
 
     if name == "web_search":
         query = (
@@ -120,11 +153,16 @@ def _call_tool(name: str, arguments) -> str:
         return f"Tool error: {exc}"
 
 
-def _execute_tool_calls(messages: list[LLMMessage], tool_calls: list[dict]) -> list[str]:
+def _execute_tool_calls(
+    messages: list[LLMMessage],
+    tool_calls: list[dict],
+    *,
+    user_content: str = "",
+) -> list[str]:
     messages.append(LLMMessage(role="assistant", content="", tool_calls=tool_calls))
     results: list[str] = []
     for call in tool_calls:
-        result = _call_tool(call["name"], call.get("arguments"))
+        result = _call_tool(call["name"], call.get("arguments"), user_content=user_content)
         results.append(result)
         messages.append(
             LLMMessage(
@@ -142,14 +180,15 @@ def _has_tool_results(messages: list[LLMMessage]) -> bool:
 
 
 def _fallback_from_tool_results(results: list[str], user_content: str) -> str:
-    usable = [r for r in results if r and not r.startswith("Tool error:") and r != "Unknown tool: web_search"]
+    usable = [
+        r
+        for r in results
+        if r and not r.startswith("Tool error:") and not r.startswith("Unknown tool:")
+    ]
     if not usable:
         joined = "\n\n".join(results).strip()
-        return joined or "Web search did not return usable results."
-    return (
-        "Here is what web search returned for "
-        f"“{user_content}”:\n\n" + "\n\n".join(usable)
-    )
+        return joined or "The tools did not return usable results."
+    return f"Here is what the tools returned for “{user_content}”:\n\n" + "\n\n".join(usable)
 
 
 def _synthesize_answer(
@@ -200,7 +239,11 @@ def run_agent(agent: Agent, user_content: str, history: list[dict] | None = None
         )
 
         if response.tool_calls:
-            collected_results.extend(_execute_tool_calls(messages, response.tool_calls))
+            collected_results.extend(
+                _execute_tool_calls(
+                    messages, response.tool_calls, user_content=user_content
+                )
+            )
             return _synthesize_answer(
                 messages,
                 agent,
@@ -225,6 +268,7 @@ def run_agent(agent: Agent, user_content: str, history: list[dict] | None = None
                             "arguments": {"query": user_content},
                         }
                     ],
+                    user_content=user_content,
                 )
             )
             return _synthesize_answer(
@@ -265,7 +309,11 @@ def stream_agent(agent: Agent, user_content: str, history: list[dict] | None = N
         pin_provider = response.provider
         pin_model = response.model
         if response.tool_calls:
-            collected_results.extend(_execute_tool_calls(messages, response.tool_calls))
+            collected_results.extend(
+                _execute_tool_calls(
+                    messages, response.tool_calls, user_content=user_content
+                )
+            )
         elif "web_search" in tool_names and _needs_web_search(user_content):
             collected_results.extend(
                 _execute_tool_calls(
@@ -277,6 +325,7 @@ def stream_agent(agent: Agent, user_content: str, history: list[dict] | None = N
                             "arguments": {"query": user_content},
                         }
                     ],
+                    user_content=user_content,
                 )
             )
         elif (response.content or "").strip():

@@ -1,19 +1,18 @@
 import { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AuthScreen } from "@/components/AuthScreen";
+import { SignedInNotice } from "@/components/GuestAuth";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
 
 export function RegisterPage() {
-  const { user, register, loading } = useAuth();
+  const { user, register } = useAuth();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  if (!loading && user) return <Navigate to="/app" replace />;
 
   return (
     <AuthScreen
@@ -28,6 +27,8 @@ export function RegisterPage() {
         </>
       }
     >
+      <SignedInNotice intent="register" />
+      {!user && (
       <form
         className="space-y-4"
         onSubmit={async (e) => {
@@ -94,6 +95,7 @@ export function RegisterPage() {
           {submitting ? "Creating…" : "Create account"}
         </button>
       </form>
+      )}
     </AuthScreen>
   );
 }

@@ -1,7 +1,6 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import ReactMarkdown from "react-markdown";
 import {
   Check,
   Edit2,
@@ -12,6 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { MessageContent } from "@/components/MessageContent";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
@@ -470,7 +470,7 @@ export function ChatPage() {
                   const { body, provenance } = renderMessageContent(m.content);
                   return (
                     <div className="space-y-2">
-                      {body ? <ReactMarkdown>{body}</ReactMarkdown> : null}
+                      {body ? <MessageContent content={body} /> : null}
                       {provenance ? (
                         <div className="rounded-lg border border-ink-200/70 bg-white/70 px-3 py-2 text-xs text-ink-600">
                           <span className="font-semibold text-ink-700">Source:</span> {provenance}

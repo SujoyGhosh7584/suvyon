@@ -1,8 +1,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import ReactMarkdown from "react-markdown";
-import { Bot, Plus, Send, Trash2 } from "lucide-react";
+import { Bot, BookOpen, CloudSun, Mail, Plus, Search, Send, Sparkles, Trash2 } from "lucide-react";
+import { MessageContent } from "@/components/MessageContent";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
@@ -10,20 +10,77 @@ import { agentsApi, modelsApi } from "@/lib/services";
 import type { ChatHistoryItem } from "@/types/api";
 import { cn } from "@/lib/utils";
 
+const AGENT_TEMPLATES = [
+  {
+    id: "search",
+    name: "Search Agent",
+    description: "Live web search for news, scores, and prices.",
+    instructions:
+      "You are a helpful assistant with web search capability. Always use web_search for current prices, news, scores, and live facts.",
+    tools: ["web_search"],
+  },
+  {
+    id: "email",
+    name: "Email Agent",
+    description: "Draft emails, then send only after you confirm.",
+    instructions:
+      "You are an email assistant. Draft, edit, and send messages for the user. Always call draft_email first with to, subject, and body. Show the draft and ask if they want changes. Call send_email only after they explicitly confirm (for example “send it”). Never claim an email was sent unless send_email reports success.",
+    tools: ["draft_email", "send_email"],
+  },
+  {
+    id: "studio",
+    name: "Studio Agent",
+    description: "Free images, storyboard clips, voiceover, brand kits, QR, and diagrams.",
+    instructions:
+      "You are Suvyon Studio. Create images with generate_image, videos/clips with generate_storyboard, voiceover with generate_speech, logos with brand_kit, QR codes with qr_code, and flowcharts with draw_diagram. Always keep [[suvyon:storyboard]] and [[suvyon:speak]] markers in your reply and include markdown images.",
+    tools: [
+      "generate_image",
+      "generate_storyboard",
+      "generate_speech",
+      "brand_kit",
+      "qr_code",
+      "draw_diagram",
+    ],
+  },
+  {
+    id: "research",
+    name: "Research Agent",
+    description: "Wikipedia, arXiv, page reading, HN pulse, and web search.",
+    instructions:
+      "You are a research analyst. Use wikipedia and arxiv_search for grounded summaries, read_page for a specific URL, tech_pulse for live HN headlines, and web_search for current events. Cite sources.",
+    tools: ["web_search", "wikipedia", "arxiv_search", "read_page", "tech_pulse"],
+  },
+  {
+    id: "field",
+    name: "Field Agent",
+    description: "Weather, places, calendar files, and decision canvases.",
+    instructions:
+      "You help with real-world ops. Use weather and lookup_place for locations, create_event for calendar files, decision_canvas for tradeoffs, plus calculator and datetime when needed.",
+    tools: ["weather", "lookup_place", "create_event", "decision_canvas", "calculator", "datetime"],
+  },
+] as const;
+
+const TEMPLATE_ICONS = {
+  search: Search,
+  email: Mail,
+  studio: Sparkles,
+  research: BookOpen,
+  field: CloudSun,
+} as const;
+
 export function AgentsPage() {
   const { workspaceId = "", agentId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [showCreate, setShowCreate] = useState(false);
-  const [name, setName] = useState("Search Agent");
-  const [instructions, setInstructions] = useState(
-    "You are a helpful assistant with web search capability. Always use web_search for current prices, news, scores, and live facts.",
-  );
-  const [description, setDescription] = useState("");
+  const [templateId, setTemplateId] = useState<(typeof AGENT_TEMPLATES)[number]["id"]>("search");
+  const [name, setName] = useState(AGENT_TEMPLATES[0].name);
+  const [instructions, setInstructions] = useState(AGENT_TEMPLATES[0].instructions);
+  const [description, setDescription] = useState(AGENT_TEMPLATES[0].description);
   const [provider, setProvider] = useState("groq");
   const [model, setModel] = useState("openai/gpt-oss-20b");
-  const [selectedTools, setSelectedTools] = useState<string[]>(["web_search"]);
+  const [selectedTools, setSelectedTools] = useState<string[]>([...AGENT_TEMPLATES[0].tools]);
   const [error, setError] = useState("");
 
   const [message, setMessage] = useState("");
@@ -55,9 +112,27 @@ export function AgentsPage() {
   );
   const providerModels = models.filter((m) => !provider || m.provider === provider);
   const usesWebSearch = (selectedAgent?.tools || "").includes("web_search");
-  const statusSteps = usesWebSearch
-    ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
-    : ["Thinking…", "Preparing a reply…"];
+  const usesEmail = (selectedAgent?.tools || "").includes("draft_email")
+    || (selectedAgent?.tools || "").includes("send_email");
+  const usesStudio = (selectedAgent?.tools || "").includes("generate_image")
+    || (selectedAgent?.tools || "").includes("generate_storyboard");
+  const statusSteps = usesStudio
+    ? ["Directing the scene…", "Rendering visuals…", "Packaging the reply…"]
+    : usesEmail
+      ? ["Drafting the email…", "Checking send approval…", "Writing a reply…"]
+      : usesWebSearch
+        ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
+        : ["Thinking…", "Preparing a reply…"];
+
+  function applyTemplate(id: (typeof AGENT_TEMPLATES)[number]["id"]) {
+    const template = AGENT_TEMPLATES.find((item) => item.id === id);
+    if (!template) return;
+    setTemplateId(template.id);
+    setName(template.name);
+    setDescription(template.description);
+    setInstructions(template.instructions);
+    setSelectedTools([...template.tools]);
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -168,8 +243,8 @@ export function AgentsPage() {
           <div className="overflow-y-auto p-6">
             <h2 className="text-xl font-semibold">Create agent</h2>
             <p className="mt-1 text-sm text-ink-500">
-              Configure instructions, model, and tools. Users chat with the agent —
-              the backend sends tool schemas to the model automatically.
+              Start from a template, then adjust instructions, model, and tools.
+              Users chat with the agent — the backend sends tool schemas to the model automatically.
             </p>
             <form
               className="mt-6 grid max-w-2xl gap-4"
@@ -179,6 +254,38 @@ export function AgentsPage() {
                 createAgent.mutate();
               }}
             >
+              <div>
+                <label className="label">Template</label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {AGENT_TEMPLATES.map((template) => {
+                    const active = templateId === template.id;
+                    const Icon = TEMPLATE_ICONS[template.id];
+                    return (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className={cn(
+                          "flex items-start gap-3 rounded-2xl border px-3 py-3 text-left",
+                          active
+                            ? "border-accent bg-accent/10"
+                            : "border-ink-200 hover:border-ink-300",
+                        )}
+                        onClick={() => applyTemplate(template.id)}
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-ink-950 text-white">
+                          <Icon size={16} />
+                        </span>
+                        <span>
+                          <span className="block text-sm font-semibold">{template.name}</span>
+                          <span className="mt-0.5 block text-xs text-ink-500">
+                            {template.description}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div>
                 <label className="label">Name</label>
                 <input className="input" required value={name} onChange={(e) => setName(e.target.value)} />
@@ -318,6 +425,12 @@ export function AgentsPage() {
                 <p className="text-sm text-ink-500">
                   Ask this agent something. Press Enter to send, Shift+Enter for a new line.
                   {usesWebSearch ? " Live questions will search the web first." : ""}
+                  {usesEmail
+                    ? " Emails are drafted first and sent only after you confirm (for example “send it”)."
+                    : ""}
+                  {usesStudio
+                    ? " Ask for an image, a storyboard clip, a voiceover, or a brand kit — all free."
+                    : ""}
                 </p>
               )}
               {history.map((item, idx) => (
@@ -331,7 +444,7 @@ export function AgentsPage() {
                   )}
                 >
                   {item.role === "assistant" ? (
-                    <ReactMarkdown>{item.content}</ReactMarkdown>
+                    <MessageContent content={item.content} />
                   ) : (
                     item.content
                   )}

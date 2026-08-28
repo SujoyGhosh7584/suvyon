@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Plus, Star } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { getErrorMessage } from "@/lib/api";
 import { workspacesApi } from "@/lib/services";
@@ -9,20 +10,22 @@ import { workspacesApi } from "@/lib/services";
 export function WorkspacesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { setWorkspaceId } = useWorkspace();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
 
   const { data: workspaces = [], isLoading } = useQuery({
-    queryKey: ["workspaces"],
+    queryKey: ["workspaces", user?.id],
     queryFn: workspacesApi.list,
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
     mutationFn: () => workspacesApi.create({ name, description: description || undefined }),
     onSuccess: (ws) => {
-      queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+      queryClient.invalidateQueries({ queryKey: ["workspaces", user?.id] });
       setWorkspaceId(ws.id);
       navigate(`/app/w/${ws.id}/overview`);
     },

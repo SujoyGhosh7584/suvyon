@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Bot, Layers, Sparkles } from "lucide-react";
+import { GuestLink } from "@/components/GuestAuth";
 
 export function LandingPage() {
   return (
@@ -13,9 +14,9 @@ export function LandingPage() {
           <Link to="/login" className="btn-ghost">
             Sign in
           </Link>
-          <Link to="/register" className="btn-primary">
+          <GuestLink to="/register" className="btn-primary">
             Get started
-          </Link>
+          </GuestLink>
         </div>
       </header>
 
@@ -31,14 +32,14 @@ export function LandingPage() {
             </span>
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
-            One workspace for chat, web-search agents, and documents. Route across Groq,
+            One workspace for chat, web-search and email agents, and documents. Route across Groq,
             Gemini, and OpenRouter without leaving the thread.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link to="/register" className="btn-primary">
+            <GuestLink to="/register" className="btn-primary">
               Create a workspace
               <ArrowRight size={16} />
-            </Link>
+            </GuestLink>
             <Link
               to="/login"
               className="rounded-full border border-white/20 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
