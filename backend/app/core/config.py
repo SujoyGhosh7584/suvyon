@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -59,9 +59,9 @@ class Settings(BaseSettings):
     # Supabase
     # --------------------------------------------------
 
-    SUPABASE_URL: str
+    SUPABASE_URL: str = ""
 
-    SUPABASE_KEY: str
+    SUPABASE_KEY: str = ""
 
     # --------------------------------------------------
     # AI Providers
@@ -106,6 +106,18 @@ class Settings(BaseSettings):
         "https://localhost:3000",
     ]
 
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                import json
+
+                return json.loads(text)
+            return [item.strip() for item in text.split(",") if item.strip()]
+        return value
+
 
 @lru_cache
 def get_settings() -> Settings:
@@ -116,3 +128,12 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def sqlalchemy_database_url(raw: str | None = None) -> str:
+    url = (raw if raw is not None else settings.DATABASE_URL).strip()
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url

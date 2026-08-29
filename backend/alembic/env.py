@@ -3,10 +3,10 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 from app.core.base import Base
-from app.core.config import settings
+from app.core.config import sqlalchemy_database_url
 
 # Import ALL models — Alembic discovers tables only from imported models.
 import app.models  # noqa: F401
@@ -29,8 +29,9 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
+    url = sqlalchemy_database_url()
     context.configure(
-        url=settings.DATABASE_URL,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -39,17 +40,10 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-# ----------------------------------------------------------
-# Online Migration
-# ----------------------------------------------------------
-
-
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        {"sqlalchemy.url": settings.DATABASE_URL},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    url = sqlalchemy_database_url()
+    connect_args = {"sslmode": "require"} if "supabase" in url else {}
+    connectable = create_engine(url, poolclass=pool.NullPool, connect_args=connect_args)
     with connectable.connect() as connection:
         context.configure(
             connection=connection,

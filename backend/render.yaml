@@ -1,12 +1,26 @@
 services:
   - type: web
-    name: suvy-on-backend
+    name: suvyon-backend
     runtime: python
-
+    plan: free
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
-
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
     envVars:
-      - key: ENVIRONMENT
+      - key: APP_ENV
         value: production
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
