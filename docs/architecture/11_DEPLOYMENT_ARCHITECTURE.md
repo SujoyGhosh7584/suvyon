@@ -12,6 +12,10 @@ last_updated: 2026-07-11
 
 # Deployment Architecture
 
+**Operational how-to (URLs, env vars, Render/Vercel):** [../DEPLOYMENT.md](../DEPLOYMENT.md), [../ENVIRONMENT.md](../ENVIRONMENT.md), [../LOCAL_DEVELOPMENT.md](../LOCAL_DEVELOPMENT.md).
+
+This document defines the deployment *architecture* for Suvyon Version 1.0.
+
 ## 1. Purpose
 
 This document defines the deployment architecture for Suvyon Version 1.0.
