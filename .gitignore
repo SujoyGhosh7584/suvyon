@@ -218,3 +218,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 docs/project_structure/*.txt
+
+# Uploaded files
+uploads/

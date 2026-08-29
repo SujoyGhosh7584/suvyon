@@ -3,18 +3,13 @@ from __future__ import annotations
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import create_engine, pool
 
-from app.core.config import settings
 from app.core.base import Base
+from app.core.config import sqlalchemy_database_url
 
-# Import ALL models here.
-# Alembic discovers tables only from imported models.
-from app.models.user import User
-from app.models.workspace import Workspace
-from app.models.conversation import Conversation
-from app.models.message import Message
+# Import ALL models — Alembic discovers tables only from imported models.
+import app.models  # noqa: F401
 
 # ----------------------------------------------------------
 # Alembic Config
@@ -22,14 +17,8 @@ from app.models.message import Message
 
 config = context.config
 
-
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-
-# ----------------------------------------------------------
-# Metadata for Autogenerate
-# ----------------------------------------------------------
 
 target_metadata = Base.metadata
 
@@ -40,58 +29,31 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """
-    Run migrations without creating a database connection.
-    """
-
-    url = settings.DATABASE_URL
-
+    url = sqlalchemy_database_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
 
-# ----------------------------------------------------------
-# Online Migration
-# ----------------------------------------------------------
-
-
 def run_migrations_online() -> None:
-    """
-    Run migrations using database connection.
-    """
-
-    connectable = engine_from_config(
-        {"sqlalchemy.url": settings.DATABASE_URL},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
+    url = sqlalchemy_database_url()
+    connect_args = {"sslmode": "require"} if "supabase" in url else {}
+    connectable = create_engine(url, poolclass=pool.NullPool, connect_args=connect_args)
     with connectable.connect() as connection:
-
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
         )
-
         with context.begin_transaction():
             context.run_migrations()
 
 
-# ----------------------------------------------------------
-# Entry Point
-# ----------------------------------------------------------
-
 if context.is_offline_mode():
-
     run_migrations_offline()
-
 else:
-
     run_migrations_online()

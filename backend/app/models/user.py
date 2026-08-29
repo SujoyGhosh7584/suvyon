@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, String
@@ -10,19 +11,19 @@ if TYPE_CHECKING:
     from app.models.workspace import Workspace
 
 
+class UserRole(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
+
+
 class User(Base, BaseModel):
     """
     User account model.
-
-    Represents an authenticated user of the application.
     """
 
     __tablename__ = "users"
 
-    full_name: Mapped[str] = mapped_column(
-        String(255),
-        nullable=False,
-    )
+    full_name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     email: Mapped[str] = mapped_column(
         String(255),
@@ -31,28 +32,21 @@ class User(Base, BaseModel):
         nullable=False,
     )
 
-    hashed_password: Mapped[str] = mapped_column(
-        String(255),
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    role: Mapped[UserRole] = mapped_column(
+        String(50),
+        default=UserRole.USER.value,
         nullable=False,
     )
 
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
+    avatar_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
 
-    is_verified: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    is_superuser: Mapped[bool] = mapped_column(
-        Boolean,
-        default=False,
-        nullable=False,
-    )
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # ------------------------------------------------------------------
     # Relationships

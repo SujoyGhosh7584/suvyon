@@ -193,3 +193,87 @@ def delete_workspace(
     workspace_service.delete_workspace(
         workspace=workspace,
     )
+
+
+@router.post(
+    "/{workspace_id}/archive",
+    response_model=WorkspaceResponse,
+    summary="Archive a workspace",
+)
+def archive_workspace(
+    workspace_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+) -> WorkspaceResponse:
+    workspace = workspace_service.get_workspace(
+        workspace_id=workspace_id,
+        owner_id=current_user.id,
+    )
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+    return WorkspaceResponse.model_validate(
+        workspace_service.archive_workspace(workspace=workspace)
+    )
+
+
+@router.post(
+    "/{workspace_id}/restore",
+    response_model=WorkspaceResponse,
+    summary="Restore an archived workspace",
+)
+def restore_workspace(
+    workspace_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+) -> WorkspaceResponse:
+    workspace = workspace_service.get_workspace(
+        workspace_id=workspace_id,
+        owner_id=current_user.id,
+    )
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+    return WorkspaceResponse.model_validate(
+        workspace_service.restore_workspace(workspace=workspace)
+    )
+
+
+@router.post(
+    "/{workspace_id}/favourite",
+    response_model=WorkspaceResponse,
+    summary="Mark workspace as favourite",
+)
+def favourite_workspace(
+    workspace_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+) -> WorkspaceResponse:
+    workspace = workspace_service.get_workspace(
+        workspace_id=workspace_id,
+        owner_id=current_user.id,
+    )
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+    return WorkspaceResponse.model_validate(
+        workspace_service.set_favourite(workspace=workspace, value=True)
+    )
+
+
+@router.delete(
+    "/{workspace_id}/favourite",
+    response_model=WorkspaceResponse,
+    summary="Remove workspace from favourites",
+)
+def unfavourite_workspace(
+    workspace_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+) -> WorkspaceResponse:
+    workspace = workspace_service.get_workspace(
+        workspace_id=workspace_id,
+        owner_id=current_user.id,
+    )
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found.")
+    return WorkspaceResponse.model_validate(
+        workspace_service.set_favourite(workspace=workspace, value=False)
+    )

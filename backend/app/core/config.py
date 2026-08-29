@@ -1,7 +1,12 @@
 from functools import lru_cache
+from pathlib import Path
+from typing import Annotated
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
+_ENV_FILE = _BACKEND_DIR / ".env"
 
 
 class Settings(BaseSettings):
@@ -13,7 +18,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE if _ENV_FILE.exists() else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -26,7 +31,6 @@ class Settings(BaseSettings):
     APP_NAME: str = "Suvyon"
     APP_VERSION: str = "1.0.0"
     APP_ENV: str = Field(default="development")
-    DEBUG: bool = False
 
     # --------------------------------------------------
     # API
@@ -56,9 +60,9 @@ class Settings(BaseSettings):
     # Supabase
     # --------------------------------------------------
 
-    SUPABASE_URL: str
+    SUPABASE_URL: str = ""
 
-    SUPABASE_KEY: str
+    SUPABASE_KEY: str = ""
 
     # --------------------------------------------------
     # AI Providers
@@ -69,6 +73,16 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
 
     GEMINI_API_KEY: str = ""
+
+    # --------------------------------------------------
+    # Search
+    # --------------------------------------------------
+
+    TAVILY_API_KEY: str = ""
+
+    SERPER_API_KEY: str = ""
+
+    BRAVE_API_KEY: str = ""
 
     # --------------------------------------------------
     # Email
@@ -88,10 +102,34 @@ class Settings(BaseSettings):
     # CORS
     # --------------------------------------------------
 
-    BACKEND_CORS_ORIGINS: list[str] = [
+    # Render/Vercel set a URL string. pydantic-settings otherwise JSON-decodes list fields.
+    BACKEND_CORS_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
         "https://localhost:3000",
     ]
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: object) -> list[str]:
+        default = ["http://localhost:3000", "https://localhost:3000"]
+        if value is None:
+            return default
+        if isinstance(value, list):
+            origins = [str(item).strip() for item in value if str(item).strip()]
+            return origins or default
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return default
+            if text.startswith("["):
+                import json
+
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    origins = [str(item).strip() for item in parsed if str(item).strip()]
+                    return origins or default
+            return [item.strip() for item in text.split(",") if item.strip()] or default
+        return default
 
 
 @lru_cache
@@ -103,3 +141,12 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def sqlalchemy_database_url(raw: str | None = None) -> str:
+    url = (raw if raw is not None else settings.DATABASE_URL).strip()
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        url = "postgresql+psycopg://" + url[len("postgresql://") :]
+    return url
