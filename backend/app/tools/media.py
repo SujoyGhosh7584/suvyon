@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import hashlib
 import json
+import secrets
 from urllib.parse import quote
 
 _IMAGE_BASE = "https://image.pollinations.ai/prompt"
+_DEFAULT_MODEL = "sana"
+_PROMPT_MAX = 360
 _ASPECTS = {
     "square": (1024, 1024),
     "wide": (1280, 720),
@@ -22,30 +24,41 @@ _STORY_SHOTS = (
 )
 
 
-def image_url(prompt: str, *, aspect: str = "square", seed: int | None = None) -> str:
+def _clean_prompt(prompt: str) -> str:
     cleaned = " ".join((prompt or "").split())
     if not cleaned:
         cleaned = "abstract luminous shape, high quality"
+    quality = "photorealistic, anatomically correct, single coherent subject"
+    if "photorealistic" not in cleaned.lower():
+        cleaned = f"{cleaned}, {quality}"
+    return cleaned[:_PROMPT_MAX]
+
+
+def image_url(prompt: str, *, aspect: str = "square", seed: int | None = None) -> str:
+    """Public Pollinations URL. Do not use gen.pollinations.ai (it requires an API key)."""
+    cleaned = _clean_prompt(prompt)
     width, height = _ASPECTS.get((aspect or "square").lower(), _ASPECTS["square"])
     if seed is None:
-        seed = int(hashlib.sha256(cleaned.encode()).hexdigest()[:8], 16)
-    encoded = quote(cleaned)
+        seed = secrets.randbelow(2_147_483_647)
+    encoded = quote(cleaned, safe="")
     return (
         f"{_IMAGE_BASE}/{encoded}"
-        f"?width={width}&height={height}&nologo=true&enhance=true&seed={seed}"
+        f"?model={_DEFAULT_MODEL}&width={width}&height={height}"
+        f"&nologo=true&seed={seed}"
     )
 
 
 def generate_image(prompt: str, aspect: str = "square") -> str:
-    """Create a free AI image URL (Pollinations, no API key)."""
+    """Return markdown that points at a hosted Pollinations image (nothing stored locally)."""
     if not (prompt or "").strip():
         return "Tool error: generate_image requires a prompt."
+    alt = prompt.strip().replace("]", "").replace("\n", " ")[:80]
     url = image_url(prompt, aspect=aspect)
     return (
         f"Generated image for: {prompt.strip()}\n\n"
-        f"![{prompt.strip()}]({url})\n\n"
+        f"![{alt}]({url})\n\n"
         f"Open full size: {url}\n"
-        "This uses a free public image model. Include the markdown image in your reply."
+        "Include the markdown image in your reply."
     )
 
 

@@ -60,6 +60,57 @@ def test_auto_uses_tools_when_model_requests_wikipedia(monkeypatch):
     assert provider == "groq"
 
 
+def test_auto_image_tool_is_chat_not_web(monkeypatch):
+    calls = {"n": 0}
+
+    def fake_route_chat(messages, provider_name=None, model_id=None, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return LLMResponse(
+                content="",
+                provider="groq",
+                model="test",
+                tool_calls=[
+                    {
+                        "id": "1",
+                        "name": "generate_image",
+                        "arguments": {"prompt": "a cow grazing"},
+                    }
+                ],
+            )
+        return LLMResponse(
+            content="![cow](https://image.pollinations.ai/prompt/cow)",
+            provider="groq",
+            model="test",
+        )
+
+    monkeypatch.setattr("app.services.chat_service.route_chat", fake_route_chat)
+    monkeypatch.setattr(
+        "app.services.chat_service._call_tool",
+        lambda name, arguments, **kwargs: "![cow](https://image.pollinations.ai/prompt/cow)",
+    )
+
+    service = ChatService.__new__(ChatService)
+    service._session = None
+    service._messages = SimpleNamespace(get_by_conversation=lambda conversation_id: [])
+    conversation = SimpleNamespace(
+        id="c1",
+        workspace_id="ws-1",
+        system_prompt=None,
+        provider="groq",
+        model="test",
+    )
+    monkeypatch.setattr(service, "_get_active_knowledge_bases", lambda workspace_id: [])
+
+    text, mode, sources, *_ = service._answer_with_tools(
+        conversation=conversation,
+        content="Generate a cow image",
+    )
+    assert mode == "chat"
+    assert sources == []
+    assert "cow" in text.lower()
+
+
 def test_auto_skips_tools_for_plain_answer(monkeypatch):
     monkeypatch.setattr(
         "app.services.chat_service.route_chat",

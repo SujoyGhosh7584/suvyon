@@ -35,6 +35,8 @@ def test_registry_includes_hero_tools():
 def test_generate_image_returns_markdown_url():
     result = generate_image("a red bicycle in rain", aspect="wide")
     assert "image.pollinations.ai" in result
+    assert "gen.pollinations.ai" not in result
+    assert "enhance=" not in result
     assert "![" in result
     assert image_url("a red bicycle in rain").startswith("https://image.pollinations.ai/")
 

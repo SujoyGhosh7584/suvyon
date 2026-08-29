@@ -43,14 +43,85 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
   );
 }
 
+function proxiedImageSrc(src: string) {
+  try {
+    const absolute = src.startsWith("http") ? src : new URL(src, window.location.origin).href;
+    const host = new URL(absolute).hostname.toLowerCase();
+    if (!host.endsWith("pollinations.ai")) return src;
+    const base = (import.meta.env.VITE_API_BASE_URL || "/api/v1").replace(/\/$/, "");
+    return `${base}/media/image?u=${encodeURIComponent(absolute)}`;
+  } catch {
+    return src;
+  }
+}
+
+function ChatImage({
+  src,
+  alt,
+  className,
+}: {
+  src?: string;
+  alt?: string;
+  className?: string;
+}) {
+  const original = src || "";
+  const needsProxy = (() => {
+    try {
+      const absolute = original.startsWith("http")
+        ? original
+        : new URL(original, window.location.origin).href;
+      return new URL(absolute).hostname.toLowerCase().endsWith("pollinations.ai");
+    } catch {
+      return false;
+    }
+  })();
+  const [mode, setMode] = useState<"proxy" | "direct" | "failed">(needsProxy ? "proxy" : "direct");
+  const [loading, setLoading] = useState(true);
+  const resolved = mode === "direct" ? original : proxiedImageSrc(original);
+  const openHref = needsProxy ? proxiedImageSrc(original) : original;
+
+  if (!original) return null;
+  if (mode === "failed") {
+    return (
+      <p className="my-3 rounded-2xl bg-ink-50 px-3 py-2 text-sm text-ink-600">
+        Image did not load.{" "}
+        <a href={openHref} target="_blank" rel="noreferrer" className="font-medium underline">
+          Open it in a new tab
+        </a>
+        . Generation can take up to a minute.
+      </p>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {loading && (
+        <div className="absolute inset-0 animate-pulse rounded-2xl bg-ink-100" />
+      )}
+      <img
+        src={resolved}
+        alt={alt || ""}
+        className={className}
+        referrerPolicy="no-referrer"
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          if (mode === "proxy") {
+            setMode("direct");
+            setLoading(true);
+          } else {
+            setMode("failed");
+            setLoading(false);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 function markdownComponents() {
   return {
     img: ({ src, alt }: { src?: string; alt?: string }) => (
-      <img
-        src={src}
-        alt={alt || ""}
-        className="my-3 max-h-[28rem] w-full rounded-2xl object-cover ring-1 ring-ink-100"
-      />
+      <ChatImage src={src} alt={alt} className="my-3 max-h-[28rem] w-full rounded-2xl object-cover ring-1 ring-ink-100" />
     ),
     a: ({ href, children }: { href?: string; children?: ReactNode }) => (
       <a
@@ -128,7 +199,7 @@ function StoryboardPlayer({ board }: { board: Storyboard }) {
   return (
     <div className="my-3 overflow-hidden rounded-2xl bg-ink-950 text-white">
       <div className="relative">
-        <img src={frame.url} alt={frame.shot || "Storyboard frame"} className="aspect-video w-full object-cover" />
+        <ChatImage src={frame.url} alt={frame.shot || "Storyboard frame"} className="aspect-video w-full object-cover" />
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 text-xs">
           {board.title && <div className="mb-1 font-semibold">{board.title}</div>}
           <div className="text-white/80">

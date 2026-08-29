@@ -26,6 +26,7 @@ _TOOL_INSTRUCTIONS = (
     "- wikipedia: people, places, public offices, encyclopedic facts that can change.\n"
     "- web_search: news, prices, scores, or to confirm a wikipedia result.\n"
     "- search_knowledge: only when the user is asking about THEIR uploaded files.\n"
+    "- generate_image: when the user wants a picture, illustration, or logo. Keep the markdown image.\n"
     "Do not search the knowledge base for coding, writing, or general how-tos.\n"
     "Never answer who currently holds a public office from memory — look it up.\n"
     "If the user says a previous answer was wrong, look the fact up with tools.\n"
@@ -36,6 +37,7 @@ _SYNTHESIZE = (
     "Using the tool results above, answer the user now. "
     "Cite only URLs that appeared in the tool output. "
     "Prefer the Wikipedia result for office-holders. "
+    "Keep any markdown images from generate_image. "
     "Do not call tools again."
 )
 
@@ -186,12 +188,18 @@ class ChatService:
         return "\n\n".join(context_parts), sources
 
     def _auto_tool_schemas(self, workspace_id: UUID) -> list[dict]:
-        schemas = get_tool_schemas(["wikipedia", "web_search"])
+        schemas = get_tool_schemas(["wikipedia", "web_search", "generate_image"])
         if self._get_active_knowledge_bases(workspace_id):
             schemas.append(_SEARCH_KNOWLEDGE_SCHEMA)
         return schemas
 
-    def _run_chat_tool(self, name: str, arguments, workspace_id: UUID) -> tuple[str, list[str]]:
+    def _run_chat_tool(
+        self,
+        name: str,
+        arguments,
+        workspace_id: UUID,
+        user_content: str = "",
+    ) -> tuple[str, list[str]]:
         if name == "search_knowledge":
             args = _normalize_arguments(arguments)
             query = str(args.get("query") or args.get("q") or "").strip()
@@ -210,14 +218,30 @@ class ChatService:
                 )
             return context, sources
         try:
-            return _call_tool(name, arguments), []
+            return _call_tool(name, arguments, user_content=user_content), []
         except Exception as exc:
             return f"Tool error: {exc}", []
 
     def _collect_tool_sources(self, name: str, result: str, rag_sources: list[str]) -> list[str]:
         if name == "search_knowledge":
             return rag_sources
+        if name in {
+            "generate_image",
+            "generate_storyboard",
+            "generate_speech",
+            "qr_code",
+            "draw_diagram",
+            "brand_kit",
+        }:
+            return []
         return self._source_links_from_search(result)
+
+    def _mode_from_tools(self, used: list[str], extra_sources: list[str]) -> str:
+        if "search_knowledge" in used and extra_sources:
+            return "rag"
+        if any(name in used for name in ("web_search", "wikipedia")):
+            return "web"
+        return "chat"
 
     def _answer_with_tools(
         self,
@@ -253,7 +277,10 @@ class ChatService:
                     name = call.get("name") or ""
                     used.append(name)
                     result, rag_sources = self._run_chat_tool(
-                        name, call.get("arguments"), conversation.workspace_id
+                        name,
+                        call.get("arguments"),
+                        conversation.workspace_id,
+                        user_content=content,
                     )
                     extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
                     messages.append(
@@ -270,11 +297,7 @@ class ChatService:
                     provider_name=response.provider,
                     model_id=response.model,
                 )
-                mode = "rag" if "search_knowledge" in used and extra_sources else (
-                    "web" if used else "chat"
-                )
-                if "search_knowledge" not in used and used:
-                    mode = "web"
+                mode = self._mode_from_tools(used, extra_sources)
                 return (
                     (final.content or "").strip() or "I could not produce an answer.",
                     mode,
@@ -328,7 +351,10 @@ class ChatService:
                     name = call.get("name") or ""
                     used.append(name)
                     result, rag_sources = self._run_chat_tool(
-                        name, call.get("arguments"), conversation.workspace_id
+                        name,
+                        call.get("arguments"),
+                        conversation.workspace_id,
+                        user_content=content,
                     )
                     extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
                     messages.append(
@@ -351,9 +377,7 @@ class ChatService:
         ):
             full += chunk
             yield chunk
-        mode = "chat"
-        if used:
-            mode = "rag" if "search_knowledge" in used and extra_sources else "web"
+        mode = self._mode_from_tools(used, extra_sources)
         self._auto_stream_state = (
             mode,
             list(dict.fromkeys(extra_sources)),

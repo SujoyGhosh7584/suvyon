@@ -125,6 +125,24 @@ def _call_tool(name: str, arguments, *, user_content: str = "") -> str:
         except Exception as exc:
             return f"Tool error: {exc}"
 
+    if name == "generate_image":
+        prompt = str(
+            args.get("prompt")
+            or args.get("description")
+            or args.get("text")
+            or args.get("query")
+            or args.get("image_prompt")
+            or user_content
+            or ""
+        ).strip()
+        aspect = str(args.get("aspect") or "square").strip() or "square"
+        if not prompt:
+            return "Tool error: generate_image requires a prompt."
+        try:
+            return fn(prompt, aspect=aspect)
+        except Exception as exc:
+            return f"Tool error: {exc}"
+
     if name == "web_search":
         query = (
             args.get("query")
