@@ -1,8 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 _BACKEND_DIR = Path(__file__).resolve().parents[2]
 _ENV_FILE = _BACKEND_DIR / ".env"
@@ -101,22 +102,34 @@ class Settings(BaseSettings):
     # CORS
     # --------------------------------------------------
 
-    BACKEND_CORS_ORIGINS: list[str] = [
+    # Render/Vercel set a URL string. pydantic-settings otherwise JSON-decodes list fields.
+    BACKEND_CORS_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
         "https://localhost:3000",
     ]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, value: object) -> object:
+    def parse_cors_origins(cls, value: object) -> list[str]:
+        default = ["http://localhost:3000", "https://localhost:3000"]
+        if value is None:
+            return default
+        if isinstance(value, list):
+            origins = [str(item).strip() for item in value if str(item).strip()]
+            return origins or default
         if isinstance(value, str):
             text = value.strip()
+            if not text:
+                return default
             if text.startswith("["):
                 import json
 
-                return json.loads(text)
-            return [item.strip() for item in text.split(",") if item.strip()]
-        return value
+                parsed = json.loads(text)
+                if isinstance(parsed, list):
+                    origins = [str(item).strip() for item in parsed if str(item).strip()]
+                    return origins or default
+            return [item.strip() for item in text.split(",") if item.strip()] or default
+        return default
 
 
 @lru_cache
