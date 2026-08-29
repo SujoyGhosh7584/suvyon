@@ -4,6 +4,7 @@ from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.agents.runner import _call_tool, _normalize_arguments
 from app.ai.providers.base import LLMMessage
 from app.ai.router import route_chat, route_stream
 from app.models.conversation import Conversation
@@ -13,7 +14,46 @@ from app.rag.retriever import build_rag_prompt, retrieve_context_with_sources
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.message_repository import MessageRepository
 from app.schemas.conversation import ConversationCreate, ConversationUpdate
+from app.tools.registry import get_tool_schemas
+from app.tools.research import wikipedia
 from app.tools.web_search import web_search
+
+AUTO_RAG_MAX_DISTANCE = 0.42
+_MAX_TOOL_ROUNDS = 3
+
+_TOOL_INSTRUCTIONS = (
+    "\n\nYou can call tools. Decide from the meaning of the question.\n"
+    "- wikipedia: people, places, public offices, encyclopedic facts that can change.\n"
+    "- web_search: news, prices, scores, or to confirm a wikipedia result.\n"
+    "- search_knowledge: only when the user is asking about THEIR uploaded files.\n"
+    "Do not search the knowledge base for coding, writing, or general how-tos.\n"
+    "Never answer who currently holds a public office from memory — look it up.\n"
+    "If the user says a previous answer was wrong, look the fact up with tools.\n"
+    "Prefer Wikipedia over random blogs. Never invent URLs. Markdown, never HTML."
+)
+
+_SYNTHESIZE = (
+    "Using the tool results above, answer the user now. "
+    "Cite only URLs that appeared in the tool output. "
+    "Prefer the Wikipedia result for office-holders. "
+    "Do not call tools again."
+)
+
+_SEARCH_KNOWLEDGE_SCHEMA = {
+    "type": "function",
+    "function": {
+        "name": "search_knowledge",
+        "description": (
+            "Search the user's uploaded documents in this workspace. "
+            "Use only when the question is about those files."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
+    },
+}
 
 
 class ChatService:
@@ -96,101 +136,6 @@ class ChatService:
         title = title.strip(".,!?:;\"'").capitalize()
         return title[:50] if title else "New conversation"
 
-    def _classify_request(
-        self,
-        content: str,
-        knowledge_bases: list[KnowledgeBase] | None = None,
-    ) -> str:
-        text = content.lower()
-        web_keywords = (
-            "latest",
-            "news",
-            "today",
-            "current",
-            "recent",
-            "update",
-            "price",
-            "rate",
-            "stock",
-            "weather",
-            "trend",
-            "what happened",
-            "breaking",
-            "release",
-            "forecast",
-            "upcoming",
-            "compare",
-            "vs",
-            "who is",
-            "who was",
-            "who won",
-            "where is",
-            "where was",
-            "when did",
-            "how much",
-            "cost",
-            "launch",
-            "search web",
-            "google",
-            "online",
-            "http",
-            "https",
-            "www",
-            "internet",
-            "live",
-        )
-        rag_keywords = (
-            "document",
-            "documents",
-            "file",
-            "pdf",
-            "uploaded",
-            "upload",
-            "knowledge base",
-            "resume",
-            "cv",
-            "according to",
-            "from the docs",
-            "from the document",
-            "my doc",
-            "my docs",
-            "in the doc",
-            "in the document",
-        )
-
-        # Prefer live/web intents over RAG when both could match
-        # (e.g. "tell me about the gold rate today").
-        if any(keyword in text for keyword in web_keywords):
-            return "web"
-        if any(keyword in text for keyword in rag_keywords):
-            return "rag"
-        if knowledge_bases and any(
-            hint in text
-            for hint in (
-                "experience",
-                "work ex",
-                "work history",
-                "skills",
-                "education",
-                "summarize",
-            )
-        ):
-            return "rag"
-
-        # Only route to RAG when retrieved chunks are actually similar.
-        if knowledge_bases and self._session:
-            for kb in knowledge_bases:
-                try:
-                    chunks, _ = retrieve_context_with_sources(
-                        self._session, kb.id, content, top_k=3
-                    )
-                    if chunks:
-                        return "rag"
-                except Exception:
-                    pass
-
-        return "chat"
-
     def _get_active_knowledge_bases(self, workspace_id: UUID) -> list[KnowledgeBase]:
         if not self._session:
             return []
@@ -208,6 +153,7 @@ class ChatService:
         workspace_id: UUID,
         query: str,
         knowledge_base_id: UUID | None = None,
+        max_distance: float | None = None,
     ) -> tuple[str, list[str]]:
         if not self._session:
             return "", []
@@ -229,6 +175,7 @@ class ChatService:
                 kb.id,
                 query,
                 top_k=12,
+                max_distance=max_distance,
             )
             if chunks:
                 context_parts.append(
@@ -238,6 +185,182 @@ class ChatService:
 
         return "\n\n".join(context_parts), sources
 
+    def _auto_tool_schemas(self, workspace_id: UUID) -> list[dict]:
+        schemas = get_tool_schemas(["wikipedia", "web_search"])
+        if self._get_active_knowledge_bases(workspace_id):
+            schemas.append(_SEARCH_KNOWLEDGE_SCHEMA)
+        return schemas
+
+    def _run_chat_tool(self, name: str, arguments, workspace_id: UUID) -> tuple[str, list[str]]:
+        if name == "search_knowledge":
+            args = _normalize_arguments(arguments)
+            query = str(args.get("query") or args.get("q") or "").strip()
+            if not query:
+                return "search_knowledge requires a query.", []
+            context, sources = self._build_rag_context(
+                workspace_id,
+                query,
+                max_distance=AUTO_RAG_MAX_DISTANCE,
+            )
+            if not context:
+                return (
+                    "No relevant documents matched. Answer from general knowledge; "
+                    "do not say the files cover this topic.",
+                    [],
+                )
+            return context, sources
+        try:
+            return _call_tool(name, arguments), []
+        except Exception as exc:
+            return f"Tool error: {exc}", []
+
+    def _collect_tool_sources(self, name: str, result: str, rag_sources: list[str]) -> list[str]:
+        if name == "search_knowledge":
+            return rag_sources
+        return self._source_links_from_search(result)
+
+    def _answer_with_tools(
+        self,
+        *,
+        conversation: Conversation,
+        content: str,
+    ) -> tuple[str, str, list[str], str | None, str | None]:
+        messages, _ = self._build_contextual_messages(
+            conversation=conversation,
+            content=content,
+            mode="chat",
+        )
+        messages[0].content = messages[0].content.rstrip() + _TOOL_INSTRUCTIONS
+        schemas = self._auto_tool_schemas(conversation.workspace_id)
+        used: list[str] = []
+        extra_sources: list[str] = []
+        last_provider = conversation.provider
+        last_model = conversation.model
+
+        for _ in range(_MAX_TOOL_ROUNDS):
+            response = route_chat(
+                messages,
+                provider_name=conversation.provider,
+                model_id=conversation.model,
+                tools=schemas or None,
+            )
+            last_provider, last_model = response.provider, response.model
+            if response.tool_calls:
+                messages.append(
+                    LLMMessage(role="assistant", content="", tool_calls=response.tool_calls)
+                )
+                for call in response.tool_calls:
+                    name = call.get("name") or ""
+                    used.append(name)
+                    result, rag_sources = self._run_chat_tool(
+                        name, call.get("arguments"), conversation.workspace_id
+                    )
+                    extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
+                    messages.append(
+                        LLMMessage(
+                            role="tool",
+                            content=str(result),
+                            tool_call_id=call.get("id"),
+                            name=name,
+                        )
+                    )
+                messages.append(LLMMessage(role="user", content=_SYNTHESIZE))
+                final = route_chat(
+                    messages,
+                    provider_name=response.provider,
+                    model_id=response.model,
+                )
+                mode = "rag" if "search_knowledge" in used and extra_sources else (
+                    "web" if used else "chat"
+                )
+                if "search_knowledge" not in used and used:
+                    mode = "web"
+                return (
+                    (final.content or "").strip() or "I could not produce an answer.",
+                    mode,
+                    list(dict.fromkeys(extra_sources)),
+                    final.provider,
+                    final.model,
+                )
+            if (response.content or "").strip():
+                return (
+                    response.content,
+                    "chat",
+                    [],
+                    response.provider,
+                    response.model,
+                )
+            break
+
+        return "I could not produce an answer. Please try again.", "chat", [], last_provider, last_model
+
+    def _stream_with_tools(
+        self,
+        *,
+        conversation: Conversation,
+        content: str,
+    ) -> Iterator[str]:
+        messages, _ = self._build_contextual_messages(
+            conversation=conversation,
+            content=content,
+            mode="chat",
+        )
+        messages[0].content = messages[0].content.rstrip() + _TOOL_INSTRUCTIONS
+        schemas = self._auto_tool_schemas(conversation.workspace_id)
+        pin_provider = conversation.provider
+        pin_model = conversation.model
+        used: list[str] = []
+        extra_sources: list[str] = []
+
+        if schemas:
+            response = route_chat(
+                messages,
+                provider_name=conversation.provider,
+                model_id=conversation.model,
+                tools=schemas,
+            )
+            pin_provider, pin_model = response.provider, response.model
+            if response.tool_calls:
+                messages.append(
+                    LLMMessage(role="assistant", content="", tool_calls=response.tool_calls)
+                )
+                for call in response.tool_calls:
+                    name = call.get("name") or ""
+                    used.append(name)
+                    result, rag_sources = self._run_chat_tool(
+                        name, call.get("arguments"), conversation.workspace_id
+                    )
+                    extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
+                    messages.append(
+                        LLMMessage(
+                            role="tool",
+                            content=str(result),
+                            tool_call_id=call.get("id"),
+                            name=name,
+                        )
+                    )
+                messages.append(LLMMessage(role="user", content=_SYNTHESIZE))
+            elif (response.content or "").strip():
+                self._auto_stream_state = ("chat", [], response.provider, response.model)
+                yield response.content
+                return
+
+        full = ""
+        for chunk in route_stream(
+            messages, provider_name=pin_provider, model_id=pin_model
+        ):
+            full += chunk
+            yield chunk
+        mode = "chat"
+        if used:
+            mode = "rag" if "search_knowledge" in used and extra_sources else "web"
+        self._auto_stream_state = (
+            mode,
+            list(dict.fromkeys(extra_sources)),
+            pin_provider,
+            pin_model,
+        )
+
     def _build_contextual_messages(
         self,
         *,
@@ -245,6 +368,8 @@ class ChatService:
         content: str,
         mode: str,
         knowledge_base_id: UUID | None = None,
+        grounding_strict: bool = True,
+        search_query: str | None = None,
     ) -> tuple[list[LLMMessage], list[str]]:
         llm_messages: list[LLMMessage] = []
         llm_messages.append(
@@ -282,20 +407,33 @@ class ChatService:
         user_message = LLMMessage(role="user", content=content)
 
         if mode == "web":
-            search_results = web_search(content, max_results=5)
+            query = (search_query or content).strip()
+            wiki = wikipedia(query)
+            search_results = web_search(query, max_results=6)
+            encyclopedia = ""
+            if wiki and not wiki.startswith("Tool error") and not wiki.startswith("No Wikipedia"):
+                encyclopedia = f"Preferred encyclopedia source (trust this over random blogs):\n{wiki}\n\n"
             user_message = LLMMessage(
                 role="user",
                 content=(
-                    "You have live web search results below. Answer the user's question "
-                    "using these results. Extract concrete facts (prices, scores, dates, "
-                    "numbers, names) when present. Cite every source as a Markdown link "
-                    "[title](url). Do not say you lack access to real-time data when the "
-                    "results contain relevant information. Only say results are insufficient "
-                    "if they truly do not answer the question. Do not use HTML.\n\n"
-                    f"Search results:\n{search_results}\n\nQuestion: {content}"
+                    "Answer ONLY from the sources below. Do not use training memory or earlier "
+                    "chat replies if they disagree with these sources. Prefer the encyclopedia "
+                    "source when it names a current office-holder. Ignore SEO listicles that "
+                    "invent elections, vote counts, or inauguration dates not also in the "
+                    "encyclopedia source. Never invent names, dates, or URLs. Cite only URLs "
+                    "that appear below, as Markdown links [title](url). If sources conflict, "
+                    "say so and quote the encyclopedia. Do not use HTML.\n\n"
+                    f"{encyclopedia}"
+                    f"Other web results:\n{search_results}\n\n"
+                    f"User message: {content}\n"
+                    f"Look up: {query}"
                 ),
             )
-            return [*llm_messages, user_message], self._source_links_from_search(search_results)
+            combined = f"{encyclopedia}{search_results}"
+            return [
+                llm_messages[0],
+                user_message,
+            ], self._source_links_from_search(combined)
         elif mode == "rag":
             rag_context, rag_sources = self._build_rag_context(
                 conversation.workspace_id,
@@ -305,7 +443,9 @@ class ChatService:
             if rag_context:
                 user_message = LLMMessage(
                     role="user",
-                    content=build_rag_prompt(rag_context, content),
+                    content=build_rag_prompt(
+                        rag_context, content, strict=grounding_strict
+                    ),
                 )
                 return [*llm_messages, user_message], rag_sources
             return [*llm_messages, user_message], []
@@ -374,16 +514,41 @@ class ChatService:
             self._messages.rollback()
             raise
 
+        user_mode = (mode or "").lower() or None
+        if not user_mode:
+            assistant_content, selected_mode, extra_sources, used_provider, used_model = (
+                self._answer_with_tools(conversation=conversation, content=content)
+            )
+            provenance_note = self._build_provenance_note(
+                selected_mode,
+                used_provider,
+                used_model,
+                sources=extra_sources if selected_mode in {"rag", "web"} else None,
+            )
+            if provenance_note:
+                assistant_content = f"{assistant_content}\n\n---\n{provenance_note}"
+            assistant_msg = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.ASSISTANT.value,
+                content=assistant_content,
+                provider=used_provider,
+                model=used_model,
+            )
+            try:
+                self._messages.create(assistant_msg)
+                self._messages.commit()
+                return assistant_msg
+            except SQLAlchemyError:
+                self._messages.rollback()
+                raise
 
-        knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
-        selected_mode = (
-            mode or self._classify_request(content, knowledge_bases)
-        ).lower()
+        selected_mode = user_mode
         llm_messages, extra_sources = self._build_contextual_messages(
             conversation=conversation,
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
+            grounding_strict=user_mode == "rag",
         )
         if selected_mode == "rag" and not extra_sources:
             selected_mode = "chat"
@@ -452,16 +617,44 @@ class ChatService:
             self._messages.rollback()
             raise
 
+        user_mode = (mode or "").lower() or None
+        if not user_mode:
+            full_content = ""
+            self._auto_stream_state = ("chat", [], conversation.provider, conversation.model)
+            for chunk in self._stream_with_tools(conversation=conversation, content=content):
+                full_content += chunk
+                yield chunk
+            selected_mode, extra_sources, used_provider, used_model = self._auto_stream_state
+            provenance_note = self._build_provenance_note(
+                selected_mode,
+                used_provider,
+                used_model,
+                sources=extra_sources if selected_mode in {"rag", "web"} else None,
+            )
+            if provenance_note:
+                full_content = f"{full_content}\n\n---\n{provenance_note}"
+            assistant_msg = Message(
+                conversation_id=conversation.id,
+                role=MessageRole.ASSISTANT.value,
+                content=full_content,
+                provider=used_provider,
+                model=used_model,
+            )
+            try:
+                self._messages.create(assistant_msg)
+                self._messages.commit()
+            except SQLAlchemyError:
+                self._messages.rollback()
+                raise
+            return
 
-        knowledge_bases = self._get_active_knowledge_bases(conversation.workspace_id)
-        selected_mode = (
-            mode or self._classify_request(content, knowledge_bases)
-        ).lower()
+        selected_mode = user_mode
         llm_messages, extra_sources = self._build_contextual_messages(
             conversation=conversation,
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
+            grounding_strict=user_mode == "rag",
         )
         if selected_mode == "rag" and not extra_sources:
             selected_mode = "chat"

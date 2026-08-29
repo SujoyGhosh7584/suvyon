@@ -11,9 +11,8 @@ TOOL_REGISTRY: dict[str, dict] = {
     "web_search": {
         "fn": web_search,
         "description": (
-            "Search the live web for current information such as prices, news, "
-            "sports scores, weather, and recent events. Always use this tool for "
-            "up-to-date facts instead of answering from memory."
+            "Search the live web. Use this instead of memory for news, prices, "
+            "sports scores, weather, elections, and who currently holds public office."
         ),
         "parameters": {"query": "string"},
     },
@@ -46,7 +45,10 @@ TOOL_REGISTRY: dict[str, dict] = {
     },
     "wikipedia": {
         "fn": wikipedia,
-        "description": "Look up an encyclopedia summary on Wikipedia.",
+        "description": (
+            "Look up an encyclopedia summary on Wikipedia. Use this for people, "
+            "places, and who currently holds a public office instead of guessing."
+        ),
         "parameters": {"query": "string"},
     },
     "arxiv_search": {

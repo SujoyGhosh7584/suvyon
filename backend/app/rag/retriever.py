@@ -23,6 +23,18 @@ Context:
 
 Question: {question}"""
 
+# Used when Auto selected RAG: never block a general question just because docs exist.
+SOFT_CONTEXT_TEMPLATE = """You may use the following document context if it is clearly relevant to the question.
+If the context is about a different topic (for example artisan reports when the user asked for code),
+ignore the documents completely and answer from your own knowledge.
+Never refuse a general request such as writing code, explanations, or tutorials because the files are unrelated.
+Only mention the documents when they actually help answer the question.
+
+Context:
+{context}
+
+Question: {question}"""
+
 
 def retrieve_context(
     session: Session,
@@ -52,10 +64,16 @@ def retrieve_context_with_sources(
     knowledge_base_id: UUID,
     query: str,
     top_k: int = 5,
+    max_distance: float | None = None,
 ) -> tuple[list[str], list[str]]:
     """Retrieve similar chunks and attach their source document labels."""
     query_embedding = embed_query(query)
-    chunks = similarity_search(session, knowledge_base_id, query_embedding, top_k)
+    kwargs: dict = {"top_k": top_k}
+    if max_distance is not None:
+        kwargs["max_distance"] = max_distance
+    chunks = similarity_search(
+        session, knowledge_base_id, query_embedding, **kwargs
+    )
 
     if not chunks:
         return [], []
@@ -74,6 +92,7 @@ def retrieve_context_with_sources(
     return context_parts, sources
 
 
-def build_rag_prompt(context: str, question: str) -> str:
+def build_rag_prompt(context: str, question: str, *, strict: bool = True) -> str:
     """Wrap context and question into the RAG prompt template."""
-    return CONTEXT_TEMPLATE.format(context=context, question=question)
+    template = CONTEXT_TEMPLATE if strict else SOFT_CONTEXT_TEMPLATE
+    return template.format(context=context, question=question)
