@@ -57,11 +57,11 @@ export function AppShell() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-ink-950 text-white">
+    <div className="min-h-screen bg-ink-950">
       <div className="relative mx-auto flex min-h-screen max-w-[1680px] gap-3 overflow-visible p-3">
         <aside
           className={cn(
-            "sticky top-3 z-20 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 backdrop-blur-xl transition-all duration-300",
+            "sticky top-3 z-20 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 text-white backdrop-blur-xl transition-all duration-300",
             isCollapsed ? "w-[4.5rem] overflow-visible" : "w-64",
           )}
         >
@@ -178,7 +178,7 @@ export function AppShell() {
 
         <main
           className={cn(
-            "min-w-0 flex-1 overflow-hidden rounded-stage border border-white/10",
+            "min-w-0 flex-1 overflow-hidden rounded-stage border border-white/10 text-ink-950",
             sectionThemes[currentSection],
           )}
         >

@@ -315,7 +315,7 @@ body {
   }
 
   .card {
-    @apply rounded-stage border border-white/70 bg-white shadow-panel;
+    @apply rounded-stage border border-white/70 bg-white text-ink-950 shadow-panel;
   }
 
   .panel {

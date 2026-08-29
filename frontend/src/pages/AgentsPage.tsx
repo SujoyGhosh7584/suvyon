@@ -265,7 +265,7 @@ export function AgentsPage() {
                         key={template.id}
                         type="button"
                         className={cn(
-                          "flex items-start gap-3 rounded-2xl border px-3 py-3 text-left",
+                          "flex items-start gap-3 rounded-2xl border px-3 py-3 text-left text-ink-950",
                           active
                             ? "border-accent bg-accent/10"
                             : "border-ink-200 hover:border-ink-300",
@@ -276,7 +276,7 @@ export function AgentsPage() {
                           <Icon size={16} />
                         </span>
                         <span>
-                          <span className="block text-sm font-semibold">{template.name}</span>
+                          <span className="block text-sm font-semibold text-ink-950">{template.name}</span>
                           <span className="mt-0.5 block text-xs text-ink-500">
                             {template.description}
                           </span>

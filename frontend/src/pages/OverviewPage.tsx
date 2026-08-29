@@ -101,14 +101,14 @@ export function OverviewPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-[1.6rem] bg-white p-6 shadow-panel">
-          <div className="mb-4 font-display text-lg font-bold">Recent conversations</div>
+        <div className="rounded-[1.6rem] bg-white p-6 text-ink-950 shadow-panel">
+          <div className="mb-4 font-display text-lg font-bold text-ink-950">Recent conversations</div>
           <div className="space-y-1">
             {conversations.slice(0, 5).map((c) => (
               <Link
                 key={c.id}
                 to={`/app/w/${workspaceId}/chat/${c.id}`}
-                className="block rounded-2xl px-3 py-2.5 text-sm hover:bg-violet-50"
+                className="block rounded-2xl px-3 py-2.5 text-sm text-ink-800 hover:bg-violet-50"
               >
                 {c.title}
               </Link>
@@ -118,17 +118,17 @@ export function OverviewPage() {
             )}
           </div>
         </div>
-        <div className="rounded-[1.6rem] bg-white p-6 shadow-panel">
-          <div className="mb-4 font-display text-lg font-bold">Agents</div>
+        <div className="rounded-[1.6rem] bg-white p-6 text-ink-950 shadow-panel">
+          <div className="mb-4 font-display text-lg font-bold text-ink-950">Agents</div>
           <div className="space-y-1">
             {agents.slice(0, 5).map((a) => (
               <Link
                 key={a.id}
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
-                className="block rounded-2xl px-3 py-2.5 text-sm hover:bg-rose-50"
+                className="block rounded-2xl px-3 py-2.5 text-sm text-ink-800 hover:bg-rose-50"
               >
                 {a.name}
-                <span className="ml-2 text-ink-400">{a.tools || "no tools"}</span>
+                <span className="ml-2 text-ink-500">{a.tools || "no tools"}</span>
               </Link>
             ))}
             {agents.length === 0 && (
