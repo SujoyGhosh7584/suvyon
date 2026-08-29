@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
 import App from "./App";
 import "./index.css";
@@ -21,11 +22,13 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <WorkspaceProvider>
-          <AuthProvider>
-            <App />
-          </AuthProvider>
-        </WorkspaceProvider>
+        <ThemeProvider>
+          <WorkspaceProvider>
+            <AuthProvider>
+              <App />
+            </AuthProvider>
+          </WorkspaceProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

@@ -13,6 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { workspacesApi } from "@/lib/services";
 import { SidebarExpandTab } from "@/components/SidebarExpandTab";
+import { ThemePicker } from "@/components/ThemePicker";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -31,13 +32,7 @@ const sectionThemes: Record<string, string> = {
   settings: "section-settings",
 };
 
-const navActive: Record<string, string> = {
-  overview: "bg-indigo-500 text-white shadow-glow",
-  chat: "bg-violet-500 text-white shadow-glow",
-  agents: "bg-rose-500 text-white shadow-glow",
-  knowledge: "bg-amber-500 text-ink-950",
-  settings: "bg-slate-100 text-ink-950",
-};
+const navActive = "bg-[var(--primary)] text-white shadow-glow";
 
 export function AppShell() {
   const { workspaceId } = useParams();
@@ -85,7 +80,7 @@ export function AppShell() {
               className={cn("text-left overflow-hidden", isCollapsed && "hidden")}
             >
               <div className="flex items-center gap-2">
-                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 font-display text-lg font-extrabold">
+                <span className="brand-mark flex h-9 w-9 items-center justify-center rounded-2xl font-display text-lg font-extrabold">
                   S
                 </span>
                 <span>
@@ -100,7 +95,7 @@ export function AppShell() {
               <button
                 type="button"
                 onClick={() => navigate("/app")}
-                className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500 font-display text-lg font-extrabold"
+                className="brand-mark flex h-9 w-9 items-center justify-center rounded-2xl font-display text-lg font-extrabold"
                 title="Suvyon"
               >
                 S
@@ -127,7 +122,7 @@ export function AppShell() {
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition",
-                    isActive ? navActive[to] : "text-ink-300 hover:bg-white/10 hover:text-white",
+                    isActive ? navActive : "text-ink-300 hover:bg-white/10 hover:text-white",
                     isCollapsed && "justify-center px-0",
                   )
                 }
@@ -145,8 +140,16 @@ export function AppShell() {
 
           <div className="mt-4 border-t border-white/10 pt-4">
             {!isCollapsed && (
+              <div className="mb-3 px-1">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-400">
+                  Theme
+                </p>
+                <ThemePicker compact />
+              </div>
+            )}
+            {!isCollapsed && (
               <div className="mb-3 flex items-center gap-3 px-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/30 text-xs font-bold text-indigo-100">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0">

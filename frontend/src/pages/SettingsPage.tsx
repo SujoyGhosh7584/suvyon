@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { ThemePicker } from "@/components/ThemePicker";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
 import { authApi, usersApi } from "@/lib/services";
@@ -47,12 +48,12 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-slate-900 p-8 text-white shadow-panel">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-300">
+      <div className="relative overflow-hidden rounded-[2rem] bg-ink-900 p-8 text-white shadow-panel">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-ink-300">
           Account
         </p>
         <h1 className="font-display text-4xl font-extrabold">Settings</h1>
-        <p className="mt-2 text-slate-300">Manage your profile and account security.</p>
+        <p className="mt-2 text-ink-300">Appearance, profile, and account security.</p>
       </div>
 
       {message && (
@@ -63,6 +64,16 @@ export function SettingsPage() {
       {error && (
         <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
+
+      <div className="card space-y-3 p-6">
+        <div>
+          <div className="font-semibold">Appearance</div>
+          <p className="mt-1 text-sm text-ink-500">
+            Saved on this device only. Switching themes is a CSS change — nothing extra to host.
+          </p>
+        </div>
+        <ThemePicker />
+      </div>
 
       <form className="card space-y-4 p-6" onSubmit={saveProfile}>
         <div className="font-semibold">Profile</div>

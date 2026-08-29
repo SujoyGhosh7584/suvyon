@@ -1,16 +1,20 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Bot, Layers, Sparkles } from "lucide-react";
 import { GuestLink } from "@/components/GuestAuth";
+import { ThemePicker } from "@/components/ThemePicker";
 
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-mesh text-white">
       <header className="relative mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-2 font-display text-2xl font-extrabold tracking-tight">
-          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-indigo-500">S</span>
+          <span className="brand-mark flex h-9 w-9 items-center justify-center rounded-2xl">S</span>
           Suvyon
         </div>
         <div className="flex items-center gap-3">
+          <div className="hidden w-40 sm:block">
+            <ThemePicker compact />
+          </div>
           <Link to="/login" className="btn-ghost">
             Sign in
           </Link>
@@ -22,12 +26,12 @@ export function LandingPage() {
 
       <section className="relative mx-auto grid max-w-6xl gap-12 px-6 pb-24 pt-10 md:grid-cols-[1.15fr_0.85fr] md:items-center md:pt-20">
         <div>
-          <p className="mb-5 inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-indigo-200">
+          <p className="hero-kicker mb-5 inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em]">
             Live search · RAG · Agents
           </p>
           <h1 className="font-display text-5xl font-extrabold leading-[1.02] tracking-tight md:text-7xl">
             Ask anything.
-            <span className="mt-2 block bg-gradient-to-r from-indigo-300 via-white to-rose-300 bg-clip-text text-transparent">
+            <span className="hero-title-accent mt-2 block bg-clip-text text-transparent">
               Grounded answers.
             </span>
           </h1>
