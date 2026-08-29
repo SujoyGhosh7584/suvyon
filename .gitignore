@@ -14,8 +14,10 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Python packaging dirs at repo root only. Do not use `lib/` — it also
+# ignored frontend/src/lib and broke the Vercel build.
+/lib/
+/lib64/
 parts/
 sdist/
 var/
