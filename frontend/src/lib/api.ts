@@ -87,7 +87,15 @@ export function getErrorMessage(error: unknown, fallback = "Something went wrong
     if (Array.isArray(detail)) {
       return detail.map((d) => d.msg || JSON.stringify(d)).join(", ");
     }
-    return error.message || fallback;
+    const message = error.message || fallback;
+    if (!error.response && /network error/i.test(message)) {
+      return (
+        "The API did not finish the request (timeout or dropped connection). " +
+        "Sending email from the Vercel app uses Render, which blocks Gmail SMTP on the free plan. " +
+        "Drafts still work. Set RESEND_API_KEY or SENDGRID_API_KEY on Render, or upgrade the instance."
+      );
+    }
+    return message;
   }
   if (error instanceof Error) return error.message;
   return fallback;

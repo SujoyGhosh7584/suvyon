@@ -142,6 +142,6 @@ Blueprint file in repo: `backend/render.yaml` (you can still configure the servi
 3. Register → enter the emailed OTP → workspace  
 4. Login → **Forgot password?** if you need to reset  
 
-Render must have the same `SMTP_*` keys as local, and the latest Alembic revision (`otp_codes`) must have been applied (`alembic upgrade head` is already in the start command).
+Render must have the same `SMTP_*` keys as local for **laptop** Gmail SMTP. On **Render free**, those keys are not enough: outbound SMTP is blocked, so set `RESEND_API_KEY` or `SENDGRID_API_KEY` as well (see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)). The latest Alembic revision (`otp_codes`) must have been applied (`alembic upgrade head` is already in the start command).
 
 If the UI loads but login fails, CORS or `VITE_API_BASE_URL` is wrong. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

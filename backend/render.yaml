@@ -24,3 +24,7 @@ services:
         sync: false
       - key: OPENROUTER_API_KEY
         sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false

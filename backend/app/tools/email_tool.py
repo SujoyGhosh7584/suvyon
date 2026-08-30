@@ -2,7 +2,11 @@ import re
 import smtplib
 from email.message import EmailMessage
 
+import httpx
+
 from app.core.config import settings
+
+_SMTP_TIMEOUT_SECONDS = 8
 
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -64,6 +68,27 @@ def smtp_connection_settings(username: str = "") -> tuple[str, int, bool]:
     return host, port, use_ssl
 
 
+def _smtp_port_blocked(message: str) -> bool:
+    lowered = message.lower()
+    return any(
+        token in lowered
+        for token in (
+            "timed out",
+            "timeout",
+            "10060",
+            "10061",
+            "unreachable",
+            "network is unreachable",
+            "connection refused",
+            "enetunreach",
+            "etimedout",
+            "errno 101",
+            "errno 110",
+            "winerror",
+        )
+    )
+
+
 def _smtp_error_hint(message: str) -> str:
     lowered = message.lower()
     if "application-specific" in lowered or "username and password not accepted" in lowered:
@@ -71,6 +96,14 @@ def _smtp_error_hint(message: str) -> str:
             " For Gmail: enable 2-Step Verification, create an App Password at "
             "https://myaccount.google.com/apppasswords, and paste it into SMTP_PASSWORD "
             "(spaces are removed automatically). SMTP_USERNAME must be the full Gmail address."
+        )
+    if _smtp_port_blocked(message):
+        return (
+            " Render's free web service blocks outbound SMTP (ports 25, 465, and 587), "
+            "so Gmail SMTP works on your laptop but hangs from the Vercel/Render app. "
+            "Drafts still work because they never open SMTP. To send from production: "
+            "upgrade the Render instance, or set RESEND_API_KEY or SENDGRID_API_KEY "
+            "(HTTPS on port 443)."
         )
     return ""
 
@@ -162,6 +195,8 @@ def smtp_is_configured() -> bool:
 
 
 def require_smtp() -> None:
+    if _http_mail_provider():
+        return
     _smtp_credentials()
 
 
@@ -177,6 +212,19 @@ def send_system_email(to: str, subject: str, body: str) -> None:
     _deliver_email(recipient, subject_text, body_text)
 
 
+def _http_mail_provider() -> str | None:
+    if (getattr(settings, "RESEND_API_KEY", "") or "").strip():
+        return "resend"
+    if (getattr(settings, "SENDGRID_API_KEY", "") or "").strip():
+        return "sendgrid"
+    return None
+
+
+def _from_email() -> str:
+    username = (getattr(settings, "SMTP_USERNAME", "") or "").strip().strip('"').strip("'")
+    return (getattr(settings, "SMTP_FROM_EMAIL", "") or username).strip().strip('"').strip("'")
+
+
 def _smtp_credentials() -> tuple[str, int, bool, str, str, str]:
     username = (settings.SMTP_USERNAME or "").strip().strip('"').strip("'")
     from_email = (settings.SMTP_FROM_EMAIL or username).strip().strip('"').strip("'")
@@ -185,7 +233,8 @@ def _smtp_credentials() -> tuple[str, int, bool, str, str, str]:
     if not host or not from_email or not password:
         raise SmtpNotConfiguredError(
             "SMTP is not configured. Set SMTP_HOST (or a Gmail SMTP_USERNAME), "
-            "SMTP_FROM_EMAIL, and SMTP_PASSWORD. Email was not sent."
+            "SMTP_FROM_EMAIL, and SMTP_PASSWORD. Email was not sent. "
+            "On Render free, also set RESEND_API_KEY or SENDGRID_API_KEY because SMTP ports are blocked."
         )
     if username.lower().endswith(("@gmail.com", "@googlemail.com")) and len(password) != 16:
         raise SmtpNotConfiguredError(
@@ -197,6 +246,14 @@ def _smtp_credentials() -> tuple[str, int, bool, str, str, str]:
 
 
 def _deliver_email(recipient: str, subject_text: str, body_text: str) -> None:
+    provider = _http_mail_provider()
+    if provider == "resend":
+        _deliver_resend(recipient, subject_text, body_text)
+        return
+    if provider == "sendgrid":
+        _deliver_sendgrid(recipient, subject_text, body_text)
+        return
+
     host, port, use_ssl, username, password, from_email = _smtp_credentials()
 
     message = EmailMessage()
@@ -208,7 +265,8 @@ def _deliver_email(recipient: str, subject_text: str, body_text: str) -> None:
     try:
         _smtp_send(host, port, use_ssl, username, password, message)
     except Exception as exc:
-        if not use_ssl and host.lower() == "smtp.gmail.com":
+        blocked = _smtp_port_blocked(str(exc))
+        if not use_ssl and host.lower() == "smtp.gmail.com" and not blocked:
             try:
                 _smtp_send(host, 465, True, username, password, message)
                 return
@@ -217,6 +275,62 @@ def _deliver_email(recipient: str, subject_text: str, body_text: str) -> None:
                 raise SmtpSendError(f"{ssl_exc}.{hint}".rstrip(".")) from ssl_exc
         hint = _smtp_error_hint(str(exc))
         raise SmtpSendError(f"{exc}.{hint}".rstrip(".")) from exc
+
+
+def _deliver_resend(recipient: str, subject_text: str, body_text: str) -> None:
+    from_email = _from_email()
+    if not from_email:
+        raise SmtpNotConfiguredError(
+            "RESEND_API_KEY is set but SMTP_FROM_EMAIL (or SMTP_USERNAME) is empty."
+        )
+    api_key = (settings.RESEND_API_KEY or "").strip()
+    try:
+        response = httpx.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": from_email,
+                "to": [recipient],
+                "subject": subject_text,
+                "text": body_text,
+            },
+            timeout=20,
+        )
+    except Exception as exc:
+        raise SmtpSendError(f"Resend request failed ({exc}).") from exc
+    if response.status_code >= 400:
+        raise SmtpSendError(f"Resend rejected the send ({response.status_code}): {response.text[:400]}")
+
+
+def _deliver_sendgrid(recipient: str, subject_text: str, body_text: str) -> None:
+    from_email = _from_email()
+    if not from_email:
+        raise SmtpNotConfiguredError(
+            "SENDGRID_API_KEY is set but SMTP_FROM_EMAIL (or SMTP_USERNAME) is empty."
+        )
+    api_key = (settings.SENDGRID_API_KEY or "").strip()
+    try:
+        response = httpx.post(
+            "https://api.sendgrid.com/v3/mail/send",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "personalizations": [{"to": [{"email": recipient}]}],
+                "from": {"email": from_email},
+                "subject": subject_text,
+                "content": [{"type": "text/plain", "value": body_text}],
+            },
+            timeout=20,
+        )
+    except Exception as exc:
+        raise SmtpSendError(f"SendGrid request failed ({exc}).") from exc
+    if response.status_code >= 400:
+        raise SmtpSendError(f"SendGrid rejected the send ({response.status_code}): {response.text[:400]}")
 
 
 def _smtp_send(
@@ -228,7 +342,7 @@ def _smtp_send(
     message: EmailMessage,
 ) -> None:
     client_cls = smtplib.SMTP_SSL if use_ssl else smtplib.SMTP
-    with client_cls(host, port, timeout=20) as smtp:
+    with client_cls(host, port, timeout=_SMTP_TIMEOUT_SECONDS) as smtp:
         smtp.ehlo()
         if not use_ssl:
             smtp.starttls()
