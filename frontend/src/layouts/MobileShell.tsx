@@ -9,10 +9,9 @@ const links: Array<{
   to: string;
   label: string;
   icon: typeof LayoutDashboard;
-  featured?: boolean;
 }> = [
   { to: "overview", label: "Home", icon: LayoutDashboard },
-  { to: "chat", label: "Chat", icon: MessageSquare, featured: true },
+  { to: "chat", label: "Chat", icon: MessageSquare },
   { to: "agents", label: "Agents", icon: Bot },
   { to: "knowledge", label: "Docs", icon: FileText },
   { to: "settings", label: "You", icon: Sparkles },
@@ -89,15 +88,14 @@ export function MobileShell() {
       </main>
 
       <nav className="shrink-0 border-t border-white/10 bg-ink-900/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-md items-end justify-around">
-          {links.map(({ to, label, icon: Icon, featured }) => (
+        <div className="mx-auto flex max-w-md items-center justify-around">
+          {links.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={`/app/w/${workspaceId}/${to}`}
               className={({ isActive }) =>
                 cn(
                   "flex min-w-[3.4rem] flex-col items-center gap-0.5 px-1 text-[10px] font-semibold tracking-wide",
-                  featured && "-mt-5",
                   isActive ? "text-white" : "text-ink-400",
                 )
               }
@@ -106,19 +104,11 @@ export function MobileShell() {
                 <>
                   <span
                     className={cn(
-                      "flex items-center justify-center transition",
-                      featured
-                        ? cn(
-                            "h-14 w-14 rounded-[1.35rem] shadow-glow",
-                            isActive ? "bg-[var(--primary)] text-white" : "bg-white/15 text-white",
-                          )
-                        : cn(
-                            "h-9 w-9 rounded-2xl",
-                            isActive && "bg-white/15",
-                          ),
+                      "flex h-9 w-9 items-center justify-center rounded-2xl transition",
+                      isActive && "bg-white/15",
                     )}
                   >
-                    <Icon size={featured ? 22 : 18} />
+                    <Icon size={18} />
                   </span>
                   {label}
                 </>
