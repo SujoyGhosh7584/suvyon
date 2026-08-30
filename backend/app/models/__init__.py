@@ -12,6 +12,7 @@ from app.models.integration import Integration
 from app.models.knowledge_base import KnowledgeBase
 from app.models.memory import Memory
 from app.models.message import Message
+from app.models.otp_code import OtpCode
 from app.models.tool import Tool
 from app.models.user import User
 from app.models.user_settings import UserSettings
@@ -25,6 +26,7 @@ __all__ = [
     "KnowledgeBase",
     "Memory",
     "Message",
+    "OtpCode",
     "Tool",
     "User",
     "UserSettings",

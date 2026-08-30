@@ -75,11 +75,11 @@ JWTs are signed with this key. Changing it in production **invalidates all sessi
 | `TAVILY_API_KEY` | Optional | Web search | Same |
 | `SERPER_API_KEY` | Optional | Web search | Same |
 | `BRAVE_API_KEY` | Optional | Web search | Same |
-| `SMTP_HOST` | Email tools | e.g. `smtp.gmail.com` | Same |
-| `SMTP_PORT` | Email tools | `587` | `587` |
-| `SMTP_USERNAME` | Email tools | Gmail address | Same |
-| `SMTP_PASSWORD` | Email tools | **App password**, no spaces | Same |
-| `SMTP_FROM_EMAIL` | Email tools | From address | Same |
+| `SMTP_HOST` | Email tools and account OTPs | e.g. `smtp.gmail.com` | Same |
+| `SMTP_PORT` | Email tools and account OTPs | `587` | `587` |
+| `SMTP_USERNAME` | Email tools and account OTPs | Gmail address | Same |
+| `SMTP_PASSWORD` | Email tools and account OTPs | **App password**, no spaces | Same |
+| `SMTP_FROM_EMAIL` | Email tools and account OTPs | From address | Same |
 
 Chat needs **at least one** of Groq, Gemini, or OpenRouter. Knowledge upload embeddings need **Gemini** (or OpenRouter nomic embed as fallback).
 

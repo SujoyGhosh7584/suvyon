@@ -37,7 +37,7 @@ export function RegisterPage() {
           setError("");
           try {
             await register(fullName, email, password);
-            navigate("/app");
+            navigate(`/verify-email?email=${encodeURIComponent(email)}`);
           } catch (err) {
             setError(getErrorMessage(err, "Registration failed."));
           } finally {

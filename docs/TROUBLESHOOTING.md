@@ -74,3 +74,15 @@ alembic upgrade head
 ## SMTP / Gmail “authentication failed”
 
 Use a Google **App Password** (16 characters, no spaces). Unquoted spaces in `.env` truncate the value.
+
+## Render: `Can't locate revision identified by 'f6a7b8c9d0e1'`
+
+The **database** (shared Supabase) is already at Alembic revision `f6a7b8c9d0e1` because it was applied from your laptop. Render is deploying a Git commit that **does not contain** `backend/alembic/versions/f6a7b8c9d0e1_add_otp_codes.py`.
+
+Alembic then refuses to start: it sees a version ID in `alembic_version` that is not in the cloned repo.
+
+**Fix:** commit and **push** that migration file (and the rest of the OTP backend) to the **same branch Render builds**. Redeploy. `alembic upgrade head` will then match the database and start Uvicorn.
+
+Do not stamp the version backward unless you also drop `otp_codes`; otherwise a later upgrade will try to create the table twice.
+
+SMTP is required for new sign-ups. Set `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL` on the API (local `.env` or Render). Check spam. Wait 60 seconds before resend. Codes expire in 10 minutes.

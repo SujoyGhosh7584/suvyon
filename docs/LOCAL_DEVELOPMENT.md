@@ -102,8 +102,9 @@ Edit `backend\.env`. At minimum set:
 | `APP_ENV` | `development` |
 | `GROQ_API_KEY` | From [console.groq.com](https://console.groq.com) (chat) |
 | `GEMINI_API_KEY` | From [Google AI Studio](https://aistudio.google.com) (RAG embeddings) |
+| `SMTP_*` | Required for **register OTP** and **forgot password**. Same Gmail App Password as agent email. |
 
-Optional: `OPENROUTER_API_KEY`, SMTP keys for email tools, Tavily/Brave/Serper for search.
+Optional: `OPENROUTER_API_KEY`, Tavily/Brave/Serper for search.
 
 Never commit `backend/.env`.
 
@@ -124,7 +125,7 @@ cd backend
 alembic upgrade head
 ```
 
-This creates tables (users, workspaces, conversations, document chunks, and so on).
+This creates tables (users, workspaces, conversations, document chunks, OTP codes, and so on). After pulling OTP work, always run `alembic upgrade head` again so `otp_codes` exists. Existing users are marked verified so they are not locked out.
 
 ---
 

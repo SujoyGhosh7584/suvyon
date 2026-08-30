@@ -9,10 +9,12 @@ from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.knowledge_base_repository import KnowledgeBaseRepository
 from app.repositories.message_repository import MessageRepository
+from app.repositories.otp_repository import OtpRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.agent_service import AgentService
 from app.services.auth_service import AuthService
+from app.services.otp_service import OtpService
 from app.services.chat_service import ChatService
 from app.services.document_service import DocumentService
 from app.services.knowledge_base_service import KnowledgeBaseService
@@ -44,10 +46,27 @@ def get_workspace_repository(
     return WorkspaceRepository(db)
 
 
+def get_otp_repository(
+    db: Annotated[Session, Depends(get_db)],
+) -> OtpRepository:
+    return OtpRepository(db)
+
+
+def get_otp_service(
+    otp_repository: Annotated[OtpRepository, Depends(get_otp_repository)],
+    user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+) -> OtpService:
+    return OtpService(
+        otp_repository=otp_repository,
+        user_repository=user_repository,
+    )
+
+
 def get_auth_service(
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
+    otp_service: Annotated[OtpService, Depends(get_otp_service)],
 ) -> AuthService:
-    return AuthService(user_repository=user_repository)
+    return AuthService(user_repository=user_repository, otp_service=otp_service)
 
 
 def get_user_service(

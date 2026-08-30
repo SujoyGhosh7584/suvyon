@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import get_chat_service, get_workspace_service
-from app.api.security import get_current_active_user
+from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.conversation import (
     ConversationCreate,
@@ -60,7 +60,7 @@ def _get_conversation_or_404(
 @router.get("", response_model=list[ConversationResponse])
 def list_conversations(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> list[ConversationResponse]:
@@ -77,7 +77,7 @@ def list_conversations(
 def create_conversation(
     workspace_id: UUID,
     request: ConversationCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ConversationResponse:
@@ -92,7 +92,7 @@ def create_conversation(
 def get_conversation(
     workspace_id: UUID,
     conversation_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ConversationResponse:
@@ -107,7 +107,7 @@ def update_conversation(
     workspace_id: UUID,
     conversation_id: UUID,
     request: ConversationUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ConversationResponse:
@@ -123,7 +123,7 @@ def update_conversation(
 def delete_conversation(
     workspace_id: UUID,
     conversation_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> None:
@@ -137,7 +137,7 @@ def delete_conversation(
 def get_messages(
     workspace_id: UUID,
     conversation_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> list[MessageResponse]:
@@ -159,7 +159,7 @@ def send_message(
     workspace_id: UUID,
     conversation_id: UUID,
     request: MessageCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> MessageResponse:
@@ -191,7 +191,7 @@ def stream_message(
     workspace_id: UUID,
     conversation_id: UUID,
     request: MessageCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> StreamingResponse:

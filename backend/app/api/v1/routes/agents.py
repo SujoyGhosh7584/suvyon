@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
 from app.api.dependencies import get_agent_service, get_workspace_service
-from app.api.security import get_current_active_user
+from app.api.security import get_current_verified_user
 from app.agents.runner import run_agent, stream_agent
 from app.models.user import User
 from app.schemas.agent import AgentCreate, AgentResponse, AgentRunRequest, AgentRunResponse, AgentUpdate
@@ -34,7 +34,7 @@ def _get_agent_or_404(agent_id, workspace_id, agent_service):
 @router.get("", response_model=list[AgentResponse])
 def list_agents(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -46,7 +46,7 @@ def list_agents(
 def create_agent(
     workspace_id: UUID,
     request: AgentCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -57,7 +57,7 @@ def create_agent(
 @router.get("/tools", response_model=list[str])
 def get_available_tools(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
 ):
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
@@ -68,7 +68,7 @@ def get_available_tools(
 def get_agent(
     workspace_id: UUID,
     agent_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -81,7 +81,7 @@ def update_agent(
     workspace_id: UUID,
     agent_id: UUID,
     request: AgentUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -94,7 +94,7 @@ def update_agent(
 def delete_agent(
     workspace_id: UUID,
     agent_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -108,7 +108,7 @@ def run(
     workspace_id: UUID,
     agent_id: UUID,
     request: AgentRunRequest,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):
@@ -123,7 +123,7 @@ def run_stream(
     workspace_id: UUID,
     agent_id: UUID,
     request: AgentRunRequest,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     agent_service: Annotated[AgentService, Depends(get_agent_service)],
 ):

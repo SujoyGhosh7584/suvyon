@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.models.user import User
 from app.repositories.base_repository import BaseRepository
@@ -19,7 +19,7 @@ class UserRepository(BaseRepository[User]):
         Retrieve a user by email address.
         """
 
-        statement = select(User).where(User.email == email)
+        statement = select(User).where(func.lower(User.email) == email.strip().lower())
 
         result = self.session.execute(statement)
 
