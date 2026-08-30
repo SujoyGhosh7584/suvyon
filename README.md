@@ -29,7 +29,7 @@ Render’s **free** web service sleeps when idle. The first request after sleep 
 - **Knowledge (RAG)** — Upload documents, chunk + embed (Gemini embeddings when configured), retrieve with pgvector.
 - **Agents** — Saved agent configs with tools (email, research, studio helpers).
 - **Models** — Route across Groq, Gemini, and OpenRouter depending on which API keys are set.
-- **Accounts** — Register, login, JWT access + refresh tokens (stored in the browser).
+- **Accounts** — Register sends a 6-digit email OTP (same SMTP as agent mail). Verify before the workspace opens. Login includes **Forgot password?** (OTP, then new password). JWT access + refresh tokens stay in the browser.
 
 Image generation uses public Pollinations URLs (proxied by the API). It does **not** persist generated files on the server. Knowledge **file bodies** on Render live on an ephemeral disk; they do not survive restarts the way the database does.
 

@@ -49,3 +49,14 @@ def get_current_active_user(
             detail="Inactive user.",
         )
     return current_user
+
+
+def get_current_verified_user(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+) -> User:
+    if not current_user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Verify your email before using the workspace.",
+        )
+    return current_user

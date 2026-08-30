@@ -51,10 +51,13 @@ export function AuthScreen({
         </div>
       </aside>
 
-      <main className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-[2rem] border border-white/15 bg-white p-8 text-ink-950 shadow-panel">
-          <Link to="/" className="font-display text-2xl font-extrabold lg:hidden">
-            Suvyon
+      <main className="flex items-center justify-center px-4 py-12 pt-[max(3rem,env(safe-area-inset-top))]">
+        <div className="w-full max-w-md rounded-[2rem] border border-white/15 bg-white p-6 text-ink-950 shadow-panel sm:p-8">
+          <Link to="/" className="mb-5 flex items-center gap-2 lg:hidden">
+            <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-2xl font-display text-lg font-extrabold text-white">
+              S
+            </span>
+            <span className="font-display text-xl font-extrabold">Suvyon</span>
           </Link>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{title}</h1>
           <p className="mt-2 text-sm text-ink-500">{subtitle}</p>

@@ -72,11 +72,11 @@ export function KnowledgePage() {
 
   return (
     <div className="space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-amber-950 p-8 text-amber-50 shadow-panel">
+      <div className="relative overflow-hidden rounded-[2rem] bg-amber-950 p-5 text-amber-50 shadow-panel md:p-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-amber-200">
           Library
         </p>
-        <h1 className="font-display text-4xl font-extrabold">Knowledge</h1>
+        <h1 className="font-display text-3xl font-extrabold md:text-4xl">Knowledge</h1>
         <p className="mt-2 max-w-2xl text-amber-100/80">
           Create knowledge bases and upload files so chat can answer from them.
         </p>

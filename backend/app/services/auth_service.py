@@ -17,28 +17,40 @@ from app.exceptions.auth import (
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.auth import TokenResponse
+from app.services.otp_service import OtpService
 
 
 class AuthService:
-    def __init__(self, user_repository: UserRepository) -> None:
+    def __init__(
+        self,
+        user_repository: UserRepository,
+        otp_service: OtpService,
+    ) -> None:
         self._user_repository = user_repository
+        self._otp_service = otp_service
 
     def register(self, *, full_name: str, email: str, password: str) -> User:
-        if self._user_repository.get_by_email(email) is not None:
+        normalized_email = email.strip().lower()
+        if self._user_repository.get_by_email(normalized_email) is not None:
             raise EmailAlreadyExistsError()
 
         user = User(
             full_name=full_name,
-            email=email,
+            email=normalized_email,
             hashed_password=hash_password(password),
+            is_verified=False,
         )
 
         try:
             self._user_repository.create(user)
+            self._otp_service.send_verification(normalized_email, commit=False)
             self._user_repository.commit()
             self._user_repository.refresh(user)
             return user
         except SQLAlchemyError:
+            self._user_repository.rollback()
+            raise
+        except Exception:
             self._user_repository.rollback()
             raise
 

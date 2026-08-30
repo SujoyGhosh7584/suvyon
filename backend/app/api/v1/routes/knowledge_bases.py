@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_knowledge_base_service, get_workspace_service
-from app.api.security import get_current_active_user
+from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.knowledge_base import (
     KnowledgeBaseCreate,
@@ -38,7 +38,7 @@ def _get_kb_or_404(workspace_id, kb_id, current_user, workspace_service, kb_serv
 @router.get("", response_model=list[KnowledgeBaseResponse])
 def list_knowledge_bases(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> list[KnowledgeBaseResponse]:
@@ -50,7 +50,7 @@ def list_knowledge_bases(
 def create_knowledge_base(
     workspace_id: UUID,
     request: KnowledgeBaseCreate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> KnowledgeBaseResponse:
@@ -64,7 +64,7 @@ def create_knowledge_base(
 def get_knowledge_base(
     workspace_id: UUID,
     kb_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> KnowledgeBaseResponse:
@@ -77,7 +77,7 @@ def update_knowledge_base(
     workspace_id: UUID,
     kb_id: UUID,
     request: KnowledgeBaseUpdate,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> KnowledgeBaseResponse:
@@ -89,7 +89,7 @@ def update_knowledge_base(
 def delete_knowledge_base(
     workspace_id: UUID,
     kb_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> None:

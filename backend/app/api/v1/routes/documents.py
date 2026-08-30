@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
 from app.api.dependencies import get_document_service, get_workspace_service
-from app.api.security import get_current_active_user
+from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.document import DocumentResponse
 from app.services.document_service import DocumentService
@@ -26,7 +26,7 @@ def _get_workspace_or_404(workspace_id, current_user, workspace_service):
 @router.get("", response_model=list[DocumentResponse])
 def list_documents(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     document_service: Annotated[DocumentService, Depends(get_document_service)],
 ) -> list[DocumentResponse]:
@@ -42,7 +42,7 @@ def upload_document(
     workspace_id: UUID,
     knowledge_base_id: Annotated[UUID, Form()],
     file: Annotated[UploadFile, File()],
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     document_service: Annotated[DocumentService, Depends(get_document_service)],
 ) -> DocumentResponse:
@@ -64,7 +64,7 @@ def upload_document(
 def delete_document(
     workspace_id: UUID,
     document_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     document_service: Annotated[DocumentService, Depends(get_document_service)],
 ) -> None:

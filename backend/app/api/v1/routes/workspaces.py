@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_workspace_service
-from app.api.security import get_current_active_user
+from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.workspace import (
     WorkspaceCreate,
@@ -27,7 +27,7 @@ router = APIRouter(
 def list_workspaces(
     current_user: Annotated[
         User,
-        Depends(get_current_active_user),
+        Depends(get_current_verified_user),
     ],
     workspace_service: Annotated[
         WorkspaceService,
@@ -59,7 +59,7 @@ def get_workspace(
     workspace_id: UUID,
     current_user: Annotated[
         User,
-        Depends(get_current_active_user),
+        Depends(get_current_verified_user),
     ],
     workspace_service: Annotated[
         WorkspaceService,
@@ -96,7 +96,7 @@ def create_workspace(
     request: WorkspaceCreate,
     current_user: Annotated[
         User,
-        Depends(get_current_active_user),
+        Depends(get_current_verified_user),
     ],
     workspace_service: Annotated[
         WorkspaceService,
@@ -127,7 +127,7 @@ def update_workspace(
     request: WorkspaceUpdate,
     current_user: Annotated[
         User,
-        Depends(get_current_active_user),
+        Depends(get_current_verified_user),
     ],
     workspace_service: Annotated[
         WorkspaceService,
@@ -168,7 +168,7 @@ def delete_workspace(
     workspace_id: UUID,
     current_user: Annotated[
         User,
-        Depends(get_current_active_user),
+        Depends(get_current_verified_user),
     ],
     workspace_service: Annotated[
         WorkspaceService,
@@ -202,7 +202,7 @@ def delete_workspace(
 )
 def archive_workspace(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
 ) -> WorkspaceResponse:
     workspace = workspace_service.get_workspace(
@@ -223,7 +223,7 @@ def archive_workspace(
 )
 def restore_workspace(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
 ) -> WorkspaceResponse:
     workspace = workspace_service.get_workspace(
@@ -244,7 +244,7 @@ def restore_workspace(
 )
 def favourite_workspace(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
 ) -> WorkspaceResponse:
     workspace = workspace_service.get_workspace(
@@ -265,7 +265,7 @@ def favourite_workspace(
 )
 def unfavourite_workspace(
     workspace_id: UUID,
-    current_user: Annotated[User, Depends(get_current_active_user)],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
 ) -> WorkspaceResponse:
     workspace = workspace_service.get_workspace(

@@ -66,7 +66,7 @@ export function OverviewPage() {
 
   return (
     <div className="space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-ink-950 p-8 text-white shadow-panel">
+      <div className="relative overflow-hidden rounded-[2rem] bg-ink-950 p-5 text-white shadow-panel md:p-8">
         <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-indigo-500/40 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-40 w-40 rounded-full bg-rose-500/30 blur-3xl" />
         <div className="relative">
@@ -74,7 +74,7 @@ export function OverviewPage() {
             <Sparkles size={12} />
             Overview
           </div>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight md:text-5xl">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight md:text-5xl">
             {workspace?.name || "Workspace"}
           </h1>
           <p className="mt-3 max-w-2xl text-ink-300">
@@ -90,7 +90,7 @@ export function OverviewPage() {
             to={to}
             className={`group relative overflow-hidden rounded-[1.6rem] bg-gradient-to-br ${className} p-5 text-white shadow-panel transition hover:-translate-y-0.5`}
           >
-            <Icon className="mb-8 opacity-80" size={22} />
+            <Icon className="mb-4 opacity-80 md:mb-8" size={22} />
             <div className="font-display text-4xl font-extrabold">{value}</div>
             <div className="mt-1 flex items-center justify-between text-sm text-white/85">
               {label}

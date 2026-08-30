@@ -135,23 +135,69 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
             f"{draft}"
         )
 
+    try:
+        _deliver_email(recipient, subject_text, body_text)
+    except SmtpNotConfiguredError as exc:
+        return f"Tool error: {exc}\n\n{draft}"
+    except SmtpSendError as exc:
+        return f"Tool error: failed to send email ({exc}).\n\n{draft}"
+
+    return f"Email sent successfully to {recipient} with subject “{subject_text}”."
+
+
+class SmtpNotConfiguredError(Exception):
+    """Raised when transactional email cannot be sent because SMTP is missing."""
+
+
+class SmtpSendError(Exception):
+    """Raised when SMTP is configured but delivery fails."""
+
+
+def smtp_is_configured() -> bool:
+    try:
+        require_smtp()
+        return True
+    except SmtpNotConfiguredError:
+        return False
+
+
+def require_smtp() -> None:
+    _smtp_credentials()
+
+
+def send_system_email(to: str, subject: str, body: str) -> None:
+    """Send a transactional message (OTP, etc.) without chat confirmation."""
+    recipient = _validate_address(to)
+    if recipient is None:
+        raise SmtpSendError("A valid recipient email is required.")
+    subject_text = (subject or "").strip()
+    body_text = (body or "").strip()
+    if not subject_text or not body_text:
+        raise SmtpSendError("Email subject and body are required.")
+    _deliver_email(recipient, subject_text, body_text)
+
+
+def _smtp_credentials() -> tuple[str, int, bool, str, str, str]:
     username = (settings.SMTP_USERNAME or "").strip().strip('"').strip("'")
     from_email = (settings.SMTP_FROM_EMAIL or username).strip().strip('"').strip("'")
     host, port, use_ssl = smtp_connection_settings(username)
     password = app_password(settings.SMTP_PASSWORD or "")
-    if not host or not from_email:
-        return (
-            "Tool error: SMTP is not configured. For Gmail, set SMTP_USERNAME to your "
-            "full Gmail address and SMTP_PASSWORD to a 16-character Google App Password "
-            "(SMTP_HOST can stay smtp.gmail.com). Email was not sent.\n\n"
-            f"{draft}"
+    if not host or not from_email or not password:
+        raise SmtpNotConfiguredError(
+            "SMTP is not configured. Set SMTP_HOST (or a Gmail SMTP_USERNAME), "
+            "SMTP_FROM_EMAIL, and SMTP_PASSWORD. Email was not sent."
         )
     if username.lower().endswith(("@gmail.com", "@googlemail.com")) and len(password) != 16:
-        return (
-            "Tool error: Gmail SMTP_PASSWORD must be a 16-character App Password "
+        raise SmtpNotConfiguredError(
+            "Gmail SMTP_PASSWORD must be a 16-character App Password "
             "(not your normal Gmail password). Put it in quotes in .env, or remove spaces. "
-            f"Loaded length was {len(password)}. Email was not sent.\n\n{draft}"
+            f"Loaded length was {len(password)}. Email was not sent."
         )
+    return host, port, use_ssl, username, password, from_email
+
+
+def _deliver_email(recipient: str, subject_text: str, body_text: str) -> None:
+    host, port, use_ssl, username, password, from_email = _smtp_credentials()
 
     message = EmailMessage()
     message["From"] = from_email
@@ -165,14 +211,12 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
         if not use_ssl and host.lower() == "smtp.gmail.com":
             try:
                 _smtp_send(host, 465, True, username, password, message)
+                return
             except Exception as ssl_exc:
                 hint = _smtp_error_hint(f"{exc} {ssl_exc}")
-                return f"Tool error: failed to send email ({ssl_exc}).{hint}\n\n{draft}"
-        else:
-            hint = _smtp_error_hint(str(exc))
-            return f"Tool error: failed to send email ({exc}).{hint}\n\n{draft}"
-
-    return f"Email sent successfully to {recipient} with subject “{subject_text}”."
+                raise SmtpSendError(f"{ssl_exc}.{hint}".rstrip(".")) from ssl_exc
+        hint = _smtp_error_hint(str(exc))
+        raise SmtpSendError(f"{exc}.{hint}".rstrip(".")) from exc
 
 
 def _smtp_send(
