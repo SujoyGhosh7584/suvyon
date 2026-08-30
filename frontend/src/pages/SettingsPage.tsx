@@ -48,11 +48,11 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-ink-900 p-8 text-white shadow-panel">
+      <div className="relative overflow-hidden rounded-[2rem] bg-ink-900 p-5 text-white shadow-panel md:p-8">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-ink-300">
           Account
         </p>
-        <h1 className="font-display text-4xl font-extrabold">Settings</h1>
+        <h1 className="font-display text-3xl font-extrabold md:text-4xl">Settings</h1>
         <p className="mt-2 text-ink-300">Appearance, profile, and account security.</p>
       </div>
 

@@ -216,6 +216,11 @@ body,
   min-height: 100%;
 }
 
+.mobile-app {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   font-family: Outfit, system-ui, sans-serif;
