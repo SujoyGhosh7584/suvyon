@@ -75,11 +75,13 @@ JWTs are signed with this key. Changing it in production **invalidates all sessi
 | `TAVILY_API_KEY` | Optional | Web search | Same |
 | `SERPER_API_KEY` | Optional | Web search | Same |
 | `BRAVE_API_KEY` | Optional | Web search | Same |
-| `SMTP_HOST` | Email tools and account OTPs | e.g. `smtp.gmail.com` | Same |
-| `SMTP_PORT` | Email tools and account OTPs | `587` | `587` |
+| `SMTP_HOST` | Email tools and account OTPs | e.g. `smtp.gmail.com` | Same, **but Render free cannot use SMTP** |
+| `SMTP_PORT` | Email tools and account OTPs | `587` | `587` (blocked on Render free) |
 | `SMTP_USERNAME` | Email tools and account OTPs | Gmail address | Same |
 | `SMTP_PASSWORD` | Email tools and account OTPs | **App password**, no spaces | Same |
-| `SMTP_FROM_EMAIL` | Email tools and account OTPs | From address | Same |
+| `SMTP_FROM_EMAIL` | Email tools and account OTPs | From address | Same (also used as From for Resend/SendGrid) |
+| `RESEND_API_KEY` | Production email on Render free | Leave empty | Resend API key (HTTPS) |
+| `SENDGRID_API_KEY` | Production email on Render free | Leave empty | SendGrid API key (HTTPS) |
 
 Chat needs **at least one** of Groq, Gemini, or OpenRouter. Knowledge upload embeddings need **Gemini** (or OpenRouter nomic embed as fallback).
 

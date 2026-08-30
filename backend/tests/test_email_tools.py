@@ -142,3 +142,47 @@ def test_gmail_app_password_strips_spaces(monkeypatch):
     assert email_tools.app_password("abcd efgh ijkl mnop") == "abcdefghijklmnop"
     assert email_tools.app_password('"abcdefghijklmnop"') == "abcdefghijklmnop"
     assert email_tools.user_confirmed_send("send now")
+
+
+def test_smtp_timeout_mentions_render_block():
+    hint = email_tools._smtp_error_hint("timed out")
+    assert "Render" in hint
+    assert "RESEND_API_KEY" in hint
+
+
+def test_send_email_uses_resend_over_https(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+        text = '{"id":"ok"}'
+
+    def fake_post(url, **kwargs):
+        captured["url"] = url
+        captured["json"] = kwargs["json"]
+        return FakeResponse()
+
+    monkeypatch.setattr(email_tools.httpx, "post", fake_post)
+    monkeypatch.setattr(email_tools.smtplib, "SMTP", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("SMTP must not run")))
+    monkeypatch.setattr(
+        email_tools,
+        "settings",
+        SimpleNamespace(
+            SMTP_HOST="smtp.gmail.com",
+            SMTP_PORT=587,
+            SMTP_USERNAME="you@gmail.com",
+            SMTP_PASSWORD="abcdefghijklmnop",
+            SMTP_FROM_EMAIL="you@gmail.com",
+            RESEND_API_KEY="re_test",
+            SENDGRID_API_KEY="",
+        ),
+    )
+    result = email_tools.send_email(
+        "ada@example.com",
+        "Meeting",
+        "See you at 3.",
+        user_content="send it",
+    )
+    assert "sent successfully" in result
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["json"]["to"] == ["ada@example.com"]

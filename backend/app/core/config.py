@@ -98,6 +98,11 @@ class Settings(BaseSettings):
 
     SMTP_FROM_EMAIL: str = ""
 
+    # HTTPS mail APIs (Render free blocks SMTP ports 587/465/25).
+    RESEND_API_KEY: str = ""
+
+    SENDGRID_API_KEY: str = ""
+
     # --------------------------------------------------
     # CORS
     # --------------------------------------------------

@@ -75,6 +75,19 @@ alembic upgrade head
 
 Use a Google **App Password** (16 characters, no spaces). Unquoted spaces in `.env` truncate the value.
 
+## Email agent: draft works on Vercel, send shows “Network Error”
+
+The Vercel site is not sending mail. The **Render API** is. Drafts never open SMTP, so they succeed. Send opens `smtp.gmail.com:587`.
+
+**Render’s free web service blocks outbound SMTP** (ports 25, 465, 587). The connection hangs, the HTTP request is dropped, and the browser reports Axios `Network Error` even though your Wi‑Fi is fine. The same `SMTP_*` values work on your laptop because that machine is not behind Render’s firewall.
+
+**Fix (pick one):**
+
+1. **Stay on Render free** — add **`RESEND_API_KEY`** or **`SENDGRID_API_KEY`** in the Render dashboard (not Vercel). Redeploy. Verify the sender on that provider. Keep `SMTP_FROM_EMAIL` as the From address.
+2. **Keep Gmail SMTP as-is** — upgrade the Render instance off the free plan so ports 587/465 are allowed.
+
+OTP sign-up mail has the same restriction on production.
+
 ## Render: `Can't locate revision identified by 'f6a7b8c9d0e1'`
 
 The **database** (shared Supabase) is already at Alembic revision `f6a7b8c9d0e1` because it was applied from your laptop. Render is deploying a Git commit that **does not contain** `backend/alembic/versions/f6a7b8c9d0e1_add_otp_codes.py`.
