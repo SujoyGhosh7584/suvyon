@@ -144,4 +144,6 @@ Blueprint file in repo: `backend/render.yaml` (you can still configure the servi
 
 Render must have the same `SMTP_*` keys as local for **laptop** Gmail SMTP. On **Render free**, those keys are not enough: outbound SMTP is blocked, so set `RESEND_API_KEY` or `SENDGRID_API_KEY` as well (see [TROUBLESHOOTING.md](TROUBLESHOOTING.md)). The latest Alembic revision (`otp_codes`) must have been applied (`alembic upgrade head` is already in the start command).
 
+Both authentication OTPs and confirmed agent emails use the same backend delivery selector: Resend first, then SendGrid, then SMTP. When using either HTTPS provider, also set `SMTP_FROM_EMAIL` to a sender accepted by that provider. The current `render.yaml` does not declare that sender variable, so add it manually in the Render dashboard. See [Email delivery](EMAIL_DELIVERY.md) for the exact flow and safety boundary.
+
 If the UI loads but login fails, CORS or `VITE_API_BASE_URL` is wrong. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

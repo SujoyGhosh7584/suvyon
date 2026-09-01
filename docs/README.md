@@ -6,6 +6,7 @@ Practical guides for running and hosting Suvyon. Architecture decisions live und
 |----------|------------|
 | [Local development](LOCAL_DEVELOPMENT.md) | venv, Postgres, backend, frontend, first login |
 | [Environment variables](ENVIRONMENT.md) | Every env key, local vs production, why values must change |
+| [Email delivery](EMAIL_DELIVERY.md) | Authentication OTP and agent email flows, provider selection, confirmation, and failures |
 | [Deployment](DEPLOYMENT.md) | GitHub, Supabase, Render, Vercel, live URLs, CORS |
 | [Troubleshooting](TROUBLESHOOTING.md) | CORS, Vercel `@/lib` ignore, Render sleep, migrations |
 

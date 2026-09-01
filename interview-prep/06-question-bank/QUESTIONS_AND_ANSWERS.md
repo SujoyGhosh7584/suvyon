@@ -2,6 +2,12 @@
 
 Use these as speaking prompts. Give the first sentence, pause, then expand with mechanism, Suvyon evidence, and trade-offs.
 
+This file is the rapid-revision bank. For interview-length explanations and likely follow-ups, use:
+
+- [Detailed core AI answers](DETAILED_CORE_QA.md)
+- [Detailed RAG and agent answers](DETAILED_RAG_AGENT_QA.md)
+- [Detailed production, system-design, and Suvyon answers](DETAILED_PRODUCTION_PROJECT_QA.md)
+
 ## Foundations
 
 1. **What is generative AI?** A class of models that learns a data distribution and produces new content; LLMs generate token sequences conditioned on context.
@@ -99,4 +105,3 @@ Use these as speaking prompts. Give the first sentence, pause, then expand with 
 78. **How do you learn an unfamiliar AI API?** Start from the provider contract, build a thin adapter, record fixtures, test errors/streaming/tools, then integrate behind abstraction.
 79. **How prioritize quality versus latency?** Define task risk and SLOs, measure both, route by use case, and optimize the Pareto frontier rather than one global setting.
 80. **What would you do differently?** Introduce evaluation and structured traces earlier, because AI behavior changes across prompts/models even when code types still pass.
-

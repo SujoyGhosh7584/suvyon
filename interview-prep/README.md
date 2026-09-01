@@ -20,10 +20,12 @@ Use this order:
 | 2. Grounding | [RAG guide](02-rag/RAG_INTERVIEW_GUIDE.md) | Design and evaluate an ingestion/retrieval pipeline |
 | 3. Agency | [Agentic AI guide](03-agents/AGENTIC_AI_INTERVIEW_GUIDE.md) | Explain tool calling, agent loops, state, safety, and failure handling |
 | 4. Project | [Suvyon deep dive](04-suvyon-deep-dive/SUVYON_ARCHITECTURE.md) | Give a confident project walkthrough backed by code |
+| 4a. Explore | [Interactive Suvyon project explorer](project-explorer/README.md) | Click through every runtime flow and open exact source lines |
 | 5. Design | [Production system design](05-system-design/PRODUCTION_DESIGN.md) | Scale, secure, observe, and evaluate the system |
 | 6. Engineering | [Python/API/data guide](05-system-design/ENGINEERING_FOUNDATIONS.md) | Defend backend, async, database, and testing decisions |
-| 7. Drill | [Question bank](06-question-bank/QUESTIONS_AND_ANSWERS.md) | Rehearse concise and deep answers |
-| 8. Perform | [Mock interview kit](07-practice/MOCK_INTERVIEW.md) | Practice project pitches and interview rounds |
+| 7. Drill | [Quick question bank](06-question-bank/QUESTIONS_AND_ANSWERS.md) | Rehearse 30-second answers and identify weak topics |
+| 8. Deep answers | [Core AI](06-question-bank/DETAILED_CORE_QA.md), [RAG and agents](06-question-bank/DETAILED_RAG_AGENT_QA.md), [production and project](06-question-bank/DETAILED_PRODUCTION_PROJECT_QA.md) | Deliver two-to-five-minute answers and handle follow-ups |
+| 9. Perform | [Mock interview kit](07-practice/MOCK_INTERVIEW.md) | Practice project pitches and interview rounds |
 
 ## The answer framework
 
@@ -48,6 +50,25 @@ Example: “RAG retrieves external evidence and puts it into the model context b
 Daily routine: 30 minutes study, 30 minutes code tracing, 20 minutes speaking aloud, and 10 minutes reviewing weak answers.
 
 The four-week schedule is a revision sprint. For full preparation, use the [12-week plan and readiness gates](00-study-plan/COMPLETE_STUDY_PLAN.md).
+
+## How to drill the detailed answers for 12 weeks
+
+Do not read all answers repeatedly. Use this loop for five questions per study day:
+
+1. Answer closed-book in 30 seconds.
+2. Expand for two minutes using Concept, Mechanism, Evidence, and Trade-off.
+3. Answer two follow-ups without notes.
+4. Compare with the detailed answer and write only the missing ideas on a flashcard.
+5. Repeat the same question after 1, 3, 7, 14, and 30 days.
+
+| Weeks | Primary detailed bank | Required performance |
+|---|---|---|
+| 1-4 | Core AI | Accurate definition, mechanism, math intuition, and metric choice |
+| 5-6 | RAG | Diagnose retrieval versus generation failures and design secure retrieval |
+| 7-8 | Agents | Explain the loop, controls, memory, MCP, and evaluation without buzzwords |
+| 9-10 | Production | Handle scale, security, outage, observability, latency, and cost |
+| 11 | Suvyon project | Give 30-second, two-minute, and ten-minute walkthroughs backed by code |
+| 12 | Mixed mocks | Score at least 8/10 on random questions and recover from follow-ups |
 
 ## Readiness checklist
 

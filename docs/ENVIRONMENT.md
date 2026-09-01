@@ -85,6 +85,18 @@ JWTs are signed with this key. Changing it in production **invalidates all sessi
 
 Chat needs **at least one** of Groq, Gemini, or OpenRouter. Knowledge upload embeddings need **Gemini** (or OpenRouter nomic embed as fallback).
 
+### Email provider precedence
+
+Authentication OTPs and agent-sent emails share the same delivery code. For each message the backend selects:
+
+1. Resend when `RESEND_API_KEY` is non-empty.
+2. Otherwise SendGrid when `SENDGRID_API_KEY` is non-empty.
+3. Otherwise SMTP.
+
+There is no automatic fallback after a configured provider rejects a send. `SMTP_FROM_EMAIL` (falling back to `SMTP_USERNAME`) supplies the From address even when Resend or SendGrid is selected. `backend/render.yaml` declares the two HTTPS API keys but not `SMTP_FROM_EMAIL`, so add the sender manually in the Render dashboard when using the current blueprint.
+
+See [Email delivery](EMAIL_DELIVERY.md) for both end-to-end flows, confirmation rules, provider requests, and failure behavior.
+
 ---
 
 ## Frontend variables
