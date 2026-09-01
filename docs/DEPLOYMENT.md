@@ -146,4 +146,6 @@ Render must have the same `SMTP_*` keys as local for **laptop** Gmail SMTP. On *
 
 Both authentication OTPs and confirmed agent emails use the same backend delivery selector: Resend first, then SendGrid, then SMTP. When using either HTTPS provider, also set `SMTP_FROM_EMAIL` to a sender accepted by that provider. The current `render.yaml` does not declare that sender variable, so add it manually in the Render dashboard. See [Email delivery](EMAIL_DELIVERY.md) for the exact flow and safety boundary.
 
+When the SendGrid trial approaches expiry, use the [Resend migration runbook](RESEND_MIGRATION_RUNBOOK.md) rather than switching providers on the final day.
+
 If the UI loads but login fails, CORS or `VITE_API_BASE_URL` is wrong. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).

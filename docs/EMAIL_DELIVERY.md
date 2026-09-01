@@ -155,6 +155,8 @@ This is defense in depth: the agent system prompt instructs the model to draft f
 
 ## Local and production configuration
 
+For a timed SendGrid-to-Resend changeover, follow the [Resend migration runbook](RESEND_MIGRATION_RUNBOOK.md). It includes domain verification, Render configuration, smoke tests, observation, and rollback.
+
 ### Local development
 
 The usual local path is Gmail SMTP:

@@ -71,6 +71,7 @@ suvyon/
 │   ├── LOCAL_DEVELOPMENT.md
 │   ├── ENVIRONMENT.md
 │   ├── EMAIL_DELIVERY.md
+│   ├── RESEND_MIGRATION_RUNBOOK.md
 │   ├── DEPLOYMENT.md
 │   ├── TROUBLESHOOTING.md
 │   └── architecture/        Product and system design
@@ -262,6 +263,7 @@ How to recreate the stack: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) | Local install in full |
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Every variable, local vs production |
 | [docs/EMAIL_DELIVERY.md](docs/EMAIL_DELIVERY.md) | OTP and agent email flows, provider selection, and confirmation safety |
+| [docs/RESEND_MIGRATION_RUNBOOK.md](docs/RESEND_MIGRATION_RUNBOOK.md) | Step-by-step SendGrid-to-Resend migration and rollback checklist |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Supabase, Render, Vercel, live URLs |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | CORS parse errors, `frontend/src/lib` gitignore, sleep, pgvector |
 | [docs/architecture/00_PROJECT_CHARTER.md](docs/architecture/00_PROJECT_CHARTER.md) | Charter and principles |
