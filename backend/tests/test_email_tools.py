@@ -186,3 +186,20 @@ def test_send_email_uses_resend_over_https(monkeypatch):
     assert "sent successfully" in result
     assert captured["url"] == "https://api.resend.com/emails"
     assert captured["json"]["to"] == ["ada@example.com"]
+
+
+def test_approved_email_appends_edited_regards(monkeypatch):
+    captured = {}
+
+    def fake_deliver(to, subject, body):
+        captured.update(to=to, subject=subject, body=body)
+
+    monkeypatch.setattr(email_tools, "_deliver_email", fake_deliver)
+    result = email_tools.send_approved_email(
+        "ada@example.com",
+        "Meeting",
+        "See you at 3.",
+        "Regards,\nSujoy",
+    )
+    assert "sent successfully" in result
+    assert captured["body"] == "See you at 3.\n\nRegards,\nSujoy"

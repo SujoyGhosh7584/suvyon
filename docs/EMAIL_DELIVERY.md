@@ -109,44 +109,43 @@ sequenceDiagram
     participant Runner as Agent runner
     participant LLM
     participant Draft as draft_email
-    participant Send as send_email
+    participant UI as Approval dialog
+    participant API as Authenticated send endpoint
     participant Mail as Shared email delivery
 
     User->>Runner: Compose an email
     Runner->>LLM: Instructions + tool schemas
     LLM-->>Runner: draft_email arguments
     Runner->>Draft: validate and format
-    Draft-->>User: Draft; not sent
-    User->>Runner: send it
-    Runner->>LLM: History + confirmation
-    LLM-->>Runner: send_email arguments
-    Runner->>Send: arguments + exact current user text
-    Send->>Send: validate recipient, subject, body, confirmation
-    Send->>Mail: deliver
-    Mail-->>Runner: verified success or error
-    Runner-->>User: final result
+    Draft-->>UI: Structured recipient, subject, body
+    UI-->>User: Editable card; not sent
+    User->>UI: Edit, keep draft, reject, or Approve & send
+    UI->>API: Exact edited fields + confirmed=true
+    API->>API: Verify user, workspace, active agent, send_email capability
+    API->>Mail: Deliver reviewed content
+    Mail-->>UI: Verified success or error
 ```
 
 Step by step:
 
 1. The saved Agent contains comma-separated allowed tool names. [`_get_agent_tools`](../backend/app/agents/runner.py#L63) intersects them with the real registry.
-2. [`get_tool_schemas`](../backend/app/tools/registry.py#L160) exposes `draft_email` and/or `send_email` schemas to the LLM.
+2. [`get_tool_schemas`](../backend/app/tools/registry.py#L160) exposes the agent's enabled capabilities to the LLM.
 3. The LLM proposes a structured call. It does not execute Python or contact an email provider.
-4. [`_call_tool`](../backend/app/agents/runner.py#L109) normalizes recipient/subject/body and passes the exact current user message as `user_content` when dispatching `send_email`.
-5. [`draft_email`](../backend/app/tools/email_tool.py#L139) validates and returns formatted text. It never calls a transport.
-6. [`send_email`](../backend/app/tools/email_tool.py#L153) independently validates the address, non-empty subject/body, and explicit confirmation.
-7. Compose phrases such as “send an email to…” are deliberately not confirmation. Accepted confirmations include exact words such as “yes” or “confirm” and phrases such as “send it” or “please send.”
-8. If confirmation is absent, the function returns `BLOCKED` plus the draft and does not open SMTP or call an HTTPS provider.
-9. After confirmation, it calls the same `_deliver_email` selector used by authentication emails and returns success only after that call succeeds.
+4. The runner converts both `draft_email` and any attempted `send_email` call into a non-sending draft and returns structured `pending_email` data.
+5. [`EmailApprovalDialog`](../frontend/src/components/EmailApprovalDialog.tsx) lets the user edit recipient, subject, body, and regards, keep the draft, reject it, or explicitly approve sending.
+6. `POST /workspaces/{workspace_id}/agents/{agent_id}/email/send` requires an authenticated, verified user and checks workspace ownership, active-agent state, and the agent's `send_email` capability.
+7. The request schema requires `confirmed: true`; ordinary chat text such as “yes” or “send it” cannot authorize delivery.
+8. [`send_approved_email`](../backend/app/tools/email_tool.py) validates the reviewed fields, appends the optional regards block, and calls the shared delivery selector.
+9. The UI reports success only after Resend, SendGrid, or SMTP accepts the request.
 
-This is defense in depth: the agent system prompt instructs the model to draft first, and the Python email function enforces confirmation again. Current confirmation is based on phrases in the latest user message; it is not a durable approval tied to a hash of a persisted draft. Idempotency keys and delivery reconciliation are also not implemented.
+This is defense in depth: the model is instructed to draft only, the runner blocks model-triggered sending, and a separate authenticated endpoint accepts only the user's reviewed form submission. Idempotency keys and a persistent email-delivery ledger are not implemented yet.
 
 ## Shared versus different behavior
 
 | Concern | Authentication email | Agent email tool |
 |---|---|---|
 | Content | Fixed verification/reset template | LLM-generated recipient, subject, and body |
-| User confirmation | Auth API request authorizes the transaction | Separate explicit send confirmation required |
+| User confirmation | Auth API request authorizes the transaction | Editable approval dialog + separate authenticated endpoint |
 | Delivery selector | Resend → SendGrid → SMTP | Resend → SendGrid → SMTP |
 | Sender address | `SMTP_FROM_EMAIL`, else `SMTP_USERNAME` | Same |
 | Database storage | Hashed OTP metadata; not plaintext body | No email-delivery/history record; chat may contain draft/result |

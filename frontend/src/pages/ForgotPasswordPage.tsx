@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { AuthScreen } from "@/components/AuthScreen";
 import { getErrorMessage } from "@/lib/api";
 import { authApi } from "@/lib/services";
+import { PasswordField } from "@/components/PasswordField";
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -106,21 +107,7 @@ export function ForgotPasswordPage() {
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             />
           </div>
-          <div>
-            <label className="label" htmlFor="password">
-              New password
-            </label>
-            <input
-              id="password"
-              className="input"
-              type="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          <PasswordField id="password" label="New password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
           {error && (
             <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
           )}

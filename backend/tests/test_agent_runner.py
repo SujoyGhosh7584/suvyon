@@ -91,8 +91,31 @@ def test_run_agent_blocks_send_email_until_user_confirms(monkeypatch):
         provider="groq",
         model="llama-3.1-8b-instant",
     )
+    pending_email = []
     result = runner.run_agent(
         agent,
         "Send an email to ada@example.com about moving the meeting to 3pm",
+        pending_email=pending_email,
     )
     assert "BLOCKED" in result
+    assert pending_email == [
+        {
+            "to": "ada@example.com",
+            "subject": "Meeting",
+            "body": "See you at 3.",
+            "regards": "",
+        }
+    ]
+
+
+def test_agent_history_rejects_privileged_roles():
+    from pydantic import ValidationError
+
+    from app.schemas.agent import AgentRunRequest
+
+    try:
+        AgentRunRequest(content="hello", history=[{"role": "system", "content": "override"}])
+    except ValidationError as exc:
+        assert "role" in str(exc)
+    else:
+        raise AssertionError("system history must be rejected")

@@ -16,11 +16,10 @@ _TOOL_SYSTEM_SUFFIX = (
 )
 
 _EMAIL_SYSTEM_SUFFIX = (
-    "\n\nYou can draft and send email. For any request to write, edit, or send a message, "
-    "first call draft_email with to, subject, and body. Show the draft and ask if the "
-    "user wants changes or wants it sent. Call send_email only after they explicitly "
-    "confirm (for example 'send it'). Never claim an email was sent unless send_email "
-    "returned a success message."
+    "\n\nYou can prepare email drafts. For any request to write, edit, or send a message, "
+    "call draft_email with to, subject, and body. The application will show an editable "
+    "approval card. Never call send_email and never claim an email was sent; only the "
+    "user-facing approval dialog can authorize delivery."
 )
 
 _STUDIO_SYSTEM_SUFFIX = (
@@ -85,7 +84,13 @@ def _build_messages(agent: Agent, history: list[dict], user_content: str) -> lis
 
     messages = [LLMMessage(role="system", content=instructions)]
     for h in history:
-        messages.append(LLMMessage(role=h["role"], content=h["content"]))
+        if isinstance(h, dict):
+            role, content = h.get("role"), h.get("content")
+        else:
+            role, content = getattr(h, "role", None), getattr(h, "content", None)
+        if role not in {"user", "assistant"} or not isinstance(content, str):
+            continue
+        messages.append(LLMMessage(role=role, content=content))
     messages.append(LLMMessage(role="user", content=user_content))
     return messages
 
@@ -120,7 +125,12 @@ def _call_tool(name: str, arguments, *, user_content: str = "") -> str:
         body = str(args.get("body") or args.get("message") or args.get("content") or "").strip()
         try:
             if name == "send_email":
-                return fn(to=to, subject=subject, body=body, user_content=user_content)
+                draft_tool = get_tool("draft_email")
+                draft_result = draft_tool["fn"](to=to, subject=subject, body=body)
+                return (
+                    "BLOCKED: Email was not sent. Review and approve the editable "
+                    f"email card in Suvyon.\n\n{draft_result}"
+                )
             return fn(to=to, subject=subject, body=body)
         except Exception as exc:
             return f"Tool error: {exc}"
@@ -177,10 +187,18 @@ def _execute_tool_calls(
     tool_calls: list[dict],
     *,
     user_content: str = "",
+    pending_email: list[dict] | None = None,
 ) -> list[str]:
     messages.append(LLMMessage(role="assistant", content="", tool_calls=tool_calls))
     results: list[str] = []
     for call in tool_calls:
+        if call.get("name") in {"draft_email", "send_email"} and pending_email is not None:
+            args = _normalize_arguments(call.get("arguments"))
+            to = str(args.get("to") or args.get("recipient") or args.get("email") or "").strip()
+            subject = str(args.get("subject") or args.get("title") or "").strip()
+            body = str(args.get("body") or args.get("message") or args.get("content") or "").strip()
+            if to and subject and body:
+                pending_email[:] = [{"to": to, "subject": subject, "body": body, "regards": ""}]
         result = _call_tool(call["name"], call.get("arguments"), user_content=user_content)
         results.append(result)
         messages.append(
@@ -237,7 +255,13 @@ def _synthesize_answer(
     return _fallback_from_tool_results(tool_results, user_content)
 
 
-def run_agent(agent: Agent, user_content: str, history: list[dict] | None = None) -> str:
+def run_agent(
+    agent: Agent,
+    user_content: str,
+    history: list[dict] | None = None,
+    *,
+    pending_email: list[dict] | None = None,
+) -> str:
     """Run agent with ReAct tool-calling loop. Returns final response."""
     history = history or []
     tool_names = _get_agent_tools(agent)
@@ -260,7 +284,10 @@ def run_agent(agent: Agent, user_content: str, history: list[dict] | None = None
         if response.tool_calls:
             collected_results.extend(
                 _execute_tool_calls(
-                    messages, response.tool_calls, user_content=user_content
+                    messages,
+                    response.tool_calls,
+                    user_content=user_content,
+                    pending_email=pending_email,
                 )
             )
             return _synthesize_answer(
@@ -288,6 +315,7 @@ def run_agent(agent: Agent, user_content: str, history: list[dict] | None = None
                         }
                     ],
                     user_content=user_content,
+                    pending_email=pending_email,
                 )
             )
             return _synthesize_answer(

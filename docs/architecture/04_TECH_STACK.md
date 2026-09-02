@@ -192,7 +192,7 @@ Outgoing authentication and agent email share one backend delivery module. The c
 2. Otherwise SendGrid over HTTPS when `SENDGRID_API_KEY` is configured.
 3. Otherwise SMTP using STARTTLS (normally port 587) or SSL (port 465).
 
-Authentication verification/reset messages use the system-email entry point. Agent email uses a draft-first flow and `send_email` enforces explicit user confirmation before calling the same delivery module. Provider IDs and separate email history are not currently persisted. See [Email delivery](../EMAIL_DELIVERY.md).
+Authentication verification/reset messages use the system-email entry point. Agent email uses a draft-first flow: the runner cannot send, and a separate authenticated approval endpoint delivers the user's edited recipient, subject, body, and regards through the shared provider selector. Provider IDs and separate email history are not currently persisted. See [Email delivery](../EMAIL_DELIVERY.md).
 
 ---
 

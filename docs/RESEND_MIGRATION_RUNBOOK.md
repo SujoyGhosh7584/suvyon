@@ -20,7 +20,7 @@ otherwise SENDGRID_API_KEY -> SendGrid
 otherwise                  -> SMTP
 ```
 
-Adding `RESEND_API_KEY` therefore switches registration verification, resend-verification, forgot-password, and confirmed `send_email` agent actions immediately. Drafting an agent email still does not send anything, and its explicit-confirmation safety check remains unchanged.
+Adding `RESEND_API_KEY` therefore switches registration verification, resend-verification, forgot-password, and approved agent-email actions immediately. Drafting an agent email still does not send anything; delivery requires the authenticated editable approval dialog.
 
 Suvyon does not automatically fall back after Resend rejects a request. Keep the SendGrid key temporarily for manual rollback, but understand that it remains dormant while `RESEND_API_KEY` is populated.
 

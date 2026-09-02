@@ -93,6 +93,18 @@ export type ModelInfo = {
 };
 
 export type ChatHistoryItem = {
-  role: string;
+  role: "user" | "assistant";
   content: string;
+};
+
+export type PendingEmailDraft = {
+  to: string;
+  subject: string;
+  body: string;
+  regards: string;
+};
+
+export type AgentRunResponse = {
+  content: string;
+  pending_email: PendingEmailDraft | null;
 };

@@ -8,7 +8,7 @@ import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
 import { splitProvenance } from "@/lib/messageFormat";
-import { conversationsApi, modelsApi } from "@/lib/services";
+import { conversationsApi, knowledgeApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,7 @@ export function MobileChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
+  const [knowledgeBaseId, setKnowledgeBaseId] = useState("");
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -48,6 +49,10 @@ export function MobileChatPage() {
   const { data: models = [] } = useQuery({
     queryKey: ["models"],
     queryFn: modelsApi.list,
+  });
+  const { data: knowledgeBases = [] } = useQuery({
+    queryKey: ["knowledge-bases", workspaceId],
+    queryFn: () => knowledgeApi.list(workspaceId),
   });
 
   const activeConversation = useMemo(
@@ -121,7 +126,7 @@ export function MobileChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: null,
+        knowledge_base_id: knowledgeBaseId || null,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -175,7 +180,7 @@ export function MobileChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: null,
+          knowledge_base_id: knowledgeBaseId || null,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({ queryKey: ["messages", workspaceId, created.id] });
@@ -356,6 +361,18 @@ export function MobileChatPage() {
             <option value="rag">RAG</option>
             <option value="web">Web</option>
           </select>
+          {(mode === "rag" || mode === "auto") && knowledgeBases.length > 0 && (
+            <select
+              className="input col-span-3 py-1.5 text-xs"
+              value={knowledgeBaseId}
+              onChange={(event) => setKnowledgeBaseId(event.target.value)}
+            >
+              <option value="">All workspace knowledge</option>
+              {knowledgeBases.filter((kb) => kb.is_active).map((kb) => (
+                <option key={kb.id} value={kb.id}>{kb.name}</option>
+              ))}
+            </select>
+          )}
         </div>
       )}
 

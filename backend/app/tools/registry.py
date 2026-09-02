@@ -130,9 +130,8 @@ TOOL_REGISTRY: dict[str, dict] = {
     "send_email": {
         "fn": send_email,
         "description": (
-            "Send a drafted email via SMTP. Call this only after the user explicitly "
-            "confirms sending (for example 'send it' or 'yes'). Do not use this on "
-            "the first compose request."
+            "Request review of a drafted email. Suvyon displays an editable approval "
+            "card and only the authenticated approval endpoint can deliver it."
         ),
         "parameters": {"to": "string", "subject": "string", "body": "string"},
     },

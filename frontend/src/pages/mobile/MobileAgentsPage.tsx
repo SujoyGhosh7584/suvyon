@@ -3,13 +3,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bot, Plus, Send, Trash2 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
+import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
 import { MobileMascot } from "@/components/MobileMascot";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
-import { AGENT_TEMPLATES, TEMPLATE_ICONS } from "@/lib/agentTemplates";
+import { AGENT_TEMPLATES, TEMPLATE_ICONS, TOOL_DETAILS } from "@/lib/agentTemplates";
 import { agentsApi, modelsApi } from "@/lib/services";
-import type { ChatHistoryItem } from "@/types/api";
+import type { ChatHistoryItem, PendingEmailDraft } from "@/types/api";
 import { cn } from "@/lib/utils";
 
 export function MobileAgentsPage() {
@@ -18,7 +19,7 @@ export function MobileAgentsPage() {
   const queryClient = useQueryClient();
 
   const [showCreate, setShowCreate] = useState(false);
-  const [templateId, setTemplateId] = useState<(typeof AGENT_TEMPLATES)[number]["id"]>("search");
+  const [templateId, setTemplateId] = useState<(typeof AGENT_TEMPLATES)[number]["id"]>("interview");
   const [name, setName] = useState<string>(AGENT_TEMPLATES[0].name);
   const [instructions, setInstructions] = useState<string>(AGENT_TEMPLATES[0].instructions);
   const [description, setDescription] = useState<string>(AGENT_TEMPLATES[0].description);
@@ -29,6 +30,8 @@ export function MobileAgentsPage() {
   const [message, setMessage] = useState("");
   const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [running, setRunning] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<PendingEmailDraft | null>(null);
+  const [emailError, setEmailError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const { data: agents = [] } = useQuery({
@@ -113,6 +116,16 @@ export function MobileAgentsPage() {
     },
   });
 
+  const sendEmail = useMutation({
+    mutationFn: (draft: PendingEmailDraft) => agentsApi.sendEmail(workspaceId, agentId!, draft),
+    onSuccess: (result) => {
+      setPendingEmail(null);
+      setEmailError("");
+      setHistory((prev) => [...prev, { role: "assistant", content: `✅ ${result.message}` }]);
+    },
+    onError: (err) => setEmailError(getErrorMessage(err, "Email could not be sent.")),
+  });
+
   async function runAgent(e: FormEvent) {
     e.preventDefault();
     if (!agentId || !message.trim()) return;
@@ -127,6 +140,7 @@ export function MobileAgentsPage() {
         history,
       });
       setHistory((prev) => [...prev, { role: "assistant", content: result.content }]);
+      if (result.pending_email) setPendingEmail(result.pending_email);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -227,7 +241,7 @@ export function MobileAgentsPage() {
                     )
                   }
                 >
-                  {tool}
+                    {TOOL_DETAILS[tool]?.name || tool.replace(/_/g, " ")}
                 </button>
               );
             })}
@@ -271,7 +285,9 @@ export function MobileAgentsPage() {
               <button
                 type="button"
                 className="rounded-xl p-2 text-ink-400"
-                onClick={() => deleteAgent.mutate(a.id)}
+                onClick={() => {
+                  if (window.confirm(`Delete ${a.name}? This cannot be undone.`)) deleteAgent.mutate(a.id);
+                }}
               >
                 <Trash2 size={16} />
               </button>
@@ -359,6 +375,19 @@ export function MobileAgentsPage() {
           </button>
         </div>
       </form>
+      {pendingEmail && (
+        <EmailApprovalDialog
+          draft={pendingEmail}
+          sending={sendEmail.isPending}
+          error={emailError}
+          onSend={(draft) => sendEmail.mutate(draft)}
+          onSaveDraft={() => setPendingEmail(null)}
+          onReject={() => {
+            setPendingEmail(null);
+            setEmailError("");
+          }}
+        />
+      )}
     </div>
   );
 }

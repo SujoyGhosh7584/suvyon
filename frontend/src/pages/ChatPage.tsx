@@ -3,10 +3,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
+  Database,
   Edit2,
   PanelLeftClose,
   Plus,
   Send,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -16,7 +18,7 @@ import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
 import { splitProvenance } from "@/lib/messageFormat";
-import { conversationsApi, modelsApi } from "@/lib/services";
+import { conversationsApi, knowledgeApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +32,7 @@ export function ChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
+  const [knowledgeBaseId, setKnowledgeBaseId] = useState("");
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -50,6 +53,10 @@ export function ChatPage() {
   const { data: models = [] } = useQuery({
     queryKey: ["models"],
     queryFn: modelsApi.list,
+  });
+  const { data: knowledgeBases = [] } = useQuery({
+    queryKey: ["knowledge-bases", workspaceId],
+    queryFn: () => knowledgeApi.list(workspaceId),
   });
 
   const activeConversation = useMemo(
@@ -126,7 +133,7 @@ export function ChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: null,
+        knowledge_base_id: knowledgeBaseId || null,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -184,7 +191,7 @@ export function ChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: null,
+          knowledge_base_id: knowledgeBaseId || null,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({
@@ -408,6 +415,22 @@ export function ChatPage() {
                 </option>
               ))}
             </select>
+            {(mode === "rag" || mode === "auto") && knowledgeBases.length > 0 && (
+              <label className="relative">
+                <Database className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" size={14} />
+                <select
+                  className="input max-w-[190px] py-1.5 pl-8 text-xs"
+                  value={knowledgeBaseId}
+                  onChange={(event) => setKnowledgeBaseId(event.target.value)}
+                  aria-label="Knowledge base"
+                >
+                  <option value="">All workspace knowledge</option>
+                  {knowledgeBases.filter((kb) => kb.is_active).map((kb) => (
+                    <option key={kb.id} value={kb.id}>{kb.name}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <select
               className="input max-w-[200px] text-xs py-1.5"
               value={model}
@@ -443,8 +466,26 @@ export function ChatPage() {
 
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {!conversationId && (
-            <div className="flex h-full items-center justify-center text-sm text-ink-500">
-              Start a new chat or select one from the sidebar.
+            <div className="flex h-full items-center justify-center">
+              <div className="max-w-2xl text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-violet-100 text-violet-700"><Sparkles size={24} /></div>
+                <h2 className="mt-4 font-display text-2xl font-bold text-ink-950">What would you like to accomplish?</h2>
+                <p className="mt-2 text-sm text-ink-500">Suvyon can combine conversation, workspace documents, and current web information.</p>
+                <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
+                  {["Summarize my project documents", "Research a company for an interview", "Compare two options with evidence", "Turn my notes into an action plan"].map((prompt) => (
+                    <button key={prompt} type="button" className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm font-medium text-ink-800 hover:border-violet-300 hover:bg-violet-50" onClick={() => setContent(prompt)}>
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+                <button className="btn-primary mt-5" type="button" onClick={() => createConversation.mutate()}><Plus size={16} /> Start a chat</button>
+              </div>
+            </div>
+          )}
+          {conversationId && !messagesLoading && visibleMessages.length === 0 && (
+            <div className="mx-auto mt-10 max-w-xl text-center">
+              <h2 className="font-display text-2xl font-bold text-ink-950">Start with a clear goal</h2>
+              <p className="mt-2 text-sm text-ink-500">Ask a question, select a knowledge base, or switch to Web for current information.</p>
             </div>
           )}
           {conversationId && messagesLoading && (
@@ -524,4 +565,3 @@ export function ChatPage() {
     </div>
   );
 }
-

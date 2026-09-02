@@ -54,7 +54,8 @@ class DocumentService:
         # Save to disk
         dest_dir = UPLOAD_DIR / str(workspace_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
-        file_name = f"{uuid.uuid4()}_{file.filename}"
+        safe_original_name = Path(file.filename or "document").name
+        file_name = f"{uuid.uuid4()}_{safe_original_name}"
         file_path = dest_dir / file_name
 
         file_path.write_bytes(content)
@@ -62,7 +63,7 @@ class DocumentService:
         # Create document record
         document = Document(
             workspace_id=workspace_id,
-            name=file.filename,
+            name=safe_original_name,
             file_path=str(file_path),
             mime_type=file.content_type,
             size_bytes=size_bytes,

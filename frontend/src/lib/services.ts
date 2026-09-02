@@ -10,6 +10,8 @@ import type {
   User,
   Workspace,
   ChatHistoryItem,
+  AgentRunResponse,
+  PendingEmailDraft,
 } from "@/types/api";
 
 export const authApi = {
@@ -169,9 +171,20 @@ export const agentsApi = {
     payload: { content: string; history?: ChatHistoryItem[] | null },
   ) =>
     api
-      .post<{ content: string }>(
+      .post<AgentRunResponse>(
         `/workspaces/${workspaceId}/agents/${agentId}/run`,
         payload,
+      )
+      .then((r) => r.data),
+  sendEmail: (
+    workspaceId: string,
+    agentId: string,
+    payload: PendingEmailDraft,
+  ) =>
+    api
+      .post<{ message: string }>(
+        `/workspaces/${workspaceId}/agents/${agentId}/email/send`,
+        { ...payload, confirmed: true },
       )
       .then((r) => r.data),
 };

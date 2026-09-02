@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { Bot, FileSearch, Mail, Sparkles } from "lucide-react";
+import { Bot, FileSearch, Mail, ShieldCheck, Sparkles } from "lucide-react";
 
 export function AuthScreen({
   title,
@@ -26,17 +26,17 @@ export function AuthScreen({
             Sign in
           </p>
           <h2 className="mt-4 font-display text-5xl font-extrabold leading-[1.05]">
-            Your agents already know the tools.
+            Move from questions to trusted action.
           </h2>
           <p className="mt-4 text-ink-300">
-            Search the live web, retrieve from your files, and keep every workspace
-            separate.
+            Research the live web, work from your documents, and review every important
+            action before it happens.
           </p>
           <div className="mt-8 space-y-3 text-sm">
             {[
               { icon: Sparkles, text: "Auto-route Groq, Gemini, OpenRouter" },
               { icon: Bot, text: "Web-search agents for scores and news" },
-              { icon: Mail, text: "Email agents that send only after you confirm" },
+              { icon: Mail, text: "Editable email approval before anything is sent" },
               { icon: FileSearch, text: "Resume and PDF knowledge bases" },
             ].map(({ icon: Icon, text }) => (
               <div
@@ -63,6 +63,9 @@ export function AuthScreen({
           <p className="mt-2 text-sm text-ink-500">{subtitle}</p>
           <div className="mt-6">{children}</div>
           <div className="mt-5 text-sm text-ink-500">{footer}</div>
+          <div className="mt-6 flex items-center justify-center gap-2 border-t border-ink-100 pt-5 text-xs text-ink-400">
+            <ShieldCheck size={14} /> Secure sign-in · private workspaces
+          </div>
         </div>
       </main>
     </div>

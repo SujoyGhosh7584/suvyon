@@ -3,11 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
-from app.api.dependencies import get_document_service, get_workspace_service
+from app.api.dependencies import get_document_service, get_knowledge_base_service, get_workspace_service
 from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.document import DocumentResponse
 from app.services.document_service import DocumentService
+from app.services.knowledge_base_service import KnowledgeBaseService
 from app.services.workspace_service import WorkspaceService
 
 router = APIRouter(
@@ -45,8 +46,15 @@ def upload_document(
     current_user: Annotated[User, Depends(get_current_verified_user)],
     workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
     document_service: Annotated[DocumentService, Depends(get_document_service)],
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
 ) -> DocumentResponse:
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    knowledge_base = kb_service.get(kb_id=knowledge_base_id, workspace_id=workspace_id)
+    if knowledge_base is None or not knowledge_base.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Active knowledge base not found.",
+        )
 
     try:
         document = document_service.upload(

@@ -4,6 +4,7 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { SignedInNotice } from "@/components/GuestAuth";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
+import { PasswordField } from "@/components/PasswordField";
 
 export function RegisterPage() {
   const { user, register } = useAuth();
@@ -73,25 +74,11 @@ export function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
-        <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            className="input"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        <PasswordField id="password" label="Password" value={password} onChange={setPassword} autoComplete="new-password" showStrength />
         {error && (
           <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         )}
-        <button className="btn-primary w-full" disabled={submitting}>
+        <button className="btn-primary w-full py-3" disabled={submitting || password.length < 8}>
           {submitting ? "Creating…" : "Create account"}
         </button>
       </form>
