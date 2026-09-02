@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, Plus, Star } from "lucide-react";
+import { Archive, ArrowUpRight, Plus, Sparkles, Star } from "lucide-react";
+import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { getErrorMessage } from "@/lib/api";
@@ -36,16 +37,21 @@ export function WorkspacesPage() {
   const archived = workspaces.filter((w) => w.is_archived);
 
   return (
-    <div className="min-h-screen bg-mesh px-6 py-10 text-white">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8">
-          <div className="font-display text-4xl font-extrabold">Your workspaces</div>
+    <div className="relative min-h-screen overflow-hidden bg-mesh px-6 py-10 text-white">
+      <AIBackdrop />
+      <div className="page-enter relative mx-auto max-w-5xl">
+        <div className="mb-8 flex items-start justify-between gap-6">
+          <div>
+          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.2em] text-accent-soft"><Sparkles size={13} /> Command center</div>
+          <div className="font-display text-4xl font-extrabold md:text-5xl">Your workspaces</div>
           <p className="mt-2 text-ink-300">
             Pick a space for chat, agents, and knowledge — each with its own files and history.
           </p>
+          </div>
+          <BrandOrb />
         </div>
 
-        <div className="mb-8 rounded-[1.75rem] bg-white p-6 text-ink-950 shadow-panel">
+        <div className="glass-dark mb-8 rounded-[1.75rem] p-6 text-white">
           <div className="mb-4 flex items-center gap-2 font-semibold">
             <Plus size={18} />
             Create workspace
@@ -86,7 +92,7 @@ export function WorkspacesPage() {
               <button
                 key={ws.id}
                 type="button"
-                className="rounded-[1.6rem] bg-white p-6 text-left text-ink-950 shadow-panel transition hover:-translate-y-1 hover:shadow-glow"
+                className="group relative overflow-hidden rounded-[1.6rem] border border-white/70 bg-white/[.82] p-6 text-left text-ink-950 shadow-panel backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow"
                 onClick={() => {
                   setWorkspaceId(ws.id);
                   navigate(`/app/w/${ws.id}/overview`);
@@ -100,6 +106,7 @@ export function WorkspacesPage() {
                     </p>
                   </div>
                   {ws.is_favourite && <Star size={16} className="text-amber-500" fill="currentColor" />}
+                  {!ws.is_favourite && <ArrowUpRight size={17} className="text-ink-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />}
                 </div>
               </button>
             ))}

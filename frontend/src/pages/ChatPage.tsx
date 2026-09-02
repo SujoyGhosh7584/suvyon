@@ -8,6 +8,7 @@ import {
   PanelLeftClose,
   Plus,
   Send,
+  SlidersHorizontal,
   Sparkles,
   Trash2,
   X,
@@ -37,6 +38,7 @@ export function ChatPage() {
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showControls, setShowControls] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -211,27 +213,27 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-2.75rem)] gap-4">
+    <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
       <aside
         className={cn(
-          "relative flex shrink-0 flex-col rounded-stage bg-ink-950 text-white transition-all duration-300",
+          "relative flex shrink-0 flex-col rounded-[24px] border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-500",
           isSidebarCollapsed ? "w-14 overflow-visible" : "w-72 overflow-hidden",
         )}
       >
         {isSidebarCollapsed && (
-          <div className="flex justify-center border-b border-white/10 py-2">
+          <div className="flex justify-center border-b border-slate-200 py-2">
             <SidebarExpandTab
               label="Expand chats panel"
               onClick={() => setIsSidebarCollapsed(false)}
             />
           </div>
         )}
-        <div className="flex items-center justify-between border-b border-white/10 p-3">
-          {!isSidebarCollapsed && <div className="px-1 font-display font-bold">Threads</div>}
+        <div className="flex items-center justify-between border-b border-slate-200 p-3">
+          {!isSidebarCollapsed && <div className="px-1"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">History</p><div className="font-display font-bold">Conversations</div></div>}
           <div className={cn("flex items-center gap-1", isSidebarCollapsed && "mx-auto")}>
             <button
               type="button"
-              className="btn-ghost px-2 py-2"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white"
               onClick={() => createConversation.mutate()}
               title="New chat"
             >
@@ -240,7 +242,7 @@ export function ChatPage() {
             {!isSidebarCollapsed && (
               <button
                 type="button"
-                className="btn-ghost px-2 py-2"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
                 onClick={() => setIsSidebarCollapsed(true)}
                 title="Collapse chats panel"
               >
@@ -257,7 +259,7 @@ export function ChatPage() {
                 key={c.id}
                 className={cn(
                   "group mb-1 flex items-center gap-1 rounded-2xl px-2 py-2 text-sm",
-                  c.id === conversationId ? "bg-violet-500 text-white" : "text-ink-200 hover:bg-white/10",
+                  c.id === conversationId ? "bg-indigo-50 text-indigo-950 ring-1 ring-indigo-100" : "text-slate-700 hover:bg-slate-50",
                 )}
               >
                 {editingId === c.id ? (
@@ -300,7 +302,7 @@ export function ChatPage() {
                       type="button"
                       className={cn(
                         "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
-                        c.id === conversationId ? "hover:bg-white/10" : "hover:bg-ink-100",
+                        "hover:bg-slate-100",
                       )}
                       title="Rename chat"
                       onClick={() => startRename(c.id, c.title)}
@@ -311,7 +313,7 @@ export function ChatPage() {
                       type="button"
                       className={cn(
                         "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
-                        c.id === conversationId ? "hover:bg-white/10" : "hover:bg-ink-100",
+                        "hover:bg-slate-100",
                       )}
                       title="Delete chat"
                       onClick={() => deleteConversation.mutate(c.id)}
@@ -332,20 +334,20 @@ export function ChatPage() {
                   "mb-2 flex h-9 w-9 items-center justify-center rounded-xl font-medium text-xs transition",
                   c.id === conversationId
                     ? "bg-violet-500 text-white"
-                    : "bg-white/10 text-ink-200 hover:bg-white/20",
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                 )}
               >
                 {c.title.charAt(0).toUpperCase()}
               </Link>
             ))}
           {!isSidebarCollapsed && conversations.length === 0 && (
-            <p className="px-2 py-4 text-sm text-ink-400">No chats yet.</p>
+            <p className="px-2 py-4 text-sm text-slate-500">No conversations yet.</p>
           )}
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-stage bg-white shadow-panel">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-3 md:px-4">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/70 bg-white/55 p-3 backdrop-blur-xl md:px-4">
           <div className="flex items-center gap-2">
             {activeConversation && editingId !== activeConversation.id ? (
               <div className="flex items-center gap-2">
@@ -394,7 +396,11 @@ export function ChatPage() {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex flex-wrap items-center justify-end gap-2">
+            <button type="button" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" onClick={() => setShowControls((value) => !value)}>
+              <SlidersHorizontal size={14} /> {mode === "auto" ? "Auto intelligence" : mode === "rag" ? "Knowledge mode" : mode === "web" ? "Web mode" : "General chat"}
+            </button>
+            {showControls && <div className="absolute right-0 top-full z-20 mt-2 grid w-[290px] gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
             <select
               className="input max-w-[150px] text-xs py-1.5"
               value={provider}
@@ -461,10 +467,11 @@ export function ChatPage() {
               <option value="rag">RAG</option>
               <option value="web">Web</option>
             </select>
+            </div>}
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_70%_0%,rgba(124,58,237,.09),transparent_42%)] p-5">
           {!conversationId && (
             <div className="flex h-full items-center justify-center">
               <div className="max-w-2xl text-center">

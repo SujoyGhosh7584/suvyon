@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { getErrorMessage } from "@/lib/api";
 import { workspacesApi } from "@/lib/services";
+import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -46,11 +47,10 @@ export function MobileWorkspacesPage() {
   const firstName = (user?.full_name || "there").split(" ")[0];
 
   return (
-    <div className="min-h-[100dvh] bg-mesh px-5 pb-10 pt-[max(1rem,env(safe-area-inset-top))] text-white">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-2xl font-display text-lg font-extrabold">
-          S
-        </span>
+    <div className="relative min-h-[100dvh] overflow-hidden bg-mesh px-5 pb-10 pt-[max(1rem,env(safe-area-inset-top))] text-white">
+      <AIBackdrop />
+      <div className="relative mb-2 flex items-center justify-between">
+        <BrandOrb />
         <button
           type="button"
           className="text-sm text-ink-300"
@@ -62,7 +62,7 @@ export function MobileWorkspacesPage() {
           Sign out
         </button>
       </div>
-      <MobileMascot className="mt-4" />
+      <div className="relative page-enter"><MobileMascot className="mt-4" /></div>
       <p className="mt-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200">
         {greeting()}
       </p>
@@ -82,7 +82,7 @@ export function MobileWorkspacesPage() {
 
       {showCreate && (
         <form
-          className="mt-4 space-y-3 rounded-[1.6rem] bg-white p-4 text-ink-950"
+          className="page-enter relative mt-4 space-y-3 rounded-[1.6rem] border border-white/70 bg-white/[.82] p-4 text-ink-950 shadow-2xl backdrop-blur-xl"
           onSubmit={(e) => {
             e.preventDefault();
             setError("");
@@ -109,13 +109,13 @@ export function MobileWorkspacesPage() {
         </form>
       )}
 
-      <div className="mt-6 space-y-3">
+      <div className="relative mt-6 space-y-3">
         {isLoading && <p className="text-center text-sm text-ink-400">Loading…</p>}
         {active.map((ws) => (
           <button
             key={ws.id}
             type="button"
-            className="flex w-full items-start justify-between gap-3 rounded-[1.5rem] bg-white p-4 text-left text-ink-950 shadow-panel"
+            className="flex w-full items-start justify-between gap-3 rounded-[1.5rem] border border-white/70 bg-white/[.82] p-4 text-left text-ink-950 shadow-panel backdrop-blur-xl transition active:scale-[.98]"
             onClick={() => {
               setWorkspaceId(ws.id);
               navigate(`/app/w/${ws.id}/overview`);

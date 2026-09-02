@@ -150,7 +150,7 @@ export function MobileAgentsPage() {
 
   if (showCreate) {
     return (
-      <div className="flex h-full flex-col bg-white/80">
+      <div className="page-enter flex h-full flex-col bg-white/65 backdrop-blur-xl">
         <div className="flex items-center gap-2 border-b border-rose-100 px-3 py-2.5">
           <button type="button" className="rounded-xl p-2" onClick={() => setShowCreate(false)}>
             <ArrowLeft size={20} />
@@ -175,7 +175,7 @@ export function MobileAgentsPage() {
                   type="button"
                   className={cn(
                     "rounded-[1.2rem] border px-3 py-3 text-left",
-                    active ? "border-accent bg-accent/10" : "border-ink-200 bg-white",
+                    active ? "border-accent bg-accent/10 shadow-glow" : "border-white/80 bg-white/60",
                   )}
                   onClick={() => applyTemplate(template.id)}
                 >
@@ -267,7 +267,7 @@ export function MobileAgentsPage() {
           {agents.map((a) => (
             <div
               key={a.id}
-              className="flex items-center gap-2 rounded-[1.4rem] bg-white/90 p-2 shadow-sm ring-1 ring-rose-100"
+              className="flex items-center gap-2 rounded-[1.4rem] border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
             >
               <Link
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
@@ -311,8 +311,8 @@ export function MobileAgentsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white/70">
-      <div className="flex items-center gap-2 border-b border-rose-100 bg-white/90 px-3 py-2.5">
+    <div className="page-enter flex h-full flex-col bg-white/65 backdrop-blur-xl">
+      <div className="flex items-center gap-2 border-b border-white/70 bg-white/60 px-3 py-2.5 backdrop-blur-xl">
         <button
           type="button"
           className="rounded-xl p-2"
@@ -353,7 +353,7 @@ export function MobileAgentsPage() {
         <StatusBubble active={running} steps={statusSteps} />
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={runAgent} className="border-t border-rose-100 bg-white px-3 py-2.5">
+      <form onSubmit={runAgent} className="border-t border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-xl">
         {error && (
           <div className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
         )}

@@ -47,14 +47,8 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div className="relative overflow-hidden rounded-[2rem] bg-ink-900 p-5 text-white shadow-panel md:p-8">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-ink-300">
-          Account
-        </p>
-        <h1 className="font-display text-3xl font-extrabold md:text-4xl">Settings</h1>
-        <p className="mt-2 text-ink-300">Appearance, profile, and account security.</p>
-      </div>
+    <div className="page-enter mx-auto max-w-4xl space-y-6 text-slate-950">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Personalize Suvyon</p><h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Your account, your controls.</h2><p className="mt-2 text-sm text-slate-600">Manage appearance, profile details, and account security.</p></div>
 
       {message && (
         <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -65,7 +59,7 @@ export function SettingsPage() {
         <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="card space-y-3 p-6">
+      <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <div className="font-semibold">Appearance</div>
           <p className="mt-1 text-sm text-ink-500">
@@ -75,7 +69,7 @@ export function SettingsPage() {
         <ThemePicker />
       </div>
 
-      <form className="card space-y-4 p-6" onSubmit={saveProfile}>
+      <form className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={saveProfile}>
         <div className="font-semibold">Profile</div>
         <div>
           <label className="label">Email</label>
@@ -96,7 +90,7 @@ export function SettingsPage() {
         </button>
       </form>
 
-      <form className="card space-y-4 p-6" onSubmit={changePassword}>
+      <form className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={changePassword}>
         <div className="font-semibold">Change password</div>
         <div>
           <label className="label">Current password</label>

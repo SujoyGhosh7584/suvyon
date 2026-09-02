@@ -195,13 +195,13 @@ export function AgentsPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-2.75rem)] gap-4">
-      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-stage bg-ink-950 text-white">
-        <div className="flex items-center justify-between border-b border-white/10 p-4">
-          <div className="font-display font-bold">Agents</div>
+    <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
+      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 p-4">
+          <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Your AI team</p><div className="font-display font-bold text-slate-950">Agent missions</div></div>
           <button
             type="button"
-            className="btn-ghost px-2 py-2"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white transition hover:bg-indigo-700"
             onClick={startNewAgent}
             aria-label="Create agent"
           >
@@ -214,7 +214,7 @@ export function AgentsPage() {
               key={a.id}
               className={cn(
                 "group mb-1 flex items-center gap-1 rounded-xl px-2 py-2 text-sm",
-                a.id === agentId ? "bg-rose-500 text-white" : "text-ink-200 hover:bg-white/10",
+                a.id === agentId ? "bg-indigo-50 text-indigo-950 ring-1 ring-indigo-100" : "text-slate-700 hover:bg-slate-50",
               )}
             >
               <Link
@@ -226,7 +226,7 @@ export function AgentsPage() {
                 <div
                   className={cn(
                     "truncate text-xs",
-                    a.id === agentId ? "text-white/80" : "text-ink-400",
+                    a.id === agentId ? "text-indigo-600" : "text-slate-400",
                   )}
                 >
                   {a.tools || "no tools"}
@@ -249,13 +249,12 @@ export function AgentsPage() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-stage bg-white shadow-panel">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
         {showCreate ? (
           <div className="overflow-y-auto p-6">
             <h2 className="text-xl font-semibold">{editingId ? "Edit agent" : "Create an agent"}</h2>
             <p className="mt-1 text-sm text-ink-500">
-              Start from a template, then adjust instructions, model, and tools.
-              Users chat with the agent — the backend sends tool schemas to the model automatically.
+              Choose the outcome you want. Suvyon configures the AI capabilities for you.
             </p>
             <form
               className="mt-6 grid max-w-2xl gap-4"
@@ -267,7 +266,7 @@ export function AgentsPage() {
               }}
             >
               <div>
-                <label className="label">Template</label>
+                <label className="label">Choose a mission</label>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {AGENT_TEMPLATES.map((template) => {
                     const active = templateId === template.id;
@@ -427,7 +426,7 @@ export function AgentsPage() {
           </div>
         ) : (
           <>
-            <div className="border-b border-teal-100 bg-gradient-to-r from-teal-50 to-white p-4">
+            <div className="border-b border-white/70 bg-white/55 p-4 backdrop-blur-xl">
               <div className="flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-white">
                   <Bot size={16} />
@@ -443,7 +442,7 @@ export function AgentsPage() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(13,148,136,0.08),transparent_40%)] p-5">
+            <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.11),transparent_42%)] p-5">
               {notice && (
                 <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                   <ShieldCheck size={17} /> {notice}

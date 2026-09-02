@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { Bot, FileSearch, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
 
 export function AuthScreen({
   title,
@@ -14,11 +15,12 @@ export function AuthScreen({
   footer: ReactNode;
 }) {
   return (
-    <div className="grid min-h-screen bg-mesh lg:grid-cols-2">
+    <div className="relative grid min-h-screen overflow-hidden bg-mesh lg:grid-cols-2">
+      <AIBackdrop />
       <aside className="relative hidden flex-col justify-between overflow-hidden px-14 py-12 text-white lg:flex">
         <div className="pointer-events-none absolute inset-0 auth-glow" />
         <Link to="/" className="relative flex items-center gap-2 font-display text-2xl font-extrabold">
-          <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-2xl">S</span>
+          <BrandOrb />
           Suvyon
         </Link>
         <div className="relative max-w-lg pb-10">
@@ -52,11 +54,10 @@ export function AuthScreen({
       </aside>
 
       <main className="flex items-center justify-center px-4 py-12 pt-[max(3rem,env(safe-area-inset-top))]">
-        <div className="w-full max-w-md rounded-[2rem] border border-white/15 bg-white p-6 text-ink-950 shadow-panel sm:p-8">
+        <div className="page-enter relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/70 bg-white/[.82] p-6 text-ink-950 shadow-2xl backdrop-blur-2xl sm:p-8">
+          <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
           <Link to="/" className="mb-5 flex items-center gap-2 lg:hidden">
-            <span className="brand-mark flex h-10 w-10 items-center justify-center rounded-2xl font-display text-lg font-extrabold text-white">
-              S
-            </span>
+            <BrandOrb />
             <span className="font-display text-xl font-extrabold">Suvyon</span>
           </Link>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{title}</h1>

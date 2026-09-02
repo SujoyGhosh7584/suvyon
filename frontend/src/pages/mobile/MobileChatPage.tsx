@@ -207,7 +207,7 @@ export function MobileChatPage() {
           {conversations.map((c, i) => (
             <div
               key={c.id}
-              className="flex items-center gap-2 rounded-[1.4rem] bg-white/90 p-2 shadow-sm ring-1 ring-violet-100"
+              className="flex items-center gap-2 rounded-[1.4rem] border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
             >
               <Link
                 to={`/app/w/${workspaceId}/chat/${c.id}`}
@@ -255,8 +255,8 @@ export function MobileChatPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white/70">
-      <div className="flex items-center gap-2 border-b border-violet-100 bg-white/90 px-3 py-2.5">
+    <div className="page-enter flex h-full flex-col bg-white/65 backdrop-blur-xl">
+      <div className="flex items-center gap-2 border-b border-white/70 bg-white/60 px-3 py-2.5 backdrop-blur-xl">
         <button
           type="button"
           className="rounded-xl p-2 text-ink-600"
@@ -422,7 +422,7 @@ export function MobileChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={onSubmit} className="border-t border-violet-100 bg-white px-3 py-2.5">
+      <form onSubmit={onSubmit} className="border-t border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-xl">
         {error && (
           <div className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
         )}
