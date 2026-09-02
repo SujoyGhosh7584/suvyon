@@ -7,16 +7,20 @@ import {
   PanelLeftClose,
   Plus,
   Send,
+  SlidersHorizontal,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
+import { ChatAttachments } from "@/components/ChatAttachments";
+import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
 import { splitProvenance } from "@/lib/messageFormat";
-import { conversationsApi, modelsApi } from "@/lib/services";
+import { conversationsApi, knowledgeApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -30,10 +34,12 @@ export function ChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
+  const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showControls, setShowControls] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -51,6 +57,10 @@ export function ChatPage() {
     queryKey: ["models"],
     queryFn: modelsApi.list,
   });
+  const { data: knowledgeBases = [] } = useQuery({
+    queryKey: ["knowledge-bases", workspaceId],
+    queryFn: () => knowledgeApi.list(workspaceId),
+  });
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === conversationId),
@@ -65,6 +75,7 @@ export function ChatPage() {
 
   useEffect(() => {
     setOptimistic([]);
+    setKnowledgeBaseIds(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -126,7 +137,7 @@ export function ChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: null,
+        knowledge_base_ids: knowledgeBaseIds,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -148,9 +159,14 @@ export function ChatPage() {
   const deleteConversation = useMutation({
     mutationFn: (id: string) => conversationsApi.remove(workspaceId, id),
     onSuccess: (_, id) => {
+      queryClient.setQueryData(
+        ["conversations", workspaceId],
+        conversations.filter((item) => item.id !== id),
+      );
       queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       if (id === conversationId) navigate(`/app/w/${workspaceId}/chat`);
     },
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const visibleMessages = [...messages, ...optimistic];
@@ -184,7 +200,7 @@ export function ChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: null,
+          knowledge_base_ids: knowledgeBaseIds,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({
@@ -204,27 +220,27 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-2.75rem)] gap-4">
+    <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
       <aside
         className={cn(
-          "relative flex shrink-0 flex-col rounded-stage bg-ink-950 text-white transition-all duration-300",
+          "relative flex shrink-0 flex-col rounded-[24px] border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-500",
           isSidebarCollapsed ? "w-14 overflow-visible" : "w-72 overflow-hidden",
         )}
       >
         {isSidebarCollapsed && (
-          <div className="flex justify-center border-b border-white/10 py-2">
+          <div className="flex justify-center border-b border-slate-200 py-2">
             <SidebarExpandTab
               label="Expand chats panel"
               onClick={() => setIsSidebarCollapsed(false)}
             />
           </div>
         )}
-        <div className="flex items-center justify-between border-b border-white/10 p-3">
-          {!isSidebarCollapsed && <div className="px-1 font-display font-bold">Threads</div>}
+        <div className="flex items-center justify-between border-b border-slate-200 p-3">
+          {!isSidebarCollapsed && <div className="px-1"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">History</p><div className="font-display font-bold">Conversations</div></div>}
           <div className={cn("flex items-center gap-1", isSidebarCollapsed && "mx-auto")}>
             <button
               type="button"
-              className="btn-ghost px-2 py-2"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white"
               onClick={() => createConversation.mutate()}
               title="New chat"
             >
@@ -233,7 +249,7 @@ export function ChatPage() {
             {!isSidebarCollapsed && (
               <button
                 type="button"
-                className="btn-ghost px-2 py-2"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
                 onClick={() => setIsSidebarCollapsed(true)}
                 title="Collapse chats panel"
               >
@@ -250,7 +266,7 @@ export function ChatPage() {
                 key={c.id}
                 className={cn(
                   "group mb-1 flex items-center gap-1 rounded-2xl px-2 py-2 text-sm",
-                  c.id === conversationId ? "bg-violet-500 text-white" : "text-ink-200 hover:bg-white/10",
+                  c.id === conversationId ? "bg-indigo-50 text-indigo-950 ring-1 ring-indigo-100" : "text-slate-700 hover:bg-slate-50",
                 )}
               >
                 {editingId === c.id ? (
@@ -292,8 +308,8 @@ export function ChatPage() {
                     <button
                       type="button"
                       className={cn(
-                        "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
-                        c.id === conversationId ? "hover:bg-white/10" : "hover:bg-ink-100",
+                        "rounded-lg p-1 opacity-70 transition hover:opacity-100",
+                        "hover:bg-slate-100",
                       )}
                       title="Rename chat"
                       onClick={() => startRename(c.id, c.title)}
@@ -303,11 +319,16 @@ export function ChatPage() {
                     <button
                       type="button"
                       className={cn(
-                        "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
-                        c.id === conversationId ? "hover:bg-white/10" : "hover:bg-ink-100",
+                        "rounded-lg p-1 opacity-70 transition hover:opacity-100",
+                        "hover:bg-slate-100",
                       )}
                       title="Delete chat"
-                      onClick={() => deleteConversation.mutate(c.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete “${c.title}”? This cannot be undone.`)) {
+                          setError("");
+                          deleteConversation.mutate(c.id);
+                        }
+                      }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -325,20 +346,20 @@ export function ChatPage() {
                   "mb-2 flex h-9 w-9 items-center justify-center rounded-xl font-medium text-xs transition",
                   c.id === conversationId
                     ? "bg-violet-500 text-white"
-                    : "bg-white/10 text-ink-200 hover:bg-white/20",
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
                 )}
               >
                 {c.title.charAt(0).toUpperCase()}
               </Link>
             ))}
           {!isSidebarCollapsed && conversations.length === 0 && (
-            <p className="px-2 py-4 text-sm text-ink-400">No chats yet.</p>
+            <p className="px-2 py-4 text-sm text-slate-500">No conversations yet.</p>
           )}
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-stage bg-white shadow-panel">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-violet-100 bg-gradient-to-r from-violet-50 to-white p-3 md:px-4">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/70 bg-white/55 p-3 backdrop-blur-xl md:px-4">
           <div className="flex items-center gap-2">
             {activeConversation && editingId !== activeConversation.id ? (
               <div className="flex items-center gap-2">
@@ -387,7 +408,11 @@ export function ChatPage() {
             ) : null}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex flex-wrap items-center justify-end gap-2">
+            <button type="button" className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50" onClick={() => setShowControls((value) => !value)}>
+              <SlidersHorizontal size={14} /> {mode === "auto" ? "Auto intelligence" : mode === "rag" ? "Knowledge mode" : mode === "web" ? "Web mode" : "General chat"}
+            </button>
+            {showControls && <div className="absolute right-0 top-full z-20 mt-2 grid w-[290px] gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
             <select
               className="input max-w-[150px] text-xs py-1.5"
               value={provider}
@@ -438,13 +463,32 @@ export function ChatPage() {
               <option value="rag">RAG</option>
               <option value="web">Web</option>
             </select>
+            </div>}
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_70%_0%,rgba(124,58,237,.09),transparent_42%)] p-5">
           {!conversationId && (
-            <div className="flex h-full items-center justify-center text-sm text-ink-500">
-              Start a new chat or select one from the sidebar.
+            <div className="flex h-full items-center justify-center">
+              <div className="max-w-2xl text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-3xl bg-violet-100 text-violet-700"><Sparkles size={24} /></div>
+                <h2 className="mt-4 font-display text-2xl font-bold text-ink-950">What would you like to accomplish?</h2>
+                <p className="mt-2 text-sm text-ink-500">Suvyon can combine conversation, workspace documents, and current web information.</p>
+                <div className="mt-5 grid gap-2 text-left sm:grid-cols-2">
+                  {["Summarize my project documents", "Research a company for an interview", "Compare two options with evidence", "Turn my notes into an action plan"].map((prompt) => (
+                    <button key={prompt} type="button" className="rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-sm font-medium text-ink-800 hover:border-violet-300 hover:bg-violet-50" onClick={() => setContent(prompt)}>
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+                <button className="btn-primary mt-5" type="button" onClick={() => createConversation.mutate()}><Plus size={16} /> Start a chat</button>
+              </div>
+            </div>
+          )}
+          {conversationId && !messagesLoading && visibleMessages.length === 0 && (
+            <div className="mx-auto mt-10 max-w-xl text-center">
+              <h2 className="font-display text-2xl font-bold text-ink-950">Start with a clear goal</h2>
+              <p className="mt-2 text-sm text-ink-500">Ask a question, select a knowledge base, or switch to Web for current information.</p>
             </div>
           )}
           {conversationId && messagesLoading && (
@@ -498,9 +542,13 @@ export function ChatPage() {
           <div className="mb-3 text-xs text-ink-500">
             Enter to send · Shift+Enter for a new line. Auto mode can search the web or your docs.
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-end gap-2">
+            {conversationId && <ChatAttachments workspaceId={workspaceId} conversationId={conversationId} />}
+            {(mode === "rag" || mode === "auto") && (
+              <KnowledgeScopePicker knowledgeBases={knowledgeBases} value={knowledgeBaseIds} onChange={setKnowledgeBaseIds} />
+            )}
             <textarea
-              className="input min-h-[52px] resize-none"
+              className="input min-h-[52px] min-w-0 flex-1 resize-none"
               placeholder="Ask about your docs, the web, or anything else…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -524,4 +572,3 @@ export function ChatPage() {
     </div>
   );
 }
-

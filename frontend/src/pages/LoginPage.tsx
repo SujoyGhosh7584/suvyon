@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthScreen } from "@/components/AuthScreen";
 import { SignedInNotice } from "@/components/GuestAuth";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
+import { Mail } from "lucide-react";
+import { PasswordField } from "@/components/PasswordField";
 
 export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -36,7 +39,8 @@ export function LoginPage() {
           setError("");
           try {
             await login(email, password);
-            navigate("/app");
+            const destination = (location.state as { from?: string } | null)?.from || "/app";
+            navigate(destination, { replace: true });
           } catch (err) {
             setError(getErrorMessage(err, "Login failed."));
           } finally {
@@ -48,30 +52,21 @@ export function LoginPage() {
           <label className="label" htmlFor="email">
             Email
           </label>
+          <div className="relative">
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" size={17} />
           <input
             id="email"
-            className="input"
+            className="input pl-10"
             type="email"
             required
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          </div>
         </div>
         <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            className="input"
-            type="password"
-            required
-            minLength={8}
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <PasswordField id="password" label="Password" value={password} onChange={setPassword} autoComplete="current-password" />
           <p className="mt-2 text-right text-sm">
             <Link to="/forgot-password" className="font-semibold text-accent">
               Forgot password?
@@ -81,7 +76,7 @@ export function LoginPage() {
         {error && (
           <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
         )}
-        <button className="btn-primary w-full" disabled={submitting}>
+        <button className="btn-primary w-full py-3" disabled={submitting || !email || password.length < 8}>
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>

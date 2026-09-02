@@ -125,7 +125,7 @@ cd backend
 alembic upgrade head
 ```
 
-This creates tables (users, workspaces, conversations, document chunks, OTP codes, and so on). After pulling OTP work, always run `alembic upgrade head` again so `otp_codes` exists. Existing users are marked verified so they are not locked out.
+This creates tables (users, workspaces, conversations, document chunks, OTP codes, and so on). Run `alembic upgrade head` after every pull so newer columns such as conversation-scoped documents are applied. Existing users are marked verified so they are not locked out.
 
 ---
 

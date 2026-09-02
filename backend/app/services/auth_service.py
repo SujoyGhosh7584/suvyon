@@ -12,6 +12,7 @@ from app.core.security import (
 from app.core.token_blacklist import blacklist_token
 from app.exceptions.auth import (
     EmailAlreadyExistsError,
+    InactiveUserError,
     InvalidCredentialsError,
 )
 from app.models.user import User
@@ -55,10 +56,12 @@ class AuthService:
             raise
 
     def login(self, *, email: str, password: str) -> TokenResponse:
-        user = self._user_repository.get_by_email(email)
+        user = self._user_repository.get_by_email(email.strip().lower())
 
         if user is None or not verify_password(password, user.hashed_password):
             raise InvalidCredentialsError()
+        if not user.is_active:
+            raise InactiveUserError()
 
         return TokenResponse(
             access_token=create_access_token(str(user.id)),

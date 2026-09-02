@@ -27,6 +27,11 @@ class DocumentService:
     def list_documents(self, *, workspace_id) -> list[Document]:
         return self._repo.get_by_workspace(workspace_id)
 
+    def list_conversation_documents(
+        self, *, conversation_id, workspace_id
+    ) -> list[Document]:
+        return self._repo.get_by_conversation(conversation_id, workspace_id)
+
     def get_document(self, *, document_id, workspace_id) -> Document | None:
         return self._repo.get_by_id_and_workspace(document_id, workspace_id)
 
@@ -36,6 +41,7 @@ class DocumentService:
         workspace_id,
         knowledge_base_id,
         file: UploadFile,
+        conversation_id=None,
     ) -> Document:
         # Validate mime type
         if file.content_type not in ALLOWED_DOCUMENT_TYPES:
@@ -54,7 +60,8 @@ class DocumentService:
         # Save to disk
         dest_dir = UPLOAD_DIR / str(workspace_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
-        file_name = f"{uuid.uuid4()}_{file.filename}"
+        safe_original_name = Path(file.filename or "document").name
+        file_name = f"{uuid.uuid4()}_{safe_original_name}"
         file_path = dest_dir / file_name
 
         file_path.write_bytes(content)
@@ -62,7 +69,8 @@ class DocumentService:
         # Create document record
         document = Document(
             workspace_id=workspace_id,
-            name=file.filename,
+            conversation_id=conversation_id,
+            name=safe_original_name,
             file_path=str(file_path),
             mime_type=file.content_type,
             size_bytes=size_bytes,

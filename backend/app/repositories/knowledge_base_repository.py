@@ -12,7 +12,10 @@ class KnowledgeBaseRepository(BaseRepository[KnowledgeBase]):
     def get_by_workspace(self, workspace_id: UUID) -> list[KnowledgeBase]:
         stmt = (
             select(KnowledgeBase)
-            .where(KnowledgeBase.workspace_id == workspace_id)
+            .where(
+                KnowledgeBase.workspace_id == workspace_id,
+                KnowledgeBase.conversation_id.is_(None),
+            )
             .order_by(KnowledgeBase.created_at.desc())
         )
         return list(self.session.execute(stmt).scalars().all())
@@ -22,6 +25,15 @@ class KnowledgeBaseRepository(BaseRepository[KnowledgeBase]):
     ) -> KnowledgeBase | None:
         stmt = select(KnowledgeBase).where(
             KnowledgeBase.id == kb_id,
+            KnowledgeBase.workspace_id == workspace_id,
+        )
+        return self.session.execute(stmt).scalar_one_or_none()
+
+    def get_by_conversation(
+        self, conversation_id: UUID, workspace_id: UUID
+    ) -> KnowledgeBase | None:
+        stmt = select(KnowledgeBase).where(
+            KnowledgeBase.conversation_id == conversation_id,
             KnowledgeBase.workspace_id == workspace_id,
         )
         return self.session.execute(stmt).scalar_one_or_none()

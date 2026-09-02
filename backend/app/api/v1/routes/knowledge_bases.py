@@ -30,7 +30,7 @@ def _get_workspace_or_404(workspace_id, current_user, workspace_service):
 def _get_kb_or_404(workspace_id, kb_id, current_user, workspace_service, kb_service):
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     kb = kb_service.get(kb_id=kb_id, workspace_id=workspace_id)
-    if kb is None:
+    if kb is None or kb.conversation_id is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Knowledge base not found.")
     return kb
 

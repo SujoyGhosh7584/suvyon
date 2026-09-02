@@ -77,7 +77,7 @@ Use a Google **App Password** (16 characters, no spaces). Unquoted spaces in `.e
 
 ## Email agent: draft works on Vercel, send shows “Network Error”
 
-The Vercel site is not sending mail. The **Render API** is. Drafts never open SMTP, so they succeed. Send opens `smtp.gmail.com:587`.
+The Vercel site is not sending mail. The **Render API** is. Drafts never contact any delivery provider, so they succeed. A confirmed send uses Resend when `RESEND_API_KEY` is set, otherwise SendGrid when `SENDGRID_API_KEY` is set, otherwise SMTP.
 
 **Render’s free web service blocks outbound SMTP** (ports 25, 465, 587). The connection hangs, the HTTP request is dropped, and the browser reports Axios `Network Error` even though your Wi‑Fi is fine. The same `SMTP_*` values work on your laptop because that machine is not behind Render’s firewall.
 
@@ -87,6 +87,8 @@ The Vercel site is not sending mail. The **Render API** is. Drafts never open SM
 2. **Keep Gmail SMTP as-is** — upgrade the Render instance off the free plan so ports 587/465 are allowed.
 
 OTP sign-up mail has the same restriction on production.
+
+If both HTTPS keys are set, Resend wins. The backend does not fall through to SendGrid or SMTP after Resend rejects a send. Also confirm `SMTP_FROM_EMAIL` exists in the Render dashboard: the current `render.yaml` declares the API keys but not this required sender value. Full behavior: [Email delivery](EMAIL_DELIVERY.md).
 
 ## Render: `Can't locate revision identified by 'f6a7b8c9d0e1'`
 
@@ -98,4 +100,4 @@ Alembic then refuses to start: it sees a version ID in `alembic_version` that is
 
 Do not stamp the version backward unless you also drop `otp_codes`; otherwise a later upgrade will try to create the table twice.
 
-SMTP is required for new sign-ups. Set `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL` on the API (local `.env` or Render). Check spam. Wait 60 seconds before resend. Codes expire in 10 minutes.
+An email transport is required for new sign-ups. Locally, set `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL`. On Render free, prefer `RESEND_API_KEY` or `SENDGRID_API_KEY` plus `SMTP_FROM_EMAIL`. Check spam. Wait 60 seconds before resend. Codes expire in 10 minutes.

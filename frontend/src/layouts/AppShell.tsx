@@ -1,191 +1,162 @@
-import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Bot,
+  ChevronDown,
   FileText,
   LayoutDashboard,
   LogOut,
   MessageSquare,
-  PanelLeftClose,
   Settings,
+  Sparkles,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
+import { ThemePicker } from "@/components/ThemePicker";
 import { useAuth } from "@/context/AuthContext";
 import { workspacesApi } from "@/lib/services";
-import { SidebarExpandTab } from "@/components/SidebarExpandTab";
-import { ThemePicker } from "@/components/ThemePicker";
 import { cn } from "@/lib/utils";
 
-const links = [
-  { to: "overview", label: "Overview", icon: LayoutDashboard, hint: "Home" },
-  { to: "chat", label: "Chat", icon: MessageSquare, hint: "Talk" },
-  { to: "agents", label: "Agents", icon: Bot, hint: "Tools" },
-  { to: "knowledge", label: "Knowledge", icon: FileText, hint: "Docs" },
-  { to: "settings", label: "Settings", icon: Settings, hint: "You" },
+const navigation = [
+  { to: "overview", label: "Home", icon: LayoutDashboard },
+  { to: "chat", label: "Chat", icon: MessageSquare },
+  { to: "agents", label: "Agents", icon: Bot },
+  { to: "knowledge", label: "Knowledge", icon: FileText },
 ] as const;
 
-const sectionThemes: Record<string, string> = {
-  overview: "section-overview",
-  chat: "section-chat",
-  agents: "section-agents",
-  knowledge: "section-knowledge",
-  settings: "section-settings",
+const sectionCopy: Record<string, { eyebrow: string; title: string }> = {
+  overview: { eyebrow: "Workspace", title: "Command center" },
+  chat: { eyebrow: "Intelligence", title: "AI conversation" },
+  agents: { eyebrow: "Automation", title: "Agent missions" },
+  knowledge: { eyebrow: "Sources", title: "Knowledge library" },
+  settings: { eyebrow: "Account", title: "Settings & security" },
 };
-
-const navActive = "bg-[var(--primary)] text-white shadow-glow";
 
 export function AppShell() {
   const { workspaceId } = useParams();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const currentSection =
-    links.find((link) => location.pathname.includes(`/${link.to}`))?.to || "overview";
+    [...navigation, { to: "settings" as const }].find((item) =>
+      location.pathname.includes(`/${item.to}`),
+    )?.to || "overview";
+  const current = sectionCopy[currentSection];
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", workspaceId],
     queryFn: () => workspacesApi.get(workspaceId!),
-    enabled: !!workspaceId,
+    enabled: Boolean(workspaceId),
   });
 
   const initials = (user?.full_name || "S")
     .split(" ")
-    .map((p) => p[0])
+    .map((part) => part[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-ink-950">
-      <div className="relative mx-auto flex min-h-screen max-w-[1680px] gap-3 overflow-visible p-3">
-        <aside
-          className={cn(
-            "sticky top-3 z-20 flex h-[calc(100vh-1.5rem)] shrink-0 flex-col rounded-stage border border-white/10 bg-ink-900/90 px-3 py-5 text-white backdrop-blur-xl transition-all duration-300",
-            isCollapsed ? "w-[4.5rem] overflow-visible" : "w-64",
-          )}
-        >
-          {isCollapsed && (
-            <div className="mb-3 flex justify-center">
-              <SidebarExpandTab
-                label="Expand sidebar"
-                onClick={() => setIsCollapsed(false)}
-              />
-            </div>
-          )}
-          <div className={cn("mb-8 flex items-center px-1", isCollapsed ? "flex-col gap-3" : "justify-between")}>
-            <button
-              type="button"
-              onClick={() => navigate("/app")}
-              className={cn("text-left overflow-hidden", isCollapsed && "hidden")}
-            >
-              <div className="flex items-center gap-2">
-                <span className="brand-mark flex h-9 w-9 items-center justify-center rounded-2xl font-display text-lg font-extrabold">
-                  S
-                </span>
-                <span>
-                  <div className="font-display text-lg font-extrabold tracking-tight">Suvyon</div>
-                  <div className="truncate text-[11px] uppercase tracking-[0.18em] text-ink-400">
-                    {workspace?.name || "Workspace"}
-                  </div>
-                </span>
-              </div>
-            </button>
-            {isCollapsed && (
-              <button
-                type="button"
-                onClick={() => navigate("/app")}
-                className="brand-mark flex h-9 w-9 items-center justify-center rounded-2xl font-display text-lg font-extrabold"
-                title="Suvyon"
-              >
-                S
-              </button>
-            )}
-            {!isCollapsed && (
-              <button
-                type="button"
-                className="rounded-xl p-1.5 text-ink-400 hover:bg-white/10 hover:text-white"
-                title="Collapse sidebar"
-                onClick={() => setIsCollapsed(true)}
-              >
-                <PanelLeftClose size={18} />
-              </button>
-            )}
-          </div>
+    <div className="relative h-screen overflow-hidden bg-[#080a12] text-slate-950">
+      <AIBackdrop />
+      <div className="relative z-10 flex h-full p-2.5">
+        <aside className="flex w-[88px] shrink-0 flex-col items-center rounded-[24px] border border-white/10 bg-[#0d101b]/90 px-2 py-4 text-white shadow-2xl backdrop-blur-2xl">
+          <button type="button" onClick={() => navigate("/app")} aria-label="All workspaces">
+            <BrandOrb />
+          </button>
 
-          <nav className="flex flex-1 flex-col gap-1.5">
-            {links.map(({ to, label, icon: Icon, hint }) => (
+          <nav className="mt-8 flex w-full flex-1 flex-col gap-2">
+            {navigation.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={`/app/w/${workspaceId}/${to}`}
-                title={isCollapsed ? label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition",
-                    isActive ? navActive : "text-ink-300 hover:bg-white/10 hover:text-white",
-                    isCollapsed && "justify-center px-0",
+                    "group relative flex h-[58px] w-full flex-col items-center justify-center gap-1 rounded-2xl text-[10px] font-semibold transition-all duration-300",
+                    isActive
+                      ? "bg-white text-slate-950 shadow-[0_12px_30px_rgba(0,0,0,.3)]"
+                      : "text-slate-400 hover:bg-white/10 hover:text-white",
                   )
                 }
               >
-                <Icon size={18} />
-                {!isCollapsed && (
-                  <span className="flex flex-1 items-center justify-between">
-                    {label}
-                    <span className="text-[10px] uppercase tracking-wider opacity-60">{hint}</span>
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8} className="transition-transform group-hover:scale-110" />
+                    <span>{label}</span>
+                    {isActive && <span className="absolute -right-2 h-5 w-1 rounded-l-full bg-indigo-500" />}
+                  </>
                 )}
               </NavLink>
             ))}
           </nav>
 
-          <div className="mt-4 border-t border-white/10 pt-4">
-            {!isCollapsed && (
-              <div className="mb-3 px-1">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-400">
-                  Theme
-                </p>
-                <ThemePicker compact />
-              </div>
-            )}
-            {!isCollapsed && (
-              <div className="mb-3 flex items-center gap-3 px-1">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">{user?.full_name}</div>
-                  <div className="truncate text-[11px] text-ink-400">{user?.email}</div>
-                </div>
-              </div>
-            )}
+          <div className="flex w-full flex-col items-center gap-2 border-t border-white/10 pt-3">
+            <NavLink
+              to={`/app/w/${workspaceId}/settings`}
+              className={({ isActive }) =>
+                cn(
+                  "flex h-10 w-10 items-center justify-center rounded-xl transition",
+                  isActive ? "bg-white text-slate-950" : "text-slate-400 hover:bg-white/10 hover:text-white",
+                )
+              }
+              aria-label="Settings"
+            >
+              <Settings size={18} />
+            </NavLink>
             <button
               type="button"
-              className={cn(
-                "flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm text-ink-300 hover:bg-white/10 hover:text-white",
-                isCollapsed && "justify-center px-0",
-              )}
-              title={isCollapsed ? "Sign out" : undefined}
-              onClick={async () => {
-                await logout();
-                navigate("/login");
-              }}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-lg"
+              onClick={() => navigate(`/app/w/${workspaceId}/settings`)}
+              title={user?.full_name || "Profile"}
             >
-              <LogOut size={16} />
-              {!isCollapsed && <span>Sign out</span>}
+              {initials}
             </button>
           </div>
         </aside>
 
-        <main
-          className={cn(
-            "min-w-0 flex-1 overflow-hidden rounded-stage border border-white/10 text-ink-950",
-            sectionThemes[currentSection],
-          )}
-        >
-          <div className="h-[calc(100vh-1.5rem)] overflow-auto p-5 md:p-7">
-            <Outlet />
-          </div>
-        </main>
+        <section className="ml-2.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[26px] border border-white/15 bg-[#f7f8fc] shadow-2xl">
+          <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/90 px-6 backdrop-blur-xl">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[.22em] text-indigo-600">{current.eyebrow}</p>
+              <h1 className="truncate font-display text-xl font-bold tracking-tight text-slate-950">{current.title}</h1>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="hidden items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 lg:flex">
+                <span className="ai-live-dot" /> AI systems ready
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/app")}
+                className="flex max-w-[260px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-slate-300 hover:bg-white"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white"><Sparkles size={15} /></span>
+                <span className="hidden min-w-0 sm:block">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500">Active workspace</span>
+                  <span className="block truncate text-sm font-semibold text-slate-900">{workspace?.name || "Workspace"}</span>
+                </span>
+                <ChevronDown className="hidden text-slate-400 sm:block" size={15} />
+              </button>
+              <div className="hidden xl:block"><ThemePicker compact /></div>
+              <button
+                type="button"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-rose-600"
+                onClick={async () => {
+                  await logout();
+                  navigate("/login");
+                }}
+                aria-label="Sign out"
+              >
+                <LogOut size={17} />
+              </button>
+            </div>
+          </header>
+
+          <main className="app-canvas min-h-0 flex-1 overflow-auto">
+            <div key={currentSection} className="page-enter min-h-full p-4 md:p-6 xl:p-7">
+              <Outlet />
+            </div>
+          </main>
+        </section>
       </div>
     </div>
   );

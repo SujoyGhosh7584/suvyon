@@ -49,7 +49,11 @@ def test_auto_uses_tools_when_model_requests_wikipedia(monkeypatch):
         provider="groq",
         model="test",
     )
-    monkeypatch.setattr(service, "_get_active_knowledge_bases", lambda workspace_id: [])
+    monkeypatch.setattr(
+        service,
+        "_get_active_knowledge_bases",
+        lambda workspace_id, conversation_id=None: [],
+    )
 
     text, mode, sources, provider, model = service._answer_with_tools(
         conversation=conversation,
@@ -100,7 +104,11 @@ def test_auto_image_tool_is_chat_not_web(monkeypatch):
         provider="groq",
         model="test",
     )
-    monkeypatch.setattr(service, "_get_active_knowledge_bases", lambda workspace_id: [])
+    monkeypatch.setattr(
+        service,
+        "_get_active_knowledge_bases",
+        lambda workspace_id, conversation_id=None: [],
+    )
 
     text, mode, sources, *_ = service._answer_with_tools(
         conversation=conversation,
@@ -130,7 +138,11 @@ def test_auto_skips_tools_for_plain_answer(monkeypatch):
         provider="groq",
         model="test",
     )
-    monkeypatch.setattr(service, "_get_active_knowledge_bases", lambda workspace_id: [])
+    monkeypatch.setattr(
+        service,
+        "_get_active_knowledge_bases",
+        lambda workspace_id, conversation_id=None: [],
+    )
 
     text, mode, sources, *_ = service._answer_with_tools(
         conversation=conversation,

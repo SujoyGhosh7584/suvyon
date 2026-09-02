@@ -9,6 +9,7 @@ from app.core.base import Base
 from app.models.base_model import BaseModel
 
 if TYPE_CHECKING:
+    from app.models.conversation import Conversation
     from app.models.workspace import Workspace
 
 
@@ -29,6 +30,14 @@ class KnowledgeBase(Base, BaseModel):
         index=True,
     )
 
+    conversation_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -46,3 +55,7 @@ class KnowledgeBase(Base, BaseModel):
     # ------------------------------------------------------------------
 
     workspace: Mapped["Workspace"] = relationship(back_populates="knowledge_bases")
+
+    conversation: Mapped["Conversation | None"] = relationship(
+        back_populates="knowledge_base"
+    )

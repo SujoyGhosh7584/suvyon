@@ -7,6 +7,7 @@ from app.schemas.base import BaseSchema
 class DocumentResponse(BaseSchema):
     id: UUID
     workspace_id: UUID
+    conversation_id: UUID | None
     name: str
     mime_type: str
     size_bytes: int

@@ -186,9 +186,13 @@ The OCR provider must be abstracted behind an interface.
 
 # 14. Email
 
-Outgoing email support will use SMTP-based services.
+Outgoing authentication and agent email share one backend delivery module. The current provider order is:
 
-The architecture should support replacing providers without changing business logic.
+1. Resend over HTTPS when `RESEND_API_KEY` is configured.
+2. Otherwise SendGrid over HTTPS when `SENDGRID_API_KEY` is configured.
+3. Otherwise SMTP using STARTTLS (normally port 587) or SSL (port 465).
+
+Authentication verification/reset messages use the system-email entry point. Agent email uses a draft-first flow: the runner cannot send, and a separate authenticated approval endpoint delivers the user's edited recipient, subject, body, and regards through the shared provider selector. Provider IDs and separate email history are not currently persisted. See [Email delivery](../EMAIL_DELIVERY.md).
 
 ---
 

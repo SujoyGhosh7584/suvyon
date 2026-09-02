@@ -41,6 +41,7 @@ ALLOWED_DOCUMENT_TYPES = {
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/plain",
     "text/markdown",
+    "text/csv",
 }
 
 

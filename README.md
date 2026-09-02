@@ -25,9 +25,9 @@ Render’s **free** web service sleeps when idle. The first request after sleep 
 ## What you can do in the product
 
 - **Workspaces** — Isolated places for chats, agents, and knowledge bases.
-- **Chat** — Auto mode can call tools (Wikipedia, web search, image generation URLs, knowledge search). You can also pin Chat / RAG / Web-style modes where the UI exposes them.
+- **Chat** — Auto mode can call tools (Wikipedia, web search, image generation URLs, knowledge search). Select one shared knowledge base or attach private files that only that conversation can access.
 - **Knowledge (RAG)** — Upload documents, chunk + embed (Gemini embeddings when configured), retrieve with pgvector.
-- **Agents** — Saved agent configs with tools (email, research, studio helpers).
+- **Agents** — Saved agent configs with tools (email, research, studio helpers), including a Blindspot Agent for assumption mapping, pre-mortems, and low-cost validation experiments.
 - **Models** — Route across Groq, Gemini, and OpenRouter depending on which API keys are set.
 - **Accounts** — Register sends a 6-digit email OTP (same SMTP as agent mail). Verify before the workspace opens. Login includes **Forgot password?** (OTP, then new password). JWT access + refresh tokens stay in the browser.
 
@@ -70,6 +70,8 @@ suvyon/
 ├── docs/
 │   ├── LOCAL_DEVELOPMENT.md
 │   ├── ENVIRONMENT.md
+│   ├── EMAIL_DELIVERY.md
+│   ├── RESEND_MIGRATION_RUNBOOK.md
 │   ├── DEPLOYMENT.md
 │   ├── TROUBLESHOOTING.md
 │   └── architecture/        Product and system design
@@ -260,6 +262,8 @@ How to recreate the stack: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 | [docs/README.md](docs/README.md) | Short index of operational docs |
 | [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md) | Local install in full |
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | Every variable, local vs production |
+| [docs/EMAIL_DELIVERY.md](docs/EMAIL_DELIVERY.md) | OTP and agent email flows, provider selection, and confirmation safety |
+| [docs/RESEND_MIGRATION_RUNBOOK.md](docs/RESEND_MIGRATION_RUNBOOK.md) | Step-by-step SendGrid-to-Resend migration and rollback checklist |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Supabase, Render, Vercel, live URLs |
 | [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | CORS parse errors, `frontend/src/lib` gitignore, sleep, pgvector |
 | [docs/architecture/00_PROJECT_CHARTER.md](docs/architecture/00_PROJECT_CHARTER.md) | Charter and principles |

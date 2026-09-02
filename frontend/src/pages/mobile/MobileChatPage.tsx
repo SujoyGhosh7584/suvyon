@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Edit2, MessageCircleHeart, Plus, Send, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { MobileMascot } from "@/components/MobileMascot";
 import { MessageContent } from "@/components/MessageContent";
+import { ChatAttachments } from "@/components/ChatAttachments";
+import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
 import { splitProvenance } from "@/lib/messageFormat";
-import { conversationsApi, modelsApi } from "@/lib/services";
+import { conversationsApi, knowledgeApi, modelsApi } from "@/lib/services";
 import type { Message } from "@/types/api";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,7 @@ export function MobileChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
+  const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -49,6 +52,10 @@ export function MobileChatPage() {
     queryKey: ["models"],
     queryFn: modelsApi.list,
   });
+  const { data: knowledgeBases = [] } = useQuery({
+    queryKey: ["knowledge-bases", workspaceId],
+    queryFn: () => knowledgeApi.list(workspaceId),
+  });
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === conversationId),
@@ -62,6 +69,7 @@ export function MobileChatPage() {
 
   useEffect(() => {
     setOptimistic([]);
+    setKnowledgeBaseIds(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -121,7 +129,7 @@ export function MobileChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: null,
+        knowledge_base_ids: knowledgeBaseIds,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -139,9 +147,14 @@ export function MobileChatPage() {
   const deleteConversation = useMutation({
     mutationFn: (id: string) => conversationsApi.remove(workspaceId, id),
     onSuccess: (_, id) => {
+      queryClient.setQueryData(
+        ["conversations", workspaceId],
+        conversations.filter((item) => item.id !== id),
+      );
       queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       if (id === conversationId) navigate(`/app/w/${workspaceId}/chat`);
     },
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const visibleMessages = [...messages, ...optimistic];
@@ -175,7 +188,7 @@ export function MobileChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: null,
+          knowledge_base_ids: knowledgeBaseIds,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({ queryKey: ["messages", workspaceId, created.id] });
@@ -202,7 +215,7 @@ export function MobileChatPage() {
           {conversations.map((c, i) => (
             <div
               key={c.id}
-              className="flex items-center gap-2 rounded-[1.4rem] bg-white/90 p-2 shadow-sm ring-1 ring-violet-100"
+              className="flex items-center gap-2 rounded-[1.4rem] border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
             >
               <Link
                 to={`/app/w/${workspaceId}/chat/${c.id}`}
@@ -224,7 +237,12 @@ export function MobileChatPage() {
               <button
                 type="button"
                 className="rounded-xl p-2 text-ink-400"
-                onClick={() => deleteConversation.mutate(c.id)}
+                onClick={() => {
+                  if (window.confirm(`Delete “${c.title}”? This cannot be undone.`)) {
+                    setError("");
+                    deleteConversation.mutate(c.id);
+                  }
+                }}
                 title="Delete chat"
               >
                 <Trash2 size={16} />
@@ -250,8 +268,8 @@ export function MobileChatPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white/70">
-      <div className="flex items-center gap-2 border-b border-violet-100 bg-white/90 px-3 py-2.5">
+    <div className="page-enter flex h-full flex-col bg-white/65 backdrop-blur-xl">
+      <div className="flex items-center gap-2 border-b border-white/70 bg-white/60 px-3 py-2.5 backdrop-blur-xl">
         <button
           type="button"
           className="rounded-xl p-2 text-ink-600"
@@ -405,13 +423,17 @@ export function MobileChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={onSubmit} className="border-t border-violet-100 bg-white px-3 py-2.5">
+      <form onSubmit={onSubmit} className="border-t border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-xl">
         {error && (
           <div className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
         )}
         <div className="flex items-end gap-2">
+          <ChatAttachments workspaceId={workspaceId} conversationId={conversationId} />
+          {(mode === "rag" || mode === "auto") && (
+            <KnowledgeScopePicker knowledgeBases={knowledgeBases} value={knowledgeBaseIds} onChange={setKnowledgeBaseIds} compact />
+          )}
           <textarea
-            className="input min-h-[46px] max-h-32 resize-none py-2.5"
+            className="input min-h-[46px] min-w-0 flex-1 max-h-32 resize-none py-2.5"
             placeholder="Ask Suvyon…"
             rows={1}
             value={content}

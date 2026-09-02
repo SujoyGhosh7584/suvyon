@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Interactive, code-linked guide to every important Suvyon runtime flow."
+    />
+    <title>Suvyon Project Explorer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#overview" aria-label="Suvyon Explorer home">
+          <span class="brand-mark">S</span>
+          <span><strong>Suvyon</strong><small>Project Explorer</small></span>
+        </a>
+
+        <label class="search-box">
+          <span>Search</span>
+          <input id="search" type="search" placeholder="RAG, JWT, streaming..." />
+        </label>
+
+        <div class="progress-card">
+          <div><span>Interview readiness</span><strong id="progress-label">0%</strong></div>
+          <div class="progress-track"><span id="progress-bar"></span></div>
+          <small>Mark a chapter complete after explaining it without notes.</small>
+        </div>
+
+        <nav id="topic-nav" aria-label="Project chapters"></nav>
+
+        <div class="sidebar-footer">
+          <a href="../README.md">Interview playbook</a>
+          <a href="../../README.md">Repository README</a>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <button id="menu-button" class="icon-button" aria-label="Toggle navigation">☰</button>
+          <div class="crumb">Interview Prep <span>/</span> Project Explorer</div>
+          <a
+            class="github-link"
+            href="https://github.com/SujoyGhosh7584/suvyon/tree/Interview-Prep"
+            target="_blank"
+            rel="noreferrer"
+          >View repository ↗</a>
+        </header>
+
+        <section class="hero" id="overview">
+          <div>
+            <p class="eyebrow">CODE-LINKED LEARNING MAP</p>
+            <h1>Understand Suvyon from click to database to AI response.</h1>
+            <p class="hero-copy">
+              Follow the real runtime path in easy language. Click any graph node or source link
+              to inspect the exact implementation. Green labels mean implemented today; amber
+              labels identify honest production gaps or design ideas.
+            </p>
+            <div class="hero-actions">
+              <button class="primary" data-jump="boot">Start at the entry point</button>
+              <button class="secondary" data-jump="chat">Trace a chat request</button>
+            </div>
+          </div>
+          <div class="score-card">
+            <span class="score-kicker">YOUR TARGET</span>
+            <strong>10 min</strong>
+            <p>Explain the whole system, then survive detailed follow-up questions.</p>
+            <ul>
+              <li>What enters this layer?</li>
+              <li>What does it return?</li>
+              <li>Where is authorization enforced?</li>
+              <li>What fails and how?</li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="panel architecture-panel">
+          <div class="section-heading">
+            <div><p class="eyebrow">BIG PICTURE</p><h2>The complete runtime graph</h2></div>
+            <p>Click a node to open its chapter.</p>
+          </div>
+          <div class="architecture-flow" aria-label="Suvyon architecture flow chart">
+            <button class="arch-node client" data-jump="frontend"><small>CLIENT</small>React + Vite</button>
+            <span class="connector"><b>HTTPS</b>→</span>
+            <button class="arch-node api" data-jump="http"><small>API EDGE</small>FastAPI routes</button>
+            <span class="connector">→</span>
+            <button class="arch-node service" data-jump="layers"><small>BUSINESS LOGIC</small>Services</button>
+            <div class="branch-grid">
+              <span>↙</span><span>↓</span><span>↘</span>
+              <button class="arch-node database" data-jump="data"><small>STATE</small>Postgres + pgvector</button>
+              <button class="arch-node ai" data-jump="routing"><small>INTELLIGENCE</small>LLM providers</button>
+              <button class="arch-node tools" data-jump="tools"><small>ACTIONS</small>Tools + external APIs</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel legend-panel">
+          <div><span class="status implemented">Implemented</span><p>Verified in current code.</p></div>
+          <div><span class="status partial">Partial</span><p>Works, with an important limitation.</p></div>
+          <div><span class="status planned">Planned</span><p>Architecture idea, not current behavior.</p></div>
+        </section>
+
+        <div id="chapters"></div>
+
+        <section class="panel api-reference" id="api-reference">
+          <div class="section-heading">
+            <div><p class="eyebrow">COMPLETE REFERENCE</p><h2>Every API endpoint</h2></div>
+            <p>Paths use <code>/api/v1</code> unless explicitly marked otherwise.</p>
+          </div>
+          <div id="api-catalog"></div>
+        </section>
+
+        <section class="panel final-check" id="final-check">
+          <p class="eyebrow">FINAL INTERVIEW CHECK</p>
+          <h2>Can you defend the complete project?</h2>
+          <div class="check-grid" id="final-questions"></div>
+          <p class="callout"><strong>Accuracy rule:</strong> say “implemented” only when the linked code proves it. Describe queues, durable object storage, dynamic health scoring, multi-agent orchestration, and formal evaluation as improvements—not current features.</p>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="source-dialog">
+      <button id="close-dialog" class="dialog-close" aria-label="Close">×</button>
+      <p class="eyebrow">SOURCE MAP</p>
+      <h2 id="dialog-title"></h2>
+      <p id="dialog-copy"></p>
+      <div id="dialog-links" class="source-list"></div>
+    </dialog>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

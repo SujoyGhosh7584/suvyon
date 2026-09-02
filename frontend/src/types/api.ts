@@ -73,6 +73,7 @@ export type KnowledgeBase = {
 export type Document = {
   id: string;
   workspace_id: string;
+  conversation_id: string | null;
   name: string;
   mime_type: string;
   size_bytes: number;
@@ -93,6 +94,18 @@ export type ModelInfo = {
 };
 
 export type ChatHistoryItem = {
-  role: string;
+  role: "user" | "assistant";
   content: string;
+};
+
+export type PendingEmailDraft = {
+  to: string;
+  subject: string;
+  body: string;
+  regards: string;
+};
+
+export type AgentRunResponse = {
+  content: string;
+  pending_email: PendingEmailDraft | null;
 };

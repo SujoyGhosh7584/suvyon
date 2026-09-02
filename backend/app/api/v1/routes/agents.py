@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+import json
 from typing import Annotated
 from uuid import UUID
 
@@ -9,10 +10,20 @@ from app.api.dependencies import get_agent_service, get_workspace_service
 from app.api.security import get_current_verified_user
 from app.agents.runner import run_agent, stream_agent
 from app.models.user import User
-from app.schemas.agent import AgentCreate, AgentResponse, AgentRunRequest, AgentRunResponse, AgentUpdate
+from app.schemas.agent import (
+    AgentCreate,
+    AgentEmailSendRequest,
+    AgentEmailSendResponse,
+    AgentResponse,
+    AgentRunRequest,
+    AgentRunResponse,
+    AgentUpdate,
+    PendingEmailDraft,
+)
 from app.services.agent_service import AgentService
 from app.services.workspace_service import WorkspaceService
 from app.tools.registry import list_tools
+from app.tools.email_tool import send_approved_email
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/agents", tags=["Agents"])
 
@@ -29,6 +40,14 @@ def _get_agent_or_404(agent_id, workspace_id, agent_service):
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found.")
     return agent
+
+
+def _require_active_agent(agent):
+    if not agent.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This agent is paused. Activate it before running it.",
+        )
 
 
 @router.get("", response_model=list[AgentResponse])
@@ -114,8 +133,48 @@ def run(
 ):
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
-    content = run_agent(agent, request.content, request.history)
-    return AgentRunResponse(content=content)
+    _require_active_agent(agent)
+    pending_email: list[dict] = []
+    content = run_agent(
+        agent,
+        request.content,
+        request.history,
+        pending_email=pending_email,
+    )
+    draft = None
+    if pending_email:
+        try:
+            draft = PendingEmailDraft.model_validate(pending_email[-1])
+        except ValueError:
+            draft = None
+    return AgentRunResponse(content=content, pending_email=draft)
+
+
+@router.post("/{agent_id}/email/send", response_model=AgentEmailSendResponse)
+def send_agent_email(
+    workspace_id: UUID,
+    agent_id: UUID,
+    request: AgentEmailSendRequest,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    agent_service: Annotated[AgentService, Depends(get_agent_service)],
+):
+    _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
+    _require_active_agent(agent)
+    enabled_tools = {item.strip() for item in (agent.tools or "").split(",")}
+    if "send_email" not in enabled_tools:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email sending is not enabled for this agent.",
+        )
+    message = send_approved_email(
+        to=str(request.to),
+        subject=request.subject,
+        body=request.body,
+        regards=request.regards,
+    )
+    return AgentEmailSendResponse(message=message)
 
 
 @router.post("/{agent_id}/run/stream")
@@ -129,10 +188,11 @@ def run_stream(
 ):
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
+    _require_active_agent(agent)
 
     def event_stream() -> Iterator[str]:
         for chunk in stream_agent(agent, request.content, request.history):
-            yield f"data: {chunk}\n\n"
+            yield f"data: {json.dumps({'content': chunk})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")

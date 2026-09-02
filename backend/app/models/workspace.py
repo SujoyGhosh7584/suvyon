@@ -52,19 +52,23 @@ class Workspace(Base, BaseModel):
     conversations: Mapped[list["Conversation"]] = relationship(
         back_populates="workspace",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     documents: Mapped[list["Document"]] = relationship(
         back_populates="workspace",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     knowledge_bases: Mapped[list["KnowledgeBase"]] = relationship(
         back_populates="workspace",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     agents: Mapped[list["Agent"]] = relationship(
         back_populates="workspace",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )

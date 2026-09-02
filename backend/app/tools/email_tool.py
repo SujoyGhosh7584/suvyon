@@ -178,6 +178,23 @@ def send_email(to: str, subject: str, body: str, user_content: str = "") -> str:
     return f"Email sent successfully to {recipient} with subject “{subject_text}”."
 
 
+def send_approved_email(to: str, subject: str, body: str, regards: str = "") -> str:
+    """Deliver an email reviewed in the authenticated approval dialog."""
+    recipient = _validate_address(to)
+    if recipient is None:
+        raise SmtpSendError("A valid recipient email is required.")
+    subject_text = (subject or "").strip()
+    body_text = (body or "").strip()
+    regards_text = (regards or "").strip()
+    if not subject_text or not body_text:
+        raise SmtpSendError("Email subject and body are required.")
+    final_body = body_text
+    if regards_text:
+        final_body = f"{body_text.rstrip()}\n\n{regards_text}"
+    _deliver_email(recipient, subject_text, final_body)
+    return f'Email sent successfully to {recipient} with subject "{subject_text}".'
+
+
 class SmtpNotConfiguredError(Exception):
     """Raised when transactional email cannot be sent because SMTP is missing."""
 

@@ -9,6 +9,8 @@ from app.core.base import Base
 from app.models.base_model import BaseModel
 
 if TYPE_CHECKING:
+    from app.models.document import Document
+    from app.models.knowledge_base import KnowledgeBase
     from app.models.message import Message
     from app.models.workspace import Workspace
 
@@ -48,5 +50,19 @@ class Conversation(Base, BaseModel):
     messages: Mapped[list["Message"]] = relationship(
         back_populates="conversation",
         cascade="all, delete-orphan",
+        passive_deletes=True,
         order_by="Message.created_at",
+    )
+
+    documents: Mapped[list["Document"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    knowledge_base: Mapped["KnowledgeBase | None"] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
     )
