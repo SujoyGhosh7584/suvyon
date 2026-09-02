@@ -10,6 +10,7 @@ from app.core.base import Base
 from app.models.base_model import BaseModel
 
 if TYPE_CHECKING:
+    from app.models.conversation import Conversation
     from app.models.workspace import Workspace
 
 
@@ -37,6 +38,13 @@ class Document(Base, BaseModel):
         index=True,
     )
 
+    conversation_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
     name: Mapped[str] = mapped_column(String(500), nullable=False)
 
     file_path: Mapped[str] = mapped_column(String(2048), nullable=False)
@@ -60,3 +68,7 @@ class Document(Base, BaseModel):
     # ------------------------------------------------------------------
 
     workspace: Mapped["Workspace"] = relationship(back_populates="documents")
+
+    conversation: Mapped["Conversation | None"] = relationship(
+        back_populates="documents"
+    )

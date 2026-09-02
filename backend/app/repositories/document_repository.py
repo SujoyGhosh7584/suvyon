@@ -12,7 +12,23 @@ class DocumentRepository(BaseRepository[Document]):
     def get_by_workspace(self, workspace_id: UUID) -> list[Document]:
         stmt = (
             select(Document)
-            .where(Document.workspace_id == workspace_id)
+            .where(
+                Document.workspace_id == workspace_id,
+                Document.conversation_id.is_(None),
+            )
+            .order_by(Document.created_at.desc())
+        )
+        return list(self.session.execute(stmt).scalars().all())
+
+    def get_by_conversation(
+        self, conversation_id: UUID, workspace_id: UUID
+    ) -> list[Document]:
+        stmt = (
+            select(Document)
+            .where(
+                Document.conversation_id == conversation_id,
+                Document.workspace_id == workspace_id,
+            )
             .order_by(Document.created_at.desc())
         )
         return list(self.session.execute(stmt).scalars().all())

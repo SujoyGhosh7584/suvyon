@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, ArrowUpRight, Plus, Sparkles, Star } from "lucide-react";
+import { Archive, ArrowUpRight, Plus, Sparkles, Star, Trash2 } from "lucide-react";
 import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
@@ -12,7 +12,7 @@ export function WorkspacesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { setWorkspaceId } = useWorkspace();
+  const { workspaceId: currentWorkspaceId, setWorkspaceId } = useWorkspace();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +32,25 @@ export function WorkspacesPage() {
     },
     onError: (err) => setError(getErrorMessage(err)),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => workspacesApi.remove(id),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(
+        ["workspaces", user?.id],
+        workspaces.filter((workspace) => workspace.id !== id),
+      );
+      queryClient.invalidateQueries({ queryKey: ["workspaces", user?.id] });
+      if (currentWorkspaceId === id) setWorkspaceId(null);
+    },
+    onError: (err) => setError(getErrorMessage(err)),
+  });
+
+  function requestDelete(id: string, workspaceName: string) {
+    if (!window.confirm(`Delete workspace “${workspaceName}” and all of its chats, agents, and documents? This cannot be undone.`)) return;
+    setError("");
+    deleteMutation.mutate(id);
+  }
 
   const active = workspaces.filter((w) => !w.is_archived);
   const archived = workspaces.filter((w) => w.is_archived);
@@ -89,15 +108,11 @@ export function WorkspacesPage() {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {active.map((ws) => (
-              <button
+              <div
                 key={ws.id}
-                type="button"
-                className="group relative overflow-hidden rounded-[1.6rem] border border-white/70 bg-white/[.82] p-6 text-left text-ink-950 shadow-panel backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow"
-                onClick={() => {
-                  setWorkspaceId(ws.id);
-                  navigate(`/app/w/${ws.id}/overview`);
-                }}
+                className="group relative overflow-hidden rounded-[1.6rem] border border-white/70 bg-white/[.82] text-ink-950 shadow-panel backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow"
               >
+                <button type="button" className="w-full p-6 pr-14 text-left" onClick={() => { setWorkspaceId(ws.id); navigate(`/app/w/${ws.id}/overview`); }}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="text-lg font-semibold">{ws.name}</div>
@@ -108,7 +123,9 @@ export function WorkspacesPage() {
                   {ws.is_favourite && <Star size={16} className="text-amber-500" fill="currentColor" />}
                   {!ws.is_favourite && <ArrowUpRight size={17} className="text-ink-300 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" />}
                 </div>
-              </button>
+                </button>
+                <button type="button" className="absolute bottom-4 right-4 rounded-xl p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600" onClick={() => requestDelete(ws.id, ws.name)} disabled={deleteMutation.isPending} title={`Delete ${ws.name}`}><Trash2 size={16} /></button>
+              </div>
             ))}
           </div>
         )}
@@ -121,8 +138,9 @@ export function WorkspacesPage() {
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               {archived.map((ws) => (
-                <div key={ws.id} className="panel p-4 opacity-70">
+                <div key={ws.id} className="panel flex items-center justify-between gap-3 p-4 opacity-70">
                   <div className="font-medium">{ws.name}</div>
+                  <button type="button" className="rounded-xl p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" onClick={() => requestDelete(ws.id, ws.name)} title={`Delete ${ws.name}`}><Trash2 size={15} /></button>
                 </div>
               ))}
             </div>

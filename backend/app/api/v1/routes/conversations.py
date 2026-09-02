@@ -1,10 +1,15 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 
-from app.api.dependencies import get_chat_service, get_workspace_service
+from app.api.dependencies import (
+    get_chat_service,
+    get_document_service,
+    get_knowledge_base_service,
+    get_workspace_service,
+)
 from app.api.security import get_current_verified_user
 from app.models.user import User
 from app.schemas.conversation import (
@@ -13,7 +18,10 @@ from app.schemas.conversation import (
     ConversationUpdate,
 )
 from app.schemas.message import MessageCreate, MessageResponse
+from app.schemas.document import DocumentResponse
 from app.services.chat_service import ChatService
+from app.services.document_service import DocumentService
+from app.services.knowledge_base_service import KnowledgeBaseService
 from app.services.workspace_service import WorkspaceService
 
 router = APIRouter(
@@ -150,6 +158,64 @@ def get_messages(
     ]
 
 
+@router.get("/{conversation_id}/documents", response_model=list[DocumentResponse])
+def get_conversation_documents(
+    workspace_id: UUID,
+    conversation_id: UUID,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+    document_service: Annotated[DocumentService, Depends(get_document_service)],
+) -> list[DocumentResponse]:
+    conversation = _get_conversation_or_404(
+        workspace_id, conversation_id, current_user, workspace_service, chat_service
+    )
+    return [
+        DocumentResponse.model_validate(document)
+        for document in document_service.list_conversation_documents(
+            conversation_id=conversation.id,
+            workspace_id=workspace_id,
+        )
+    ]
+
+
+@router.post(
+    "/{conversation_id}/documents",
+    response_model=DocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def upload_conversation_document(
+    workspace_id: UUID,
+    conversation_id: UUID,
+    file: Annotated[UploadFile, File()],
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+    document_service: Annotated[DocumentService, Depends(get_document_service)],
+    kb_service: Annotated[KnowledgeBaseService, Depends(get_knowledge_base_service)],
+) -> DocumentResponse:
+    conversation = _get_conversation_or_404(
+        workspace_id, conversation_id, current_user, workspace_service, chat_service
+    )
+    knowledge_base = kb_service.get_or_create_for_conversation(
+        conversation_id=conversation.id,
+        workspace_id=workspace_id,
+    )
+    try:
+        document = document_service.upload(
+            workspace_id=workspace_id,
+            conversation_id=conversation.id,
+            knowledge_base_id=knowledge_base.id,
+            file=file,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+    return DocumentResponse.model_validate(document)
+
+
 @router.post(
     "/{conversation_id}/messages",
     response_model=MessageResponse,
@@ -176,6 +242,7 @@ def send_message(
             conversation=conversation,
             content=request.content,
             knowledge_base_id=request.knowledge_base_id,
+            knowledge_base_ids=request.knowledge_base_ids,
             mode=request.mode,
         )
         return MessageResponse.model_validate(assistant_msg)
@@ -211,6 +278,8 @@ def stream_message(
                 conversation=conversation,
                 content=request.content,
                 mode=request.mode,
+                knowledge_base_id=request.knowledge_base_id,
+                knowledge_base_ids=request.knowledge_base_ids,
             ):
                 yield f"data: {chunk}\n\n"
             yield "data: [DONE]\n\n"
@@ -219,4 +288,3 @@ def stream_message(
             yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
-

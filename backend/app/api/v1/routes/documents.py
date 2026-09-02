@@ -50,7 +50,11 @@ def upload_document(
 ) -> DocumentResponse:
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     knowledge_base = kb_service.get(kb_id=knowledge_base_id, workspace_id=workspace_id)
-    if knowledge_base is None or not knowledge_base.is_active:
+    if (
+        knowledge_base is None
+        or not knowledge_base.is_active
+        or knowledge_base.conversation_id is not None
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Active knowledge base not found.",

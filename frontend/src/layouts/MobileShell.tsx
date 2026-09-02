@@ -77,12 +77,12 @@ export function MobileShell() {
                   <span className={cn(
                     "flex items-center justify-center transition-all duration-300",
                     item.primary
-                      ? "-mt-5 h-14 w-14 rounded-[19px] bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-[0_12px_30px_rgba(79,70,229,.4)]"
+                      ? "-mt-3 h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-[0_10px_24px_rgba(79,70,229,.34)]"
                       : "h-9 w-10 rounded-xl",
                     isActive && !item.primary && "bg-indigo-50 text-indigo-700",
                     isActive && item.primary && "-translate-y-1 scale-105",
                   )}>
-                    <Icon size={item.primary ? 22 : 18} strokeWidth={isActive ? 2.5 : 2} />
+                    <Icon size={item.primary ? 19 : 18} strokeWidth={isActive ? 2.5 : 2} />
                   </span>
                   <span>{label}</span>
                 </>

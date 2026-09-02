@@ -138,32 +138,54 @@ class ChatService:
         title = title.strip(".,!?:;\"'").capitalize()
         return title[:50] if title else "New conversation"
 
-    def _get_active_knowledge_bases(self, workspace_id: UUID) -> list[KnowledgeBase]:
+    def _get_active_knowledge_bases(
+        self,
+        workspace_id: UUID,
+        conversation_id: UUID | None = None,
+    ) -> list[KnowledgeBase]:
         if not self._session:
             return []
-        return list(
-            self._session.query(KnowledgeBase)
-            .filter(
-                KnowledgeBase.workspace_id == workspace_id,
-                KnowledgeBase.is_active.is_(True),
-            )
-            .all()
+        query = self._session.query(KnowledgeBase).filter(
+            KnowledgeBase.workspace_id == workspace_id,
+            KnowledgeBase.is_active.is_(True),
         )
+        if conversation_id is None:
+            query = query.filter(KnowledgeBase.conversation_id.is_(None))
+        else:
+            query = query.filter(
+                (KnowledgeBase.conversation_id.is_(None))
+                | (KnowledgeBase.conversation_id == conversation_id)
+            )
+        return list(query.all())
 
     def _build_rag_context(
         self,
         workspace_id: UUID,
         query: str,
         knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
+        conversation_id: UUID | None = None,
         max_distance: float | None = None,
     ) -> tuple[str, list[str]]:
         if not self._session:
             return "", []
 
-        knowledge_bases = self._get_active_knowledge_bases(workspace_id)
-        if knowledge_base_id:
+        knowledge_bases = self._get_active_knowledge_bases(
+            workspace_id, conversation_id=conversation_id
+        )
+        selected_ids = knowledge_base_ids
+        if selected_ids is None and knowledge_base_id:
+            selected_ids = [knowledge_base_id]
+        if selected_ids is not None:
+            allowed_ids = {str(item) for item in selected_ids}
             knowledge_bases = [
-                kb for kb in knowledge_bases if str(kb.id) == str(knowledge_base_id)
+                kb
+                for kb in knowledge_bases
+                if kb.conversation_id == conversation_id
+                or (
+                    kb.conversation_id is None
+                    and str(kb.id) in allowed_ids
+                )
             ]
 
         if not knowledge_bases:
@@ -187,9 +209,11 @@ class ChatService:
 
         return "\n\n".join(context_parts), sources
 
-    def _auto_tool_schemas(self, workspace_id: UUID) -> list[dict]:
+    def _auto_tool_schemas(
+        self, workspace_id: UUID, conversation_id: UUID | None = None
+    ) -> list[dict]:
         schemas = get_tool_schemas(["wikipedia", "web_search", "generate_image"])
-        if self._get_active_knowledge_bases(workspace_id):
+        if self._get_active_knowledge_bases(workspace_id, conversation_id):
             schemas.append(_SEARCH_KNOWLEDGE_SCHEMA)
         return schemas
 
@@ -199,6 +223,9 @@ class ChatService:
         arguments,
         workspace_id: UUID,
         user_content: str = "",
+        knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
+        conversation_id: UUID | None = None,
     ) -> tuple[str, list[str]]:
         if name == "search_knowledge":
             args = _normalize_arguments(arguments)
@@ -208,6 +235,9 @@ class ChatService:
             context, sources = self._build_rag_context(
                 workspace_id,
                 query,
+                knowledge_base_id=knowledge_base_id,
+                knowledge_base_ids=knowledge_base_ids,
+                conversation_id=conversation_id,
                 max_distance=AUTO_RAG_MAX_DISTANCE,
             )
             if not context:
@@ -248,6 +278,8 @@ class ChatService:
         *,
         conversation: Conversation,
         content: str,
+        knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
     ) -> tuple[str, str, list[str], str | None, str | None]:
         messages, _ = self._build_contextual_messages(
             conversation=conversation,
@@ -255,7 +287,7 @@ class ChatService:
             mode="chat",
         )
         messages[0].content = messages[0].content.rstrip() + _TOOL_INSTRUCTIONS
-        schemas = self._auto_tool_schemas(conversation.workspace_id)
+        schemas = self._auto_tool_schemas(conversation.workspace_id, conversation.id)
         used: list[str] = []
         extra_sources: list[str] = []
         last_provider = conversation.provider
@@ -281,6 +313,9 @@ class ChatService:
                         call.get("arguments"),
                         conversation.workspace_id,
                         user_content=content,
+                        knowledge_base_id=knowledge_base_id,
+                        knowledge_base_ids=knowledge_base_ids,
+                        conversation_id=conversation.id,
                     )
                     extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
                     messages.append(
@@ -322,6 +357,8 @@ class ChatService:
         *,
         conversation: Conversation,
         content: str,
+        knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
     ) -> Iterator[str]:
         messages, _ = self._build_contextual_messages(
             conversation=conversation,
@@ -329,7 +366,7 @@ class ChatService:
             mode="chat",
         )
         messages[0].content = messages[0].content.rstrip() + _TOOL_INSTRUCTIONS
-        schemas = self._auto_tool_schemas(conversation.workspace_id)
+        schemas = self._auto_tool_schemas(conversation.workspace_id, conversation.id)
         pin_provider = conversation.provider
         pin_model = conversation.model
         used: list[str] = []
@@ -355,6 +392,9 @@ class ChatService:
                         call.get("arguments"),
                         conversation.workspace_id,
                         user_content=content,
+                        knowledge_base_id=knowledge_base_id,
+                        knowledge_base_ids=knowledge_base_ids,
+                        conversation_id=conversation.id,
                     )
                     extra_sources.extend(self._collect_tool_sources(name, result, rag_sources))
                     messages.append(
@@ -392,6 +432,7 @@ class ChatService:
         content: str,
         mode: str,
         knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
         grounding_strict: bool = True,
         search_query: str | None = None,
     ) -> tuple[list[LLMMessage], list[str]]:
@@ -463,6 +504,8 @@ class ChatService:
                 conversation.workspace_id,
                 content,
                 knowledge_base_id=knowledge_base_id,
+                knowledge_base_ids=knowledge_base_ids,
+                conversation_id=conversation.id,
             )
             if rag_context:
                 user_message = LLMMessage(
@@ -515,6 +558,7 @@ class ChatService:
         conversation: Conversation,
         content: str,
         knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
         mode: str | None = None,
     ) -> Message:
         """Persist user message and route it to chat, web search, or RAG automatically."""
@@ -541,7 +585,12 @@ class ChatService:
         user_mode = (mode or "").lower() or None
         if not user_mode:
             assistant_content, selected_mode, extra_sources, used_provider, used_model = (
-                self._answer_with_tools(conversation=conversation, content=content)
+                self._answer_with_tools(
+                    conversation=conversation,
+                    content=content,
+                    knowledge_base_id=knowledge_base_id,
+                    knowledge_base_ids=knowledge_base_ids,
+                )
             )
             provenance_note = self._build_provenance_note(
                 selected_mode,
@@ -572,6 +621,7 @@ class ChatService:
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
+            knowledge_base_ids=knowledge_base_ids,
             grounding_strict=user_mode == "rag",
         )
         if selected_mode == "rag" and not extra_sources:
@@ -617,6 +667,7 @@ class ChatService:
         content: str,
         mode: str | None = None,
         knowledge_base_id: UUID | None = None,
+        knowledge_base_ids: list[UUID] | None = None,
     ) -> Iterator[str]:
         """
         Persist user message, stream LLM tokens, then persist the
@@ -645,7 +696,12 @@ class ChatService:
         if not user_mode:
             full_content = ""
             self._auto_stream_state = ("chat", [], conversation.provider, conversation.model)
-            for chunk in self._stream_with_tools(conversation=conversation, content=content):
+            for chunk in self._stream_with_tools(
+                conversation=conversation,
+                content=content,
+                knowledge_base_id=knowledge_base_id,
+                knowledge_base_ids=knowledge_base_ids,
+            ):
                 full_content += chunk
                 yield chunk
             selected_mode, extra_sources, used_provider, used_model = self._auto_stream_state
@@ -678,6 +734,7 @@ class ChatService:
             content=content,
             mode=selected_mode,
             knowledge_base_id=knowledge_base_id,
+            knowledge_base_ids=knowledge_base_ids,
             grounding_strict=user_mode == "rag",
         )
         if selected_mode == "rag" and not extra_sources:

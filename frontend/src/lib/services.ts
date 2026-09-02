@@ -103,6 +103,22 @@ export const conversationsApi = {
         `/workspaces/${workspaceId}/conversations/${conversationId}/messages`,
       )
       .then((r) => r.data),
+  documents: (workspaceId: string, conversationId: string) =>
+    api
+      .get<Document[]>(
+        `/workspaces/${workspaceId}/conversations/${conversationId}/documents`,
+      )
+      .then((r) => r.data),
+  uploadDocument: (workspaceId: string, conversationId: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return api
+      .post<Document>(
+        `/workspaces/${workspaceId}/conversations/${conversationId}/documents`,
+        form,
+      )
+      .then((r) => r.data);
+  },
   sendMessage: (
     workspaceId: string,
     conversationId: string,
@@ -111,6 +127,7 @@ export const conversationsApi = {
       provider?: string | null;
       model?: string | null;
       knowledge_base_id?: string | null;
+      knowledge_base_ids?: string[] | null;
       mode?: string | null;
     },
   ) =>

@@ -73,6 +73,7 @@ export type KnowledgeBase = {
 export type Document = {
   id: string;
   workspace_id: string;
+  conversation_id: string | null;
   name: string;
   mime_type: string;
   size_bytes: number;

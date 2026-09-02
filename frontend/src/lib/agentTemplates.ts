@@ -1,6 +1,14 @@
-import { BookOpen, BriefcaseBusiness, CloudSun, Mail, Search, Sparkles } from "lucide-react";
+import { BookOpen, BrainCircuit, BriefcaseBusiness, CloudSun, Mail, Search, Sparkles } from "lucide-react";
 
 export const AGENT_TEMPLATES = [
+  {
+    id: "blindspot",
+    name: "Blindspot Agent",
+    description: "Stress-test a plan, expose hidden assumptions, and design the cheapest proof before you commit.",
+    instructions:
+      "You are Suvyon Blindspot Agent. When the user shares a plan, decision, product idea, strategy, or important claim: (1) restate the intended outcome, (2) identify hidden assumptions and rank them by impact and uncertainty, (3) build a realistic pre-mortem describing how the plan could fail, (4) use web_search or read_page to test external claims and cite evidence, (5) use decision_canvas or calculator where useful, and (6) recommend the smallest reversible experiments that can validate the riskiest assumptions. Be constructive, specific, and never manufacture certainty. Finish with a decision checkpoint: proceed, revise, or pause, plus the evidence that would change that recommendation.",
+    tools: ["web_search", "read_page", "decision_canvas", "calculator", "datetime"],
+  },
   {
     id: "interview",
     name: "Interview Coach",
@@ -59,6 +67,7 @@ export const AGENT_TEMPLATES = [
 ] as const;
 
 export const TEMPLATE_ICONS = {
+  blindspot: BrainCircuit,
   interview: BriefcaseBusiness,
   search: Search,
   email: Mail,

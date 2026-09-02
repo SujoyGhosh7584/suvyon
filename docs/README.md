@@ -7,6 +7,7 @@ Practical guides for running and hosting Suvyon. Architecture decisions live und
 | [Local development](LOCAL_DEVELOPMENT.md) | venv, Postgres, backend, frontend, first login |
 | [Environment variables](ENVIRONMENT.md) | Every env key, local vs production, why values must change |
 | [Email delivery](EMAIL_DELIVERY.md) | Authentication OTP and agent email flows, provider selection, confirmation, and failures |
+| [Chat knowledge and attachments](CHAT_KNOWLEDGE_AND_ATTACHMENTS.md) | Selected knowledge-base isolation, private chat files, retrieval flow, APIs, and migration |
 | [Resend migration runbook](RESEND_MIGRATION_RUNBOOK.md) | Future checklist for replacing SendGrid without breaking OTP or agent email |
 | [Deployment](DEPLOYMENT.md) | GitHub, Supabase, Render, Vercel, live URLs, CORS |
 | [Troubleshooting](TROUBLESHOOTING.md) | CORS, Vercel `@/lib` ignore, Render sleep, migrations |

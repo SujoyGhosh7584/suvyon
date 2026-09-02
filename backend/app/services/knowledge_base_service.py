@@ -17,6 +17,27 @@ class KnowledgeBaseService:
     def get(self, *, kb_id: UUID, workspace_id: UUID) -> KnowledgeBase | None:
         return self._repo.get_by_id_and_workspace(kb_id, workspace_id)
 
+    def get_or_create_for_conversation(
+        self, *, conversation_id: UUID, workspace_id: UUID
+    ) -> KnowledgeBase:
+        existing = self._repo.get_by_conversation(conversation_id, workspace_id)
+        if existing:
+            return existing
+        kb = KnowledgeBase(
+            workspace_id=workspace_id,
+            conversation_id=conversation_id,
+            name="Chat files",
+            description="Private documents attached to one conversation.",
+        )
+        try:
+            self._repo.create(kb)
+            self._repo.commit()
+            self._repo.refresh(kb)
+            return kb
+        except SQLAlchemyError:
+            self._repo.rollback()
+            raise
+
     def create(self, *, workspace_id: UUID, data: KnowledgeBaseCreate) -> KnowledgeBase:
         kb = KnowledgeBase(
             workspace_id=workspace_id,

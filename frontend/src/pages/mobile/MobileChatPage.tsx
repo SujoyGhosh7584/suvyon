@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Edit2, MessageCircleHeart, Plus, Send, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { MobileMascot } from "@/components/MobileMascot";
 import { MessageContent } from "@/components/MessageContent";
+import { ChatAttachments } from "@/components/ChatAttachments";
+import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
@@ -29,7 +31,7 @@ export function MobileChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
-  const [knowledgeBaseId, setKnowledgeBaseId] = useState("");
+  const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -67,6 +69,7 @@ export function MobileChatPage() {
 
   useEffect(() => {
     setOptimistic([]);
+    setKnowledgeBaseIds(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -126,7 +129,7 @@ export function MobileChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: knowledgeBaseId || null,
+        knowledge_base_ids: knowledgeBaseIds,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -144,9 +147,14 @@ export function MobileChatPage() {
   const deleteConversation = useMutation({
     mutationFn: (id: string) => conversationsApi.remove(workspaceId, id),
     onSuccess: (_, id) => {
+      queryClient.setQueryData(
+        ["conversations", workspaceId],
+        conversations.filter((item) => item.id !== id),
+      );
       queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       if (id === conversationId) navigate(`/app/w/${workspaceId}/chat`);
     },
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const visibleMessages = [...messages, ...optimistic];
@@ -180,7 +188,7 @@ export function MobileChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: knowledgeBaseId || null,
+          knowledge_base_ids: knowledgeBaseIds,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({ queryKey: ["messages", workspaceId, created.id] });
@@ -229,7 +237,12 @@ export function MobileChatPage() {
               <button
                 type="button"
                 className="rounded-xl p-2 text-ink-400"
-                onClick={() => deleteConversation.mutate(c.id)}
+                onClick={() => {
+                  if (window.confirm(`Delete “${c.title}”? This cannot be undone.`)) {
+                    setError("");
+                    deleteConversation.mutate(c.id);
+                  }
+                }}
                 title="Delete chat"
               >
                 <Trash2 size={16} />
@@ -361,18 +374,6 @@ export function MobileChatPage() {
             <option value="rag">RAG</option>
             <option value="web">Web</option>
           </select>
-          {(mode === "rag" || mode === "auto") && knowledgeBases.length > 0 && (
-            <select
-              className="input col-span-3 py-1.5 text-xs"
-              value={knowledgeBaseId}
-              onChange={(event) => setKnowledgeBaseId(event.target.value)}
-            >
-              <option value="">All workspace knowledge</option>
-              {knowledgeBases.filter((kb) => kb.is_active).map((kb) => (
-                <option key={kb.id} value={kb.id}>{kb.name}</option>
-              ))}
-            </select>
-          )}
         </div>
       )}
 
@@ -427,8 +428,12 @@ export function MobileChatPage() {
           <div className="mb-2 rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700">{error}</div>
         )}
         <div className="flex items-end gap-2">
+          <ChatAttachments workspaceId={workspaceId} conversationId={conversationId} />
+          {(mode === "rag" || mode === "auto") && (
+            <KnowledgeScopePicker knowledgeBases={knowledgeBases} value={knowledgeBaseIds} onChange={setKnowledgeBaseIds} compact />
+          )}
           <textarea
-            className="input min-h-[46px] max-h-32 resize-none py-2.5"
+            className="input min-h-[46px] min-w-0 flex-1 max-h-32 resize-none py-2.5"
             placeholder="Ask Suvyon…"
             rows={1}
             value={content}

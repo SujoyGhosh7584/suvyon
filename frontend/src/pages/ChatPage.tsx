@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
-  Database,
   Edit2,
   PanelLeftClose,
   Plus,
@@ -14,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
+import { ChatAttachments } from "@/components/ChatAttachments";
+import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
@@ -33,7 +34,7 @@ export function ChatPage() {
   const [provider, setProvider] = useState("");
   const [model, setModel] = useState("");
   const [mode, setMode] = useState<"auto" | "chat" | "rag" | "web">("auto");
-  const [knowledgeBaseId, setKnowledgeBaseId] = useState("");
+  const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[] | null>(null);
   const [error, setError] = useState("");
   const [optimistic, setOptimistic] = useState<Message[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -74,6 +75,7 @@ export function ChatPage() {
 
   useEffect(() => {
     setOptimistic([]);
+    setKnowledgeBaseIds(null);
   }, [conversationId]);
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export function ChatPage() {
         content: text,
         provider: provider || null,
         model: model || null,
-        knowledge_base_id: knowledgeBaseId || null,
+        knowledge_base_ids: knowledgeBaseIds,
         mode: mode === "auto" ? null : mode,
       });
     },
@@ -157,9 +159,14 @@ export function ChatPage() {
   const deleteConversation = useMutation({
     mutationFn: (id: string) => conversationsApi.remove(workspaceId, id),
     onSuccess: (_, id) => {
+      queryClient.setQueryData(
+        ["conversations", workspaceId],
+        conversations.filter((item) => item.id !== id),
+      );
       queryClient.invalidateQueries({ queryKey: ["conversations", workspaceId] });
       if (id === conversationId) navigate(`/app/w/${workspaceId}/chat`);
     },
+    onError: (err) => setError(getErrorMessage(err)),
   });
 
   const visibleMessages = [...messages, ...optimistic];
@@ -193,7 +200,7 @@ export function ChatPage() {
           content: text,
           provider: provider || null,
           model: model || null,
-          knowledge_base_id: knowledgeBaseId || null,
+          knowledge_base_ids: knowledgeBaseIds,
           mode: mode === "auto" ? null : mode,
         });
         queryClient.invalidateQueries({
@@ -301,7 +308,7 @@ export function ChatPage() {
                     <button
                       type="button"
                       className={cn(
-                        "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
+                        "rounded-lg p-1 opacity-70 transition hover:opacity-100",
                         "hover:bg-slate-100",
                       )}
                       title="Rename chat"
@@ -312,11 +319,16 @@ export function ChatPage() {
                     <button
                       type="button"
                       className={cn(
-                        "rounded-lg p-1 opacity-0 transition group-hover:opacity-100",
+                        "rounded-lg p-1 opacity-70 transition hover:opacity-100",
                         "hover:bg-slate-100",
                       )}
                       title="Delete chat"
-                      onClick={() => deleteConversation.mutate(c.id)}
+                      onClick={() => {
+                        if (window.confirm(`Delete “${c.title}”? This cannot be undone.`)) {
+                          setError("");
+                          deleteConversation.mutate(c.id);
+                        }
+                      }}
                     >
                       <Trash2 size={13} />
                     </button>
@@ -421,22 +433,6 @@ export function ChatPage() {
                 </option>
               ))}
             </select>
-            {(mode === "rag" || mode === "auto") && knowledgeBases.length > 0 && (
-              <label className="relative">
-                <Database className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-400" size={14} />
-                <select
-                  className="input max-w-[190px] py-1.5 pl-8 text-xs"
-                  value={knowledgeBaseId}
-                  onChange={(event) => setKnowledgeBaseId(event.target.value)}
-                  aria-label="Knowledge base"
-                >
-                  <option value="">All workspace knowledge</option>
-                  {knowledgeBases.filter((kb) => kb.is_active).map((kb) => (
-                    <option key={kb.id} value={kb.id}>{kb.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
             <select
               className="input max-w-[200px] text-xs py-1.5"
               value={model}
@@ -546,9 +542,13 @@ export function ChatPage() {
           <div className="mb-3 text-xs text-ink-500">
             Enter to send · Shift+Enter for a new line. Auto mode can search the web or your docs.
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-end gap-2">
+            {conversationId && <ChatAttachments workspaceId={workspaceId} conversationId={conversationId} />}
+            {(mode === "rag" || mode === "auto") && (
+              <KnowledgeScopePicker knowledgeBases={knowledgeBases} value={knowledgeBaseIds} onChange={setKnowledgeBaseIds} />
+            )}
             <textarea
-              className="input min-h-[52px] resize-none"
+              className="input min-h-[52px] min-w-0 flex-1 resize-none"
               placeholder="Ask about your docs, the web, or anything else…"
               value={content}
               onChange={(e) => setContent(e.target.value)}
