@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.repositories.agent_repository import AgentRepository
+from app.repositories.agent_message_repository import AgentMessageRepository
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.knowledge_base_repository import KnowledgeBaseRepository
@@ -28,10 +29,19 @@ def get_agent_repository(
     return AgentRepository(db)
 
 
+def get_agent_message_repository(
+    db: Annotated[Session, Depends(get_db)],
+) -> AgentMessageRepository:
+    return AgentMessageRepository(db)
+
+
 def get_agent_service(
     repository: Annotated[AgentRepository, Depends(get_agent_repository)],
+    message_repository: Annotated[
+        AgentMessageRepository, Depends(get_agent_message_repository)
+    ],
 ) -> AgentService:
-    return AgentService(repository=repository)
+    return AgentService(repository=repository, message_repository=message_repository)
 
 
 def get_user_repository(

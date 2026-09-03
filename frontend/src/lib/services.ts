@@ -148,6 +148,12 @@ export const agentsApi = {
     api
       .get<Agent>(`/workspaces/${workspaceId}/agents/${agentId}`)
       .then((r) => r.data),
+  messages: (workspaceId: string, agentId: string) =>
+    api
+      .get<ChatHistoryItem[]>(`/workspaces/${workspaceId}/agents/${agentId}/messages`)
+      .then((r) => r.data),
+  clearMessages: (workspaceId: string, agentId: string) =>
+    api.delete(`/workspaces/${workspaceId}/agents/${agentId}/messages`),
   create: (
     workspaceId: string,
     payload: {

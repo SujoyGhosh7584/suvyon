@@ -37,7 +37,10 @@ def process_document(
         text = parse(document.file_path, document.mime_type)
 
         if not text.strip():
-            raise ValueError("Document produced no extractable text.")
+            raise ValueError(
+                "Document produced no extractable text. If this is a scanned PDF, "
+                "run OCR on it before uploading."
+            )
 
         # 2. Chunk
         chunks = chunk_text(text)

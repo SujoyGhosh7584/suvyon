@@ -15,6 +15,7 @@ export function ChatAttachments({ workspaceId, conversationId }: Props) {
   const upload = useMutation({
     mutationFn: (file: File) => conversationsApi.uploadDocument(workspaceId, conversationId, file),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey }); setOpen(true); },
+    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
   const remove = useMutation({
     mutationFn: (documentId: string) => documentsApi.remove(workspaceId, documentId),
@@ -23,7 +24,7 @@ export function ChatAttachments({ workspaceId, conversationId }: Props) {
 
   return (
     <div className="relative shrink-0">
-      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.md,.csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) upload.mutate(file); event.target.value = ""; }} />
+      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv" onChange={(event) => { const file = event.target.files?.[0]; if (file) upload.mutate(file); event.target.value = ""; }} />
       <button type="button" className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:border-indigo-300 hover:text-indigo-700 disabled:opacity-50" onClick={() => inputRef.current?.click()} disabled={upload.isPending} title="Attach a file only to this chat">
         {upload.isPending ? <LoaderCircle className="animate-spin" size={18} /> : <Paperclip size={18} />}
       </button>

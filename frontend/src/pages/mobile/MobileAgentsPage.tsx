@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bot, Plus, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, Bot, MessageSquareX, Plus, Send, Trash2 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
 import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
 import { MobileMascot } from "@/components/MobileMascot";
@@ -28,7 +28,6 @@ export function MobileAgentsPage() {
   const [selectedTools, setSelectedTools] = useState<string[]>([...AGENT_TEMPLATES[0].tools]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [running, setRunning] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<PendingEmailDraft | null>(null);
   const [emailError, setEmailError] = useState("");
@@ -49,6 +48,12 @@ export function MobileAgentsPage() {
   const { data: selectedAgent } = useQuery({
     queryKey: ["agent", workspaceId, agentId],
     queryFn: () => agentsApi.get(workspaceId, agentId!),
+    enabled: !!agentId,
+  });
+  const historyQueryKey = ["agent-messages", workspaceId, agentId] as const;
+  const { data: history = [] } = useQuery({
+    queryKey: historyQueryKey,
+    queryFn: () => agentsApi.messages(workspaceId, agentId!),
     enabled: !!agentId,
   });
 
@@ -99,7 +104,6 @@ export function MobileAgentsPage() {
     onSuccess: (agent) => {
       queryClient.invalidateQueries({ queryKey: ["agents", workspaceId] });
       setShowCreate(false);
-      setHistory([]);
       navigate(`/app/w/${workspaceId}/agents/${agent.id}`);
     },
     onError: (err) => setError(getErrorMessage(err)),
@@ -110,10 +114,18 @@ export function MobileAgentsPage() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["agents", workspaceId] });
       if (id === agentId) {
-        setHistory([]);
         navigate(`/app/w/${workspaceId}/agents`);
       }
     },
+  });
+
+  const clearAgentHistory = useMutation({
+    mutationFn: () => agentsApi.clearMessages(workspaceId, agentId!),
+    onSuccess: () => {
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, []);
+      setPendingEmail(null);
+    },
+    onError: (err) => setError(getErrorMessage(err, "Chat history could not be cleared.")),
   });
 
   const sendEmail = useMutation({
@@ -121,7 +133,10 @@ export function MobileAgentsPage() {
     onSuccess: (result) => {
       setPendingEmail(null);
       setEmailError("");
-      setHistory((prev) => [...prev, { role: "assistant", content: `✅ ${result.message}` }]);
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+        ...current,
+        { role: "assistant", content: `✅ ${result.message}` },
+      ]);
     },
     onError: (err) => setEmailError(getErrorMessage(err, "Email could not be sent.")),
   });
@@ -133,16 +148,22 @@ export function MobileAgentsPage() {
     setError("");
     const userMessage = message.trim();
     setMessage("");
-    setHistory((prev) => [...prev, { role: "user", content: userMessage }]);
+    queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+      ...current,
+      { role: "user", content: userMessage },
+    ]);
     try {
       const result = await agentsApi.run(workspaceId, agentId, {
         content: userMessage,
-        history,
       });
-      setHistory((prev) => [...prev, { role: "assistant", content: result.content }]);
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+        ...current,
+        { role: "assistant", content: result.content },
+      ]);
       if (result.pending_email) setPendingEmail(result.pending_email);
     } catch (err) {
       setError(getErrorMessage(err));
+      queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } finally {
       setRunning(false);
     }
@@ -272,7 +293,6 @@ export function MobileAgentsPage() {
               <Link
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
                 className="flex min-w-0 flex-1 items-center gap-3 px-1 py-1"
-                onClick={() => setHistory([])}
               >
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500 text-white">
                   <Bot size={18} />
@@ -316,10 +336,7 @@ export function MobileAgentsPage() {
         <button
           type="button"
           className="rounded-xl p-2"
-          onClick={() => {
-            setHistory([]);
-            navigate(`/app/w/${workspaceId}/agents`);
-          }}
+          onClick={() => navigate(`/app/w/${workspaceId}/agents`)}
         >
           <ArrowLeft size={20} />
         </button>
@@ -327,6 +344,20 @@ export function MobileAgentsPage() {
           <div className="truncate font-display font-bold">{selectedAgent?.name || "Agent"}</div>
           <div className="truncate text-[11px] text-ink-400">{selectedAgent?.tools || "no tools"}</div>
         </div>
+        <button
+          type="button"
+          className="rounded-xl p-2 text-ink-500 disabled:opacity-30"
+          aria-label="Clear chat history"
+          title="Clear chat history"
+          onClick={() => {
+            if (window.confirm("Clear this agent's chat history?")) {
+              clearAgentHistory.mutate();
+            }
+          }}
+          disabled={history.length === 0 || clearAgentHistory.isPending}
+        >
+          <MessageSquareX size={19} />
+        </button>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
         {history.length === 0 && !running && (

@@ -14,6 +14,42 @@ from app.repositories.document_repository import DocumentRepository
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+MIME_TYPE_BY_EXTENSION = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".csv": "text/csv",
+}
+GENERIC_UPLOAD_TYPES = {"", "application/octet-stream", "binary/octet-stream"}
+MIME_TYPE_ALIASES = {"application/x-pdf": "application/pdf"}
+
+
+def _resolve_mime_type(filename: str, supplied_type: str | None, content: bytes) -> str:
+    """Use the file extension when a browser sends a generic upload MIME type."""
+    extension = Path(filename).suffix.lower()
+    extension_type = MIME_TYPE_BY_EXTENSION.get(extension)
+    declared_type = (supplied_type or "").split(";", 1)[0].strip().lower()
+    declared_type = MIME_TYPE_ALIASES.get(declared_type, declared_type)
+
+    if extension_type is None and declared_type not in ALLOWED_DOCUMENT_TYPES:
+        raise ValueError(
+            f"Unsupported file type: {declared_type or extension or 'unknown'}. "
+            "Allowed: PDF, DOCX, TXT, Markdown, or CSV."
+        )
+
+    mime_type = extension_type or declared_type
+    if declared_type not in GENERIC_UPLOAD_TYPES and declared_type not in ALLOWED_DOCUMENT_TYPES:
+        raise ValueError(
+            f"Unsupported file type: {declared_type}. "
+            "Allowed: PDF, DOCX, TXT, Markdown, or CSV."
+        )
+
+    if mime_type == "application/pdf" and b"%PDF-" not in content[:1024]:
+        raise ValueError("The selected file does not appear to be a valid PDF.")
+
+    return mime_type
+
 
 class DocumentService:
     def __init__(
@@ -43,24 +79,22 @@ class DocumentService:
         file: UploadFile,
         conversation_id=None,
     ) -> Document:
-        # Validate mime type
-        if file.content_type not in ALLOWED_DOCUMENT_TYPES:
-            raise ValueError(
-                f"Unsupported file type: {file.content_type}. "
-                f"Allowed: {', '.join(ALLOWED_DOCUMENT_TYPES)}"
-            )
-
         # Read and validate size
         content = file.file.read()
         size_bytes = len(content)
 
+        if not content:
+            raise ValueError("The selected file is empty.")
+
         if size_bytes > MAX_FILE_SIZE_MB * 1024 * 1024:
             raise ValueError(f"File exceeds {MAX_FILE_SIZE_MB}MB limit.")
+
+        safe_original_name = Path(file.filename or "document").name
+        mime_type = _resolve_mime_type(safe_original_name, file.content_type, content)
 
         # Save to disk
         dest_dir = UPLOAD_DIR / str(workspace_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
-        safe_original_name = Path(file.filename or "document").name
         file_name = f"{uuid.uuid4()}_{safe_original_name}"
         file_path = dest_dir / file_name
 
@@ -72,7 +106,7 @@ class DocumentService:
             conversation_id=conversation_id,
             name=safe_original_name,
             file_path=str(file_path),
-            mime_type=file.content_type,
+            mime_type=mime_type,
             size_bytes=size_bytes,
             status=DocumentStatus.PENDING.value,
         )
@@ -87,10 +121,10 @@ class DocumentService:
             raise
 
         # Process synchronously (Phase 13 moves this to Celery)
-        process_document(self._session, document, knowledge_base_id)
-
-        # Delete file after processing — embeddings are stored in DB
-        file_path.unlink(missing_ok=True)
+        try:
+            process_document(self._session, document, knowledge_base_id)
+        finally:
+            file_path.unlink(missing_ok=True)
 
         return document
 

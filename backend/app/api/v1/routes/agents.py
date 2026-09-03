@@ -14,6 +14,7 @@ from app.schemas.agent import (
     AgentCreate,
     AgentEmailSendRequest,
     AgentEmailSendResponse,
+    AgentMessageResponse,
     AgentResponse,
     AgentRunRequest,
     AgentRunResponse,
@@ -122,6 +123,35 @@ def delete_agent(
     agent_service.delete_agent(agent=agent)
 
 
+@router.get("/{agent_id}/messages", response_model=list[AgentMessageResponse])
+def get_agent_messages(
+    workspace_id: UUID,
+    agent_id: UUID,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    agent_service: Annotated[AgentService, Depends(get_agent_service)],
+):
+    _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
+    return [
+        AgentMessageResponse.model_validate(message)
+        for message in agent_service.get_history(agent_id=agent.id)
+    ]
+
+
+@router.delete("/{agent_id}/messages", status_code=status.HTTP_204_NO_CONTENT)
+def clear_agent_messages(
+    workspace_id: UUID,
+    agent_id: UUID,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    agent_service: Annotated[AgentService, Depends(get_agent_service)],
+) -> None:
+    _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
+    agent_service.clear_history(agent_id=agent.id)
+
+
 @router.post("/{agent_id}/run", response_model=AgentRunResponse)
 def run(
     workspace_id: UUID,
@@ -134,12 +164,18 @@ def run(
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
     _require_active_agent(agent)
+    history = agent_service.get_recent_history(agent_id=agent.id)
     pending_email: list[dict] = []
     content = run_agent(
         agent,
         request.content,
-        request.history,
+        history,
         pending_email=pending_email,
+    )
+    agent_service.append_exchange(
+        agent_id=agent.id,
+        user_content=request.content,
+        assistant_content=content,
     )
     draft = None
     if pending_email:
@@ -174,6 +210,7 @@ def send_agent_email(
         body=request.body,
         regards=request.regards,
     )
+    agent_service.append_assistant_message(agent_id=agent.id, content=f"✅ {message}")
     return AgentEmailSendResponse(message=message)
 
 
@@ -189,10 +226,18 @@ def run_stream(
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
     agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
     _require_active_agent(agent)
+    history = agent_service.get_recent_history(agent_id=agent.id)
 
     def event_stream() -> Iterator[str]:
-        for chunk in stream_agent(agent, request.content, request.history):
+        chunks: list[str] = []
+        for chunk in stream_agent(agent, request.content, history):
+            chunks.append(chunk)
             yield f"data: {json.dumps({'content': chunk})}\n\n"
+        agent_service.append_exchange(
+            agent_id=agent.id,
+            user_content=request.content,
+            assistant_content="".join(chunks),
+        )
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
