@@ -46,6 +46,11 @@ class AgentHistoryItem(BaseSchema):
     content: str = Field(..., min_length=1, max_length=20_000)
 
 
+class AgentMessageResponse(BaseSchema):
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class AgentRunRequest(BaseSchema):
     content: str = Field(..., min_length=1, max_length=20_000)
     history: list[AgentHistoryItem] | None = Field(default=None, max_length=40)

@@ -9,6 +9,7 @@ from app.core.base import Base
 from app.models.base_model import BaseModel
 
 if TYPE_CHECKING:
+    from app.models.agent_message import AgentMessage
     from app.models.workspace import Workspace
 
 
@@ -51,3 +52,9 @@ class Agent(Base, BaseModel):
     # ------------------------------------------------------------------
 
     workspace: Mapped["Workspace"] = relationship(back_populates="agents")
+
+    messages: Mapped[list["AgentMessage"]] = relationship(
+        back_populates="agent",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

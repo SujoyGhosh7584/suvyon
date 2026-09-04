@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Pencil, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { Bot, MessageSquareX, Pencil, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
 import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
 import { MessageContent } from "@/components/MessageContent";
 import { StatusBubble } from "@/components/StatusBubble";
@@ -29,7 +29,6 @@ export function AgentsPage() {
   const [error, setError] = useState("");
 
   const [message, setMessage] = useState("");
-  const [history, setHistory] = useState<ChatHistoryItem[]>([]);
   const [running, setRunning] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<PendingEmailDraft | null>(null);
   const [emailError, setEmailError] = useState("");
@@ -51,6 +50,12 @@ export function AgentsPage() {
   const { data: selectedAgent } = useQuery({
     queryKey: ["agent", workspaceId, agentId],
     queryFn: () => agentsApi.get(workspaceId, agentId!),
+    enabled: !!agentId,
+  });
+  const historyQueryKey = ["agent-messages", workspaceId, agentId] as const;
+  const { data: history = [] } = useQuery({
+    queryKey: historyQueryKey,
+    queryFn: () => agentsApi.messages(workspaceId, agentId!),
     enabled: !!agentId,
   });
 
@@ -124,7 +129,6 @@ export function AgentsPage() {
     onSuccess: (agent) => {
       queryClient.invalidateQueries({ queryKey: ["agents", workspaceId] });
       setShowCreate(false);
-      setHistory([]);
       navigate(`/app/w/${workspaceId}/agents/${agent.id}`);
     },
     onError: (err) => setError(getErrorMessage(err)),
@@ -155,10 +159,19 @@ export function AgentsPage() {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ["agents", workspaceId] });
       if (id === agentId) {
-        setHistory([]);
         navigate(`/app/w/${workspaceId}/agents`);
       }
     },
+  });
+
+  const clearAgentHistory = useMutation({
+    mutationFn: () => agentsApi.clearMessages(workspaceId, agentId!),
+    onSuccess: () => {
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, []);
+      setPendingEmail(null);
+      setNotice("");
+    },
+    onError: (err) => setError(getErrorMessage(err, "Chat history could not be cleared.")),
   });
 
   const sendEmail = useMutation({
@@ -167,7 +180,10 @@ export function AgentsPage() {
       setPendingEmail(null);
       setEmailError("");
       setNotice(result.message);
-      setHistory((prev) => [...prev, { role: "assistant", content: `✅ ${result.message}` }]);
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+        ...current,
+        { role: "assistant", content: `✅ ${result.message}` },
+      ]);
     },
     onError: (err) => setEmailError(getErrorMessage(err, "Email could not be sent.")),
   });
@@ -179,16 +195,22 @@ export function AgentsPage() {
     setError("");
     const userMessage = message.trim();
     setMessage("");
-    setHistory((prev) => [...prev, { role: "user", content: userMessage }]);
+    queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+      ...current,
+      { role: "user", content: userMessage },
+    ]);
     try {
       const result = await agentsApi.run(workspaceId, agentId, {
         content: userMessage,
-        history,
       });
-      setHistory((prev) => [...prev, { role: "assistant", content: result.content }]);
+      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
+        ...current,
+        { role: "assistant", content: result.content },
+      ]);
       if (result.pending_email) setPendingEmail(result.pending_email);
     } catch (err) {
       setError(getErrorMessage(err));
+      queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } finally {
       setRunning(false);
     }
@@ -220,7 +242,6 @@ export function AgentsPage() {
               <Link
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
                 className="min-w-0 flex-1"
-                onClick={() => setHistory([])}
               >
                 <div className="truncate font-medium">{a.name}</div>
                 <div
@@ -437,7 +458,20 @@ export function AgentsPage() {
                     {selectedAgent?.provider || "Auto model"} · {selectedToolLabels || "Conversation only"}
                   </div>
                 </div>
-                <button type="button" className="btn-outline ml-auto px-3 py-2" onClick={startEditingAgent}>
+                <button
+                  type="button"
+                  className="btn-outline ml-auto px-3 py-2"
+                  onClick={() => {
+                    if (history.length && window.confirm("Clear this agent's chat history?")) {
+                      clearAgentHistory.mutate();
+                    }
+                  }}
+                  disabled={history.length === 0 || clearAgentHistory.isPending}
+                  title="Clear chat history"
+                >
+                  <MessageSquareX size={15} /> Clear chat
+                </button>
+                <button type="button" className="btn-outline px-3 py-2" onClick={startEditingAgent}>
                   <Pencil size={15} /> Edit
                 </button>
               </div>

@@ -33,11 +33,21 @@ def parse(file_path: str, mime_type: str) -> str:
 def _parse_pdf(path: Path) -> str:
     import pymupdf  # fitz
 
-    doc = pymupdf.open(str(path))
+    try:
+        doc = pymupdf.open(str(path))
+    except Exception as exc:
+        raise ValueError("The PDF is damaged or could not be opened.") from exc
+
     pages = []
     try:
+        if doc.needs_pass:
+            raise ValueError("Password-protected PDFs are not supported.")
         for page in doc:
             pages.append(_pdf_page_text(page))
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Text could not be extracted from the PDF.") from exc
     finally:
         doc.close()
     return "\n\n".join(p for p in pages if p.strip())

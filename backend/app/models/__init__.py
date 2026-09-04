@@ -6,6 +6,7 @@ and Alembic autogenerate can discover every table.
 """
 
 from app.models.agent import Agent
+from app.models.agent_message import AgentMessage
 from app.models.conversation import Conversation
 from app.models.document import Document
 from app.models.integration import Integration
@@ -20,6 +21,7 @@ from app.models.workspace import Workspace
 
 __all__ = [
     "Agent",
+    "AgentMessage",
     "Conversation",
     "Document",
     "Integration",
