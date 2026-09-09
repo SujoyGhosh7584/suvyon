@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { AuthScreen } from "@/components/AuthScreen";
 import { SignedInNotice } from "@/components/GuestAuth";
 import { useAuth } from "@/context/AuthContext";
-import { getErrorMessage } from "@/lib/api";
-import { Mail } from "lucide-react";
+import { apiUrl, getErrorMessage } from "@/lib/api";
+import { Github, Mail } from "lucide-react";
 import { PasswordField } from "@/components/PasswordField";
+import { authApi } from "@/lib/services";
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -15,6 +17,11 @@ export function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const oauthError = new URLSearchParams(location.search).get("oauth_error");
+  const { data: oauthProviders } = useQuery({
+    queryKey: ["oauth-providers"],
+    queryFn: authApi.oauthProviders,
+  });
 
   return (
     <AuthScreen
@@ -31,6 +38,15 @@ export function LoginPage() {
     >
       <SignedInNotice intent="login" />
       {!user && (
+      <>
+      {(oauthProviders?.google || oauthProviders?.github) && (
+        <div className="mb-5 space-y-2">
+          {oauthProviders.google && <button type="button" className="btn-outline w-full justify-center py-3" onClick={() => { window.location.href = apiUrl("/auth/oauth/google/start"); }}><span className="text-base font-black text-blue-600">G</span> Continue with Google</button>}
+          {oauthProviders.github && <button type="button" className="btn-outline w-full justify-center py-3" onClick={() => { window.location.href = apiUrl("/auth/oauth/github/start"); }}><Github size={18} /> Continue with GitHub</button>}
+          <div className="flex items-center gap-3 py-2 text-xs text-slate-400"><span className="h-px flex-1 bg-slate-200" />or use email<span className="h-px flex-1 bg-slate-200" /></div>
+        </div>
+      )}
+      {oauthError && <div className="mb-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{oauthError}</div>}
       <form
         className="space-y-4"
         onSubmit={async (e) => {
@@ -80,6 +96,7 @@ export function LoginPage() {
           {submitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
+      </>
       )}
     </AuthScreen>
   );

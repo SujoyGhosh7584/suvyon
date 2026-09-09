@@ -11,6 +11,8 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (fullName: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  acceptOAuth: (accessToken: string, refreshToken: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
 
@@ -75,9 +77,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [queryClient, setWorkspaceId]);
 
+  const acceptOAuth = useCallback(async (accessToken: string, refreshToken: string) => {
+    setTokens(accessToken, refreshToken);
+    setWorkspaceId(null);
+    queryClient.clear();
+    await refreshUser();
+  }, [queryClient, refreshUser, setWorkspaceId]);
+
+  const deleteAccount = useCallback(async () => {
+    await usersApi.deleteMe();
+    clearTokens();
+    setUser(null);
+    setWorkspaceId(null);
+    queryClient.clear();
+  }, [queryClient, setWorkspaceId]);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refreshUser }),
-    [user, loading, login, register, logout, refreshUser],
+    () => ({ user, loading, login, register, logout, acceptOAuth, deleteAccount, refreshUser }),
+    [user, loading, login, register, logout, acceptOAuth, deleteAccount, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

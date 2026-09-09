@@ -109,3 +109,30 @@ export type AgentRunResponse = {
   content: string;
   pending_email: PendingEmailDraft | null;
 };
+
+export type GitHubRepositoryOption = {
+  installation_id: string;
+  github_repo_id: number;
+  full_name: string;
+  default_branch: string;
+  is_private: boolean;
+};
+
+export type GitHubProject = {
+  id: string;
+  full_name: string;
+  default_branch: string;
+  is_private: boolean;
+};
+
+export type RepositoryAnswer = { content: string; files: string[] };
+
+export type GitHubProposal = {
+  id: string;
+  instruction: string;
+  title: string;
+  description: string;
+  changes: { path: string; content: string; reason: string }[];
+  status: string;
+  pull_request_url: string | null;
+};

@@ -11,6 +11,7 @@ from app.repositories.document_repository import DocumentRepository
 from app.repositories.knowledge_base_repository import KnowledgeBaseRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.otp_repository import OtpRepository
+from app.repositories.oauth_account_repository import OAuthAccountRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.agent_service import AgentService
@@ -19,6 +20,7 @@ from app.services.otp_service import OtpService
 from app.services.chat_service import ChatService
 from app.services.document_service import DocumentService
 from app.services.knowledge_base_service import KnowledgeBaseService
+from app.services.github_service import GitHubService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
 
@@ -62,6 +64,12 @@ def get_otp_repository(
     return OtpRepository(db)
 
 
+def get_oauth_account_repository(
+    db: Annotated[Session, Depends(get_db)],
+) -> OAuthAccountRepository:
+    return OAuthAccountRepository(db)
+
+
 def get_otp_service(
     otp_repository: Annotated[OtpRepository, Depends(get_otp_repository)],
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
@@ -75,8 +83,15 @@ def get_otp_service(
 def get_auth_service(
     user_repository: Annotated[UserRepository, Depends(get_user_repository)],
     otp_service: Annotated[OtpService, Depends(get_otp_service)],
+    oauth_repository: Annotated[
+        OAuthAccountRepository, Depends(get_oauth_account_repository)
+    ],
 ) -> AuthService:
-    return AuthService(user_repository=user_repository, otp_service=otp_service)
+    return AuthService(
+        user_repository=user_repository,
+        otp_service=otp_service,
+        oauth_repository=oauth_repository,
+    )
 
 
 def get_user_service(
@@ -119,6 +134,12 @@ def get_document_repository(
     db: Annotated[Session, Depends(get_db)],
 ) -> DocumentRepository:
     return DocumentRepository(db)
+
+
+def get_github_service(
+    db: Annotated[Session, Depends(get_db)],
+) -> GitHubService:
+    return GitHubService(db)
 
 
 def get_knowledge_base_repository(

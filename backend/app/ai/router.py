@@ -13,7 +13,7 @@ Priority:
 from collections.abc import Iterator
 
 from app.ai.providers.base import BaseLLMProvider, LLMMessage, LLMResponse
-from app.ai.registry import get_available_providers, get_provider
+from app.ai.registry import allowed_models, get_available_providers, get_provider
 
 # Default model per provider when none is specified
 _PROVIDER_DEFAULTS: dict[str, str] = {
@@ -47,8 +47,16 @@ def _default_model_for(provider_name: str, *, tools: bool) -> str:
     return _PROVIDER_DEFAULTS.get(provider_name, "")
 
 
+def _allowed_default_for(provider: BaseLLMProvider, *, tools: bool) -> str:
+    models = allowed_models(provider)
+    configured = _default_model_for(provider.provider_name, tools=tools)
+    if any(model.model_id == configured for model in models):
+        return configured
+    return models[0].model_id if models else ""
+
+
 def _provider_owns_model(provider: BaseLLMProvider, model_id: str) -> bool:
-    return any(m.model_id == model_id for m in provider.list_models())
+    return any(m.model_id == model_id for m in allowed_models(provider))
 
 
 def _resolve(
@@ -77,11 +85,9 @@ def _resolve(
         if provider and provider.is_available():
             if model_id and _provider_owns_model(provider, model_id):
                 return provider, model_id
-            default_model = _default_model_for(provider_name, tools=tools)
+            default_model = _allowed_default_for(provider, tools=tools)
             if not default_model:
-                models = provider.list_models()
-                if models:
-                    default_model = models[0].model_id
+                raise ValueError("No zero-cost model is available for the selected provider.")
             return provider, default_model
 
     if model_id:
@@ -90,11 +96,9 @@ def _resolve(
                 return p, model_id
 
     provider = available_providers[0]
-    default_model = _default_model_for(provider.provider_name, tools=tools)
+    default_model = _allowed_default_for(provider, tools=tools)
     if not default_model:
-        models = provider.list_models()
-        if models:
-            default_model = models[0].model_id
+        raise ValueError("No zero-cost model is available.")
 
     return provider, default_model
 
@@ -118,7 +122,7 @@ def route_chat(
             if has_tools:
                 errors = [f"{provider.provider_name}/{model}: {exc}"]
                 for alt in get_available_providers():
-                    alt_model = _default_model_for(alt.provider_name, tools=True)
+                    alt_model = _allowed_default_for(alt, tools=True)
                     if not alt_model or (alt is provider and alt_model == model):
                         continue
                     try:
@@ -133,7 +137,7 @@ def route_chat(
             for alt in get_available_providers():
                 if alt is provider:
                     continue
-                alt_model = _default_model_for(alt.provider_name, tools=False)
+                alt_model = _allowed_default_for(alt, tools=False)
                 if not alt_model:
                     continue
                 try:
@@ -150,7 +154,7 @@ def route_chat(
         raise ValueError("No LLM providers are configured. Please check your API keys in .env.")
 
     providers_to_try = [
-        (p, _default_model_for(p.provider_name, tools=has_tools)) for p in available
+        (p, _allowed_default_for(p, tools=has_tools)) for p in available
     ]
 
     errors: list[str] = []

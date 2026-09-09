@@ -13,6 +13,10 @@ class RefreshTokenRequest(BaseSchema):
     refresh_token: str
 
 
+class OAuthExchangeRequest(BaseSchema):
+    ticket: str = Field(..., min_length=20, max_length=4096)
+
+
 class ChangePasswordRequest(BaseSchema):
     current_password: str = Field(..., min_length=8, max_length=128)
     new_password: str = Field(..., min_length=8, max_length=128)

@@ -74,6 +74,25 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
 
+    # Zero-cost mode filters the registry to models explicitly priced at zero.
+    ZERO_COST_MODE: bool = True
+
+    # --------------------------------------------------
+    # Social authentication / GitHub App
+    # --------------------------------------------------
+
+    FRONTEND_URL: str = "http://localhost:3000"
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    GITHUB_REDIRECT_URI: str = ""
+    GITHUB_APP_ID: str = ""
+    GITHUB_APP_SLUG: str = ""
+    GITHUB_APP_PRIVATE_KEY: str = ""
+    GITHUB_APP_SETUP_URL: str = ""
+
     # --------------------------------------------------
     # Search
     # --------------------------------------------------

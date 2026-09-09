@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, ChevronDown, FileText, LayoutDashboard, MessageSquare, UserRound } from "lucide-react";
+import { Bot, ChevronDown, FileText, Github, LayoutDashboard, MessageSquare, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
 import { useAuth } from "@/context/AuthContext";
@@ -12,6 +12,7 @@ const links: Array<{ to: string; label: string; icon: LucideIcon; primary?: bool
   { to: "agents", label: "Agents", icon: Bot },
   { to: "chat", label: "Ask AI", icon: MessageSquare, primary: true },
   { to: "knowledge", label: "Knowledge", icon: FileText },
+  { to: "github", label: "GitHub", icon: Github },
   { to: "settings", label: "You", icon: UserRound },
 ];
 
@@ -65,7 +66,7 @@ export function MobileShell() {
       </main>
 
       <nav className="absolute inset-x-3 bottom-[max(.6rem,env(safe-area-inset-bottom))] z-30 rounded-[22px] border border-slate-200/80 bg-white/90 px-2 py-1.5 shadow-[0_18px_60px_rgba(15,23,42,.22)] backdrop-blur-2xl">
-        <div className="grid grid-cols-5 items-end">
+        <div className="grid grid-cols-6 items-end">
           {links.map(({ to, label, icon: Icon, ...item }) => (
             <NavLink
               key={to}

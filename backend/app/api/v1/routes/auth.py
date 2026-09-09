@@ -1,6 +1,8 @@
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies import get_auth_service, get_otp_service
@@ -10,6 +12,7 @@ from app.schemas.auth import (
     ChangePasswordRequest,
     EmailRequest,
     OtpSentResponse,
+    OAuthExchangeRequest,
     RefreshTokenRequest,
     ResetPasswordRequest,
     TokenResponse,
@@ -18,8 +21,76 @@ from app.schemas.auth import (
 from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 from app.services.otp_service import OtpService
+from app.services.oauth_service import OAuthService
+from app.core.config import settings
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+oauth_service = OAuthService()
+
+
+@router.get("/oauth/providers")
+def oauth_providers() -> dict[str, bool]:
+    return {
+        "google": bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET),
+        "github": bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET),
+    }
+
+
+@router.get("/oauth/{provider}/start")
+def oauth_start(provider: str) -> RedirectResponse:
+    try:
+        url, state = oauth_service.authorization(provider)
+    except (ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    response = RedirectResponse(url)
+    response.set_cookie(
+        "suvyon_oauth_state",
+        state,
+        max_age=600,
+        httponly=True,
+        secure=settings.APP_ENV.lower() == "production",
+        samesite="lax",
+    )
+    return response
+
+
+@router.get("/oauth/{provider}/callback")
+def oauth_callback(
+    provider: str,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+    code: Annotated[str | None, Query()] = None,
+    state_value: Annotated[str | None, Query(alias="state")] = None,
+    error: Annotated[str | None, Query()] = None,
+    cookie_state: Annotated[str | None, Cookie(alias="suvyon_oauth_state")] = None,
+) -> RedirectResponse:
+    try:
+        if error or not code or not state_value:
+            raise ValueError(error or "OAuth authorization was cancelled.")
+        oauth_service.validate_state(provider, state_value, cookie_state)
+        profile = oauth_service.fetch_profile(provider, code)
+        user = auth_service.oauth_login(provider=provider, profile=profile)
+        ticket = oauth_service.create_exchange_ticket(user.id)
+        response = RedirectResponse(
+            f"{settings.FRONTEND_URL.rstrip('/')}/oauth/callback?ticket={quote(ticket)}"
+        )
+    except Exception as exc:
+        response = RedirectResponse(
+            f"{settings.FRONTEND_URL.rstrip('/')}/login?oauth_error={quote(str(exc)[:300])}"
+        )
+    response.delete_cookie("suvyon_oauth_state")
+    return response
+
+
+@router.post("/oauth/exchange", response_model=TokenResponse)
+def oauth_exchange(
+    request: OAuthExchangeRequest,
+    auth_service: Annotated[AuthService, Depends(get_auth_service)],
+) -> TokenResponse:
+    try:
+        user_id = oauth_service.consume_exchange_ticket(request.ticket)
+        return auth_service.issue_tokens_for_user_id(user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc))
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
