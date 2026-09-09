@@ -3,6 +3,10 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") || "/api/v1";
 
+export function apiUrl(path: string) {
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export const TOKEN_KEYS = {
   access: "suvyon_access_token",
   refresh: "suvyon_refresh_token",

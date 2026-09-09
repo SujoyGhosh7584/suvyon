@@ -12,6 +12,10 @@ import type {
   ChatHistoryItem,
   AgentRunResponse,
   PendingEmailDraft,
+  GitHubProject,
+  GitHubProposal,
+  GitHubRepositoryOption,
+  RepositoryAnswer,
 } from "@/types/api";
 
 export const authApi = {
@@ -37,12 +41,17 @@ export const authApi = {
     api.post<{ message: string }>("/auth/forgot-password", { email }).then((r) => r.data),
   resetPassword: (email: string, code: string, new_password: string) =>
     api.post("/auth/reset-password", { email, code, new_password }),
+  oauthProviders: () =>
+    api.get<Record<"google" | "github", boolean>>("/auth/oauth/providers").then((r) => r.data),
+  exchangeOAuth: (ticket: string) =>
+    api.post<TokenResponse>("/auth/oauth/exchange", { ticket }).then((r) => r.data),
 };
 
 export const usersApi = {
   me: () => api.get<User>("/users/me").then((r) => r.data),
   updateMe: (payload: { full_name?: string; avatar_url?: string }) =>
     api.patch<User>("/users/me", payload).then((r) => r.data),
+  deleteMe: () => api.delete("/users/me", { data: { confirmation: "DELETE" } }),
 };
 
 export const workspacesApi = {
@@ -258,4 +267,28 @@ export const documentsApi = {
 
 export const modelsApi = {
   list: () => api.get<ModelInfo[]>("/models").then((r) => r.data),
+};
+
+export const githubApi = {
+  installUrl: (workspaceId: string) =>
+    api.get<{ url: string }>(`/workspaces/${workspaceId}/github/install`).then((r) => r.data.url),
+  repositories: () =>
+    api.get<GitHubRepositoryOption[]>("/github/repositories").then((r) => r.data),
+  projects: (workspaceId: string) =>
+    api.get<GitHubProject[]>(`/workspaces/${workspaceId}/github/projects`).then((r) => r.data),
+  connect: (workspaceId: string, repository: GitHubRepositoryOption) =>
+    api.post<GitHubProject>(`/workspaces/${workspaceId}/github/projects`, {
+      installation_id: repository.installation_id,
+      github_repo_id: repository.github_repo_id,
+    }).then((r) => r.data),
+  disconnect: (workspaceId: string, projectId: string) =>
+    api.delete(`/workspaces/${workspaceId}/github/projects/${projectId}`),
+  ask: (workspaceId: string, projectId: string, question: string) =>
+    api.post<RepositoryAnswer>(`/workspaces/${workspaceId}/github/projects/${projectId}/ask`, { question }).then((r) => r.data),
+  documentation: (workspaceId: string, projectId: string, instructions: string) =>
+    api.post<RepositoryAnswer>(`/workspaces/${workspaceId}/github/projects/${projectId}/documentation`, { instructions }).then((r) => r.data),
+  propose: (workspaceId: string, projectId: string, instruction: string) =>
+    api.post<GitHubProposal>(`/workspaces/${workspaceId}/github/projects/${projectId}/proposals`, { instruction }).then((r) => r.data),
+  approve: (workspaceId: string, projectId: string, proposalId: string) =>
+    api.post<GitHubProposal>(`/workspaces/${workspaceId}/github/projects/${projectId}/proposals/${proposalId}/approve`, { confirmed: true }).then((r) => r.data),
 };

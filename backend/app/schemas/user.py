@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Literal
 
 from pydantic import EmailStr, Field
 
@@ -18,6 +19,10 @@ class UserCreate(UserBase):
 class UserUpdateProfile(BaseSchema):
     full_name: str | None = Field(default=None, min_length=2, max_length=255)
     avatar_url: str | None = Field(default=None, max_length=2048)
+
+
+class DeleteAccountRequest(BaseSchema):
+    confirmation: Literal["DELETE"]
 
 
 class UserResponse(UserBase):

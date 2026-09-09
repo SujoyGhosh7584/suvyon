@@ -4,6 +4,7 @@ import {
   Bot,
   ChevronDown,
   FileText,
+  Github,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -21,6 +22,7 @@ const navigation = [
   { to: "chat", label: "Chat", icon: MessageSquare },
   { to: "agents", label: "Agents", icon: Bot },
   { to: "knowledge", label: "Knowledge", icon: FileText },
+  { to: "github", label: "GitHub", icon: Github },
 ] as const;
 
 const sectionCopy: Record<string, { eyebrow: string; title: string }> = {
@@ -28,6 +30,7 @@ const sectionCopy: Record<string, { eyebrow: string; title: string }> = {
   chat: { eyebrow: "Intelligence", title: "AI conversation" },
   agents: { eyebrow: "Automation", title: "Agent missions" },
   knowledge: { eyebrow: "Sources", title: "Knowledge library" },
+  github: { eyebrow: "Projects", title: "GitHub intelligence" },
   settings: { eyebrow: "Account", title: "Settings & security" },
 };
 

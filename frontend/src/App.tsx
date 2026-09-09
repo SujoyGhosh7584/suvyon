@@ -7,9 +7,11 @@ import { AgentsPage } from "@/pages/AgentsPage";
 import { ChatPage } from "@/pages/ChatPage";
 import { KnowledgePage } from "@/pages/KnowledgePage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { GitHubProjectsPage } from "@/pages/GitHubProjectsPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { OverviewPage } from "@/pages/OverviewPage";
+import { OAuthCallbackPage } from "@/pages/OAuthCallbackPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
@@ -31,6 +33,7 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route
@@ -54,6 +57,7 @@ export default function App() {
             element={<Adaptive mobile={MobileAgentsPage} desktop={AgentsPage} />}
           />
           <Route path="knowledge" element={<KnowledgePage />} />
+          <Route path="github" element={<GitHubProjectsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
