@@ -85,9 +85,9 @@ export function KnowledgePage() {
   }
 
   return (
-    <div className="page-enter space-y-6 text-slate-950">
+    <div className="page-enter space-y-4 text-slate-950">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Ground your AI</p><h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Trusted knowledge, organized.</h2><p className="mt-2 max-w-2xl text-sm text-slate-600">Create focused collections and make project documents available directly inside Chat.</p></div>
+        <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Ground your AI</p><h2 className="mt-1 font-display text-2xl font-bold tracking-tight">Trusted knowledge, organized.</h2><p className="mt-2 max-w-2xl text-sm text-slate-600">Create focused collections and make project documents available directly inside Chat.</p></div>
         <div className="flex gap-2 text-xs font-semibold"><span className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-700">{knowledgeBases.length} collections</span><span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-800">{readyDocuments}/{documents.length} ready</span></div>
       </div>
 
@@ -95,8 +95,8 @@ export function KnowledgePage() {
         <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[.75fr_1.25fr]">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="grid gap-5 xl:grid-cols-[320px_1fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2 font-semibold text-slate-950">
             <Plus size={16} />
             New knowledge base
@@ -153,7 +153,7 @@ export function KnowledgePage() {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2 font-semibold text-slate-950">
             <FileUp size={16} />
             Upload document

@@ -2,9 +2,11 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Edit2, MessageCircleHeart, Plus, Send, SlidersHorizontal, Trash2, X } from "lucide-react";
-import { MobileMascot } from "@/components/MobileMascot";
+
 import { MessageContent } from "@/components/MessageContent";
 import { ChatAttachments } from "@/components/ChatAttachments";
+import { ConversationUniverses } from "@/components/ConversationUniverses";
+import { ConversationSourceMessage } from "@/components/ConversationSourceMessage";
 import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
@@ -206,16 +208,16 @@ export function MobileChatPage() {
   if (!conversationId) {
     return (
       <div className="relative flex h-full flex-col px-4 pb-4 pt-1">
-        <div className="mb-4 text-center">
-          <MobileMascot />
+        <div className="mb-4 pt-4 text-left">
+
           <h1 className="mt-2 font-display text-2xl font-extrabold text-ink-950">Your chats</h1>
-          <p className="mt-1 text-sm text-ink-500">Little threads. Big answers.</p>
+          <p className="mt-1 text-sm text-ink-500">Your conversations, all in one place.</p>
         </div>
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-20">
           {conversations.map((c, i) => (
             <div
               key={c.id}
-              className="flex items-center gap-2 rounded-[1.4rem] border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
+              className="flex items-center gap-2 rounded-2xl border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
             >
               <Link
                 to={`/app/w/${workspaceId}/chat/${c.id}`}
@@ -250,7 +252,7 @@ export function MobileChatPage() {
             </div>
           ))}
           {conversations.length === 0 && (
-            <div className="rounded-[1.6rem] bg-white/80 px-5 py-8 text-center text-sm text-ink-500">
+            <div className="rounded-2xl bg-white/80 px-5 py-8 text-center text-sm text-ink-500">
               No chats yet. Tap the plus — say hi.
             </div>
           )}
@@ -326,6 +328,8 @@ export function MobileChatPage() {
         </button>
       </div>
 
+      {activeConversation && <ConversationUniverses key={activeConversation.id} workspaceId={workspaceId} conversation={activeConversation} conversations={conversations} messages={messages} provider={provider} model={model} disabled={messagesLoading || sendMessage.isPending || isSending} />}
+
       {showTune && (
         <div className="grid grid-cols-3 gap-2 border-b border-violet-100 bg-violet-50/80 px-3 py-2">
           <select
@@ -339,7 +343,8 @@ export function MobileChatPage() {
             }}
           >
             <option value="">Auto</option>
-            {providers.map((p) => (
+            {provider && !providers.includes(provider) && <option value={provider}>{provider} ? unavailable</option>}
+              {providers.map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>
@@ -358,7 +363,8 @@ export function MobileChatPage() {
             }}
           >
             <option value="">Model</option>
-            {providerModels.map((m) => (
+            {model && !providerModels.some((m) => m.model_id === model) && <option value={model}>{model} ? unavailable</option>}
+              {providerModels.map((m) => (
               <option key={`${m.provider}-${m.model_id}`} value={m.model_id}>
                 {m.display_name}
               </option>
@@ -404,7 +410,7 @@ export function MobileChatPage() {
                 );
               })()
             ) : (
-              m.content
+              <ConversationSourceMessage content={m.content} />
             )}
           </div>
         ))}

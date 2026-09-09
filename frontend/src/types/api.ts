@@ -34,6 +34,7 @@ export type Conversation = {
   system_prompt: string | null;
   is_pinned: boolean;
   is_archived: boolean;
+  parent_conversation_id?: string | null;
 };
 
 export type Message = {
@@ -59,6 +60,19 @@ export type Agent = {
   tools: string | null;
   is_active: boolean;
   is_public: boolean;
+};
+
+export type SavedAgentRun = {
+  id: string;
+  agent_id: string;
+  status: string;
+  input: string;
+  content: string;
+  provider: string | null;
+  model: string | null;
+  pending_email: PendingEmailDraft | null;
+  config: { provider: string | null; model: string | null };
+  events: { kind: string; at: string; summary: string; tool?: string; arguments?: Record<string, string>; output?: string; provider?: string; model?: string }[];
 };
 
 export type KnowledgeBase = {

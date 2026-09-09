@@ -28,8 +28,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Sora"', "system-ui", "sans-serif"],
-        sans: ['"Outfit"', "system-ui", "sans-serif"],
+        display: ['"Plus Jakarta Sans"', "system-ui", "sans-serif"],
+        sans: ['"Inter"', "system-ui", "sans-serif"],
       },
       boxShadow: {
         panel: "var(--shadow-panel)",

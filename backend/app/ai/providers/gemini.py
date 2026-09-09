@@ -267,13 +267,14 @@ class GeminiProvider(BaseLLMProvider):
         return LLMResponse(
             content=content,
             provider=self.provider_name,
-            model=model,
+            model=data.get("modelVersion") or model,
             prompt_tokens=usage.get("promptTokenCount"),
             completion_tokens=usage.get("candidatesTokenCount"),
             tool_calls=tool_calls,
         )
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
+        metadata = kwargs.pop("_metadata", None)
         system_prompt, contents = _to_gemini_messages(messages)
         payload = self._build_payload(contents, system_prompt, **kwargs)
 
@@ -306,6 +307,8 @@ class GeminiProvider(BaseLLMProvider):
                         line = line[1:]
                     try:
                         chunk = json.loads(line)
+                        if metadata is not None and chunk.get("modelVersion"):
+                            metadata["model"] = chunk["modelVersion"]
                         parts = (
                             chunk.get("candidates", [{}])[0]
                             .get("content", {})

@@ -16,6 +16,8 @@ from app.schemas.conversation import (
     ConversationCreate,
     ConversationResponse,
     ConversationUpdate,
+    ConversationBranch,
+    ConversationMerge,
 )
 from app.schemas.message import MessageCreate, MessageResponse
 from app.schemas.document import DocumentResponse
@@ -23,6 +25,7 @@ from app.services.chat_service import ChatService
 from app.services.document_service import DocumentService
 from app.services.knowledge_base_service import KnowledgeBaseService
 from app.services.workspace_service import WorkspaceService
+from app.services.conversation_universes import branch_conversation, merge_conversations
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/conversations",
@@ -94,6 +97,41 @@ def create_conversation(
         workspace_id=workspace_id, data=request
     )
     return ConversationResponse.model_validate(conversation)
+
+
+@router.post("/merge", response_model=ConversationResponse, status_code=201)
+def merge_chats(
+    workspace_id: UUID,
+    request: ConversationMerge,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+) -> ConversationResponse:
+    _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    try:
+        return ConversationResponse.model_validate(merge_conversations(chat_service, workspace_id, request))
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        raise HTTPException(status_code=502, detail="Could not merge conversations. Please try again.")
+
+
+@router.post("/{conversation_id}/branch", response_model=ConversationResponse, status_code=201)
+def branch_chat(
+    workspace_id: UUID,
+    conversation_id: UUID,
+    request: ConversationBranch,
+    current_user: Annotated[User, Depends(get_current_verified_user)],
+    workspace_service: Annotated[WorkspaceService, Depends(get_workspace_service)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+) -> ConversationResponse:
+    source = _get_conversation_or_404(workspace_id, conversation_id, current_user, workspace_service, chat_service)
+    try:
+        return ConversationResponse.model_validate(branch_conversation(chat_service, source, request))
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.get("/{conversation_id}", response_model=ConversationResponse)

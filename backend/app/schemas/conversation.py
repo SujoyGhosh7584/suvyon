@@ -30,3 +30,17 @@ class ConversationResponse(BaseSchema):
     system_prompt: str | None
     is_pinned: bool
     is_archived: bool
+    parent_conversation_id: UUID | None = None
+
+
+class ConversationBranch(BaseSchema):
+    title: str = Field(min_length=1, max_length=255)
+    through_message_id: UUID | None = None
+
+
+class ConversationMerge(BaseSchema):
+    conversation_ids: list[UUID] = Field(min_length=2, max_length=4)
+    title: str = Field(default="Merged perspectives", min_length=1, max_length=255)
+    focus: str = Field(default="Find the strongest approach and a concrete next step.", min_length=1, max_length=2000)
+    provider: str | None = None
+    model: str | None = None

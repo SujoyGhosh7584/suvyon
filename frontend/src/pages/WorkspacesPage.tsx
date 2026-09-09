@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, ArrowUpRight, Plus, Sparkles, Star, Trash2 } from "lucide-react";
-import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
+import { BrandOrb } from "@/components/AIBackdrop";
 import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { getErrorMessage } from "@/lib/api";
@@ -11,7 +11,7 @@ import { workspacesApi } from "@/lib/services";
 export function WorkspacesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { workspaceId: currentWorkspaceId, setWorkspaceId } = useWorkspace();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -56,21 +56,21 @@ export function WorkspacesPage() {
   const archived = workspaces.filter((w) => w.is_archived);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-mesh px-6 py-10 text-white">
-      <AIBackdrop />
+    <div className="workspace-directory relative min-h-screen px-6 py-6">
+
       <div className="page-enter relative mx-auto max-w-5xl">
-        <div className="mb-8 flex items-start justify-between gap-6">
+        <div className="mb-5 flex items-start justify-between gap-6">
           <div>
-          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.2em] text-accent-soft"><Sparkles size={13} /> Command center</div>
-          <div className="font-display text-4xl font-extrabold md:text-5xl">Your workspaces</div>
+          <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.2em] text-indigo-600"><Sparkles size={13} /> Command center</div>
+          <div className="font-display text-3xl font-bold">Your workspaces</div>
           <p className="mt-2 text-ink-300">
             Pick a space for chat, agents, and knowledge — each with its own files and history.
           </p>
           </div>
-          <BrandOrb />
+          <div className="flex items-center gap-4"><button type="button" className="text-sm text-slate-600 hover:text-indigo-600" onClick={async () => { await logout(); navigate("/login"); }}>Sign out</button><BrandOrb /></div>
         </div>
 
-        <div className="glass-dark mb-8 rounded-[1.75rem] p-6 text-white">
+        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-5 text-slate-950">
           <div className="mb-4 flex items-center gap-2 font-semibold">
             <Plus size={18} />
             Create workspace
@@ -106,11 +106,11 @@ export function WorkspacesPage() {
         {isLoading ? (
           <div className="panel p-6 text-sm text-ink-500">Loading workspaces…</div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="workspace-list">
             {active.map((ws) => (
               <div
                 key={ws.id}
-                className="group relative overflow-hidden rounded-[1.6rem] border border-white/70 bg-white/[.82] text-ink-950 shadow-panel backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow"
+                className="group relative overflow-hidden rounded-2xl border border-white/70 bg-white/[.82] text-ink-950 shadow-panel backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-glow"
               >
                 <button type="button" className="w-full p-6 pr-14 text-left" onClick={() => { setWorkspaceId(ws.id); navigate(`/app/w/${ws.id}/overview`); }}>
                 <div className="flex items-start justify-between gap-3">

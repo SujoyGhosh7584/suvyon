@@ -24,6 +24,10 @@ Render’s **free** web service sleeps when idle. The first request after sleep 
 
 ## What you can do in the product
 
+- **Agent execution** — Multi-step tool use, saved activity, stop controls, and per-task model selection. Explicit models never silently fall back. [Behavior and limits](docs/AGENT_EXECUTION.md).
+
+- **Parallel universes** — Branch a chat at any message, explore alternatives independently, and merge two to four conversations into an AI synthesis. Available on desktop and mobile. [Setup and behavior](docs/PARALLEL_UNIVERSES.md).
+
 - **Workspaces** — Isolated places for chats, agents, and knowledge bases.
 - **Chat** — Auto mode can call tools (Wikipedia, web search, image generation URLs, knowledge search). Select one shared knowledge base or attach private files that only that conversation can access.
 - **Knowledge (RAG)** — Upload documents, chunk + embed (Gemini embeddings when configured), retrieve with pgvector.

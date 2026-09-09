@@ -4,8 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bot, MessageSquareX, Plus, Send, Trash2 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
 import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
-import { MobileMascot } from "@/components/MobileMascot";
-import { StatusBubble } from "@/components/StatusBubble";
+
+import { AgentActivity, useAgentExecution } from "@/components/AgentActivity";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
 import { AGENT_TEMPLATES, TEMPLATE_ICONS, TOOL_DETAILS } from "@/lib/agentTemplates";
@@ -28,7 +28,7 @@ export function MobileAgentsPage() {
   const [selectedTools, setSelectedTools] = useState<string[]>([...AGENT_TEMPLATES[0].tools]);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [running, setRunning] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<PendingEmailDraft | null>(null);
   const [emailError, setEmailError] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -69,13 +69,9 @@ export function MobileAgentsPage() {
   const usesStudio =
     (selectedAgent?.tools || "").includes("generate_image") ||
     (selectedAgent?.tools || "").includes("generate_storyboard");
-  const statusSteps = usesStudio
-    ? ["Directing the scene…", "Rendering visuals…", "Packaging the reply…"]
-    : usesEmail
-      ? ["Drafting the email…", "Checking send approval…", "Writing a reply…"]
-      : usesWebSearch
-        ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
-        : ["Thinking…", "Preparing a reply…"];
+  const execution = useAgentExecution(workspaceId, agentId, selectedAgent, setPendingEmail);
+  const running = starting || execution.running;
+
 
   function applyTemplate(id: (typeof AGENT_TEMPLATES)[number]["id"]) {
     const template = AGENT_TEMPLATES.find((item) => item.id === id);
@@ -129,10 +125,11 @@ export function MobileAgentsPage() {
   });
 
   const sendEmail = useMutation({
-    mutationFn: (draft: PendingEmailDraft) => agentsApi.sendEmail(workspaceId, agentId!, draft),
+    mutationFn: (draft: PendingEmailDraft) => agentsApi.sendEmail(workspaceId, agentId!, draft, execution.draftRunId),
     onSuccess: (result) => {
       setPendingEmail(null);
       setEmailError("");
+      queryClient.invalidateQueries({ queryKey: ["agent-runs", workspaceId, agentId] });
       queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
         ...current,
         { role: "assistant", content: `✅ ${result.message}` },
@@ -143,8 +140,8 @@ export function MobileAgentsPage() {
 
   async function runAgent(e: FormEvent) {
     e.preventDefault();
-    if (!agentId || !message.trim()) return;
-    setRunning(true);
+    if (!agentId || !message.trim() || running) return;
+    setStarting(true);
     setError("");
     const userMessage = message.trim();
     setMessage("");
@@ -153,19 +150,13 @@ export function MobileAgentsPage() {
       { role: "user", content: userMessage },
     ]);
     try {
-      const result = await agentsApi.run(workspaceId, agentId, {
-        content: userMessage,
-      });
-      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
-        ...current,
-        { role: "assistant", content: result.content },
-      ]);
-      if (result.pending_email) setPendingEmail(result.pending_email);
+      await execution.start(userMessage);
+      queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } catch (err) {
       setError(getErrorMessage(err));
       queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } finally {
-      setRunning(false);
+      setStarting(false);
     }
   }
 
@@ -230,6 +221,7 @@ export function MobileAgentsPage() {
               }}
             >
               <option value="">Auto</option>
+              {provider && !providers.includes(provider) && <option value={provider}>{provider} ? unavailable</option>}
               {providers.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -238,6 +230,7 @@ export function MobileAgentsPage() {
             </select>
             <select className="input" value={model} onChange={(e) => setModel(e.target.value)}>
               <option value="">Default</option>
+              {model && !providerModels.some((m) => m.model_id === model) && <option value={model}>{model} ? unavailable</option>}
               {providerModels.map((m) => (
                 <option key={m.model_id} value={m.model_id}>
                   {m.display_name}
@@ -279,8 +272,8 @@ export function MobileAgentsPage() {
   if (!agentId) {
     return (
       <div className="relative flex h-full flex-col px-4 pb-4 pt-1">
-        <div className="mb-4 text-center">
-          <MobileMascot />
+        <div className="mb-4 pt-4 text-left">
+
           <h1 className="mt-2 font-display text-2xl font-extrabold">Your agents</h1>
           <p className="mt-1 text-sm text-ink-500">Tiny helpers with tools.</p>
         </div>
@@ -288,7 +281,7 @@ export function MobileAgentsPage() {
           {agents.map((a) => (
             <div
               key={a.id}
-              className="flex items-center gap-2 rounded-[1.4rem] border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
+              className="flex items-center gap-2 rounded-2xl border border-white/80 bg-white/70 p-2 shadow-sm backdrop-blur-xl"
             >
               <Link
                 to={`/app/w/${workspaceId}/agents/${a.id}`}
@@ -314,7 +307,7 @@ export function MobileAgentsPage() {
             </div>
           ))}
           {agents.length === 0 && (
-            <div className="rounded-[1.6rem] bg-white/80 px-5 py-8 text-center text-sm text-ink-500">
+            <div className="rounded-2xl bg-white/80 px-5 py-8 text-center text-sm text-ink-500">
               No agents yet. Make a search buddy or an email helper.
             </div>
           )}
@@ -381,7 +374,7 @@ export function MobileAgentsPage() {
             {item.role === "assistant" ? <MessageContent content={item.content} /> : item.content}
           </div>
         ))}
-        <StatusBubble active={running} steps={statusSteps} />
+        <AgentActivity execution={execution} models={models} />
         <div ref={bottomRef} />
       </div>
       <form onSubmit={runAgent} className="border-t border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-xl">
@@ -416,6 +409,7 @@ export function MobileAgentsPage() {
           onReject={() => {
             setPendingEmail(null);
             setEmailError("");
+      queryClient.invalidateQueries({ queryKey: ["agent-runs", workspaceId, agentId] });
           }}
         />
       )}

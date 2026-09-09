@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { BrandOrb } from "@/components/AIBackdrop";
 import { LoaderCircle } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -30,9 +31,10 @@ export function OAuthCallbackPage() {
   }, [acceptOAuth, navigate, params]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6 text-white">
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
-        {error ? <><h1 className="font-display text-xl font-bold">Sign-in failed</h1><p className="mt-2 max-w-md text-sm text-rose-300">{error}</p><button className="btn-primary mt-5" onClick={() => navigate("/login")}>Back to login</button></> : <><LoaderCircle className="mx-auto animate-spin" /><p className="mt-3 text-sm text-slate-300">Finishing secure sign-in…</p></>}
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f6fa] p-6 text-slate-950">
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="mb-6 flex justify-center"><BrandOrb /></div>
+        {error ? <><h1 className="font-display text-xl font-bold">Sign-in failed</h1><p className="mt-2 max-w-md text-sm text-rose-700">{error}</p><button className="btn-primary mt-5" onClick={() => navigate("/login")}>Back to login</button></> : <><LoaderCircle className="mx-auto animate-spin" /><p className="mt-3 text-sm text-slate-600">Finishing secure sign-in…</p></>}
       </div>
     </div>
   );

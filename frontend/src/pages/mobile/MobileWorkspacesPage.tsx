@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Archive, Plus, Star, Trash2 } from "lucide-react";
-import { MobileMascot } from "@/components/MobileMascot";
+
 import { useAuth } from "@/context/AuthContext";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { getErrorMessage } from "@/lib/api";
 import { workspacesApi } from "@/lib/services";
-import { AIBackdrop, BrandOrb } from "@/components/AIBackdrop";
+import { BrandOrb } from "@/components/AIBackdrop";
 
 function greeting() {
   const hour = new Date().getHours();
@@ -66,8 +66,8 @@ export function MobileWorkspacesPage() {
   const firstName = (user?.full_name || "there").split(" ")[0];
 
   return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-mesh px-5 pb-10 pt-[max(1rem,env(safe-area-inset-top))] text-white">
-      <AIBackdrop />
+    <div className="workspace-directory relative min-h-[100dvh] px-5 pb-10 pt-[max(1rem,env(safe-area-inset-top))] text-white">
+
       <div className="relative mb-2 flex items-center justify-between">
         <BrandOrb />
         <button
@@ -81,14 +81,14 @@ export function MobileWorkspacesPage() {
           Sign out
         </button>
       </div>
-      <div className="relative page-enter"><MobileMascot className="mt-4" /></div>
-      <p className="mt-3 text-center text-xs font-semibold uppercase tracking-[0.2em] text-indigo-200">
+
+      <p className="mt-6 text-left text-xs font-semibold uppercase tracking-[0.2em] text-indigo-600">
         {greeting()}
       </p>
-      <h1 className="mt-2 text-center font-display text-3xl font-extrabold">
+      <h1 className="mt-2 text-left font-display text-3xl font-extrabold">
         Hey {firstName}
       </h1>
-      <p className="mt-2 text-center text-sm text-ink-300">Pick a little world to play in.</p>
+      <p className="mt-2 text-left text-sm text-ink-300">Choose a workspace. Pick up where you left off.</p>
 
       <button
         type="button"
@@ -129,8 +129,8 @@ export function MobileWorkspacesPage() {
       )}
 
       <div className="relative mt-6 space-y-3">
-        {error && !showCreate && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-center text-xs text-red-200">{error}</p>}
-        {isLoading && <p className="text-center text-sm text-ink-400">Loading…</p>}
+        {error && !showCreate && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-left text-xs text-red-200">{error}</p>}
+        {isLoading && <p className="text-left text-sm text-ink-400">Loading…</p>}
         {active.map((ws) => (
           <div
             key={ws.id}

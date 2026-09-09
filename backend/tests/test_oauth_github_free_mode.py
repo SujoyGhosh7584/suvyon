@@ -13,6 +13,23 @@ from app.services.oauth_service import OAuthService
 from app.services.user_service import UserService
 
 
+@pytest.mark.parametrize("provider", ["github", "google"])
+@pytest.mark.parametrize("missing", ["CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI"])
+def test_incomplete_oauth_configuration_disables_provider(monkeypatch, provider, missing):
+    from app.api.v1.routes.auth import oauth_providers, oauth_start
+    from fastapi import HTTPException
+
+    prefix = provider.upper()
+    for suffix in ["CLIENT_ID", "CLIENT_SECRET", "REDIRECT_URI"]:
+        monkeypatch.setattr(settings, f"{prefix}_{suffix}", "configured")
+    assert oauth_providers()[provider] is True
+    monkeypatch.setattr(settings, f"{prefix}_{missing}", " ")
+    assert oauth_providers()[provider] is False
+    with pytest.raises(HTTPException) as error:
+        oauth_start(provider)
+    assert error.value.status_code == 503
+
+
 def test_oauth_exchange_ticket_is_short_lived_and_single_use():
     service = OAuthService()
     user_id = uuid4()

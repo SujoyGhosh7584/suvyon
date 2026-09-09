@@ -126,13 +126,14 @@ class OpenRouterProvider(BaseLLMProvider):
         return LLMResponse(
             content=choice.get("content") or "",
             provider=self.provider_name,
-            model=model,
+            model=data.get("model") or model,
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             tool_calls=tool_calls,
         )
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
+        metadata = kwargs.pop("_metadata", None)
         with httpx.Client(timeout=120) as client:
             with client.stream(
                 "POST",
@@ -145,6 +146,8 @@ class OpenRouterProvider(BaseLLMProvider):
                     if line.startswith("data: ") and line != "data: [DONE]":
                         try:
                             chunk = json.loads(line[6:])
+                            if metadata is not None and chunk.get("model"):
+                                metadata["model"] = chunk["model"]
                             delta = chunk["choices"][0]["delta"].get("content", "")
                             if delta:
                                 yield delta

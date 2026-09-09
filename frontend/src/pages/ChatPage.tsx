@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { MessageContent } from "@/components/MessageContent";
 import { ChatAttachments } from "@/components/ChatAttachments";
+import { ConversationUniverses } from "@/components/ConversationUniverses";
+import { ConversationSourceMessage } from "@/components/ConversationSourceMessage";
 import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
 import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { StatusBubble } from "@/components/StatusBubble";
@@ -223,8 +225,8 @@ export function ChatPage() {
     <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
       <aside
         className={cn(
-          "relative flex shrink-0 flex-col rounded-[24px] border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-500",
-          isSidebarCollapsed ? "w-14 overflow-visible" : "w-72 overflow-hidden",
+          "relative flex shrink-0 flex-col rounded-2xl border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-500",
+          isSidebarCollapsed ? "w-14 overflow-visible" : "w-64 overflow-hidden",
         )}
       >
         {isSidebarCollapsed && (
@@ -358,7 +360,8 @@ export function ChatPage() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {activeConversation && <ConversationUniverses key={activeConversation.id} workspaceId={workspaceId} conversation={activeConversation} conversations={conversations} messages={messages} provider={provider} model={model} disabled={messagesLoading || sendMessage.isPending || isSending} />}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/70 bg-white/55 p-3 backdrop-blur-xl md:px-4">
           <div className="flex items-center gap-2">
             {activeConversation && editingId !== activeConversation.id ? (
@@ -427,6 +430,7 @@ export function ChatPage() {
               }}
             >
               <option value="">Auto provider</option>
+              {provider && !providers.includes(provider) && <option value={provider}>{provider} ? unavailable</option>}
               {providers.map((p) => (
                 <option key={p} value={p}>
                   {p}
@@ -447,6 +451,7 @@ export function ChatPage() {
               }}
             >
               <option value="">Default model</option>
+              {model && !providerModels.some((m) => m.model_id === model) && <option value={model}>{model} ? unavailable</option>}
               {providerModels.map((m) => (
                 <option key={`${m.provider}-${m.model_id}`} value={m.model_id}>
                   {m.display_name} ({m.provider})
@@ -514,7 +519,7 @@ export function ChatPage() {
                   );
                 })()
               ) : (
-                m.content
+                <ConversationSourceMessage content={m.content} />
               )}
             </div>
           ))}
