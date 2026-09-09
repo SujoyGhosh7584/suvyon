@@ -255,139 +255,14 @@ def _synthesize_answer(
     return _fallback_from_tool_results(tool_results, user_content)
 
 
-def run_agent(
-    agent: Agent,
-    user_content: str,
-    history: list[dict] | None = None,
-    *,
-    pending_email: list[dict] | None = None,
-) -> str:
-    """Run agent with ReAct tool-calling loop. Returns final response."""
-    history = history or []
-    tool_names = _get_agent_tools(agent)
-    tool_schemas = get_tool_schemas(tool_names)
-    messages = _build_messages(agent, history, user_content)
-    collected_results: list[str] = []
-
-    for _ in range(MAX_ITERATIONS):
-        # Once a tool has run, stop offering tools and write the answer.
-        if collected_results:
-            return _synthesize_answer(messages, agent, collected_results, user_content)
-
-        response = route_chat(
-            messages,
-            provider_name=agent.provider,
-            model_id=agent.model,
-            tools=tool_schemas or None,
-        )
-
-        if response.tool_calls:
-            collected_results.extend(
-                _execute_tool_calls(
-                    messages,
-                    response.tool_calls,
-                    user_content=user_content,
-                    pending_email=pending_email,
-                )
-            )
-            return _synthesize_answer(
-                messages,
-                agent,
-                collected_results,
-                user_content,
-                provider_name=response.provider,
-                model_id=response.model,
-            )
-
-        if (
-            not collected_results
-            and "web_search" in tool_names
-            and _needs_web_search(user_content)
-        ):
-            collected_results.extend(
-                _execute_tool_calls(
-                    messages,
-                    [
-                        {
-                            "id": "forced_web_search",
-                            "name": "web_search",
-                            "arguments": {"query": user_content},
-                        }
-                    ],
-                    user_content=user_content,
-                    pending_email=pending_email,
-                )
-            )
-            return _synthesize_answer(
-                messages,
-                agent,
-                collected_results,
-                user_content,
-                provider_name=response.provider,
-                model_id=response.model,
-            )
-
-        if (response.content or "").strip():
-            return response.content
-        break
-
-    if collected_results:
-        return _synthesize_answer(messages, agent, collected_results, user_content)
-    return "I could not produce an answer. Please try again."
+def run_agent(agent, user_content, history=None, *, pending_email=None):
+    from app.agents.execution import execute_agent
+    result = execute_agent(agent, user_content, history)
+    if pending_email is not None and result['pending_email']:
+        pending_email[:] = [result['pending_email']]
+    return result['content']
 
 
-def stream_agent(agent: Agent, user_content: str, history: list[dict] | None = None) -> Iterator[str]:
-    """Resolve tool calls first, then stream the final answer."""
-    history = history or []
-    tool_names = _get_agent_tools(agent)
-    tool_schemas = get_tool_schemas(tool_names)
-    messages = _build_messages(agent, history, user_content)
-    collected_results: list[str] = []
-    pin_provider = agent.provider
-    pin_model = agent.model
-
-    if tool_schemas:
-        response = route_chat(
-            messages,
-            provider_name=agent.provider,
-            model_id=agent.model,
-            tools=tool_schemas,
-        )
-        pin_provider = response.provider
-        pin_model = response.model
-        if response.tool_calls:
-            collected_results.extend(
-                _execute_tool_calls(
-                    messages, response.tool_calls, user_content=user_content
-                )
-            )
-        elif "web_search" in tool_names and _needs_web_search(user_content):
-            collected_results.extend(
-                _execute_tool_calls(
-                    messages,
-                    [
-                        {
-                            "id": "forced_web_search",
-                            "name": "web_search",
-                            "arguments": {"query": user_content},
-                        }
-                    ],
-                    user_content=user_content,
-                )
-            )
-        elif (response.content or "").strip():
-            yield response.content
-            return
-
-    if collected_results:
-        messages.append(LLMMessage(role="user", content=_SYNTHESIZE_PROMPT))
-
-    yielded = False
-    for chunk in route_stream(
-        messages, provider_name=pin_provider, model_id=pin_model
-    ):
-        yielded = True
-        yield chunk
-
-    if not yielded and collected_results:
-        yield _fallback_from_tool_results(collected_results, user_content)
+def stream_agent(agent, user_content, history=None):
+    from app.agents.execution import execute_agent
+    yield execute_agent(agent, user_content, history)['content']

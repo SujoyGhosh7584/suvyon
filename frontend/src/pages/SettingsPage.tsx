@@ -52,8 +52,8 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="page-enter mx-auto max-w-4xl space-y-6 text-slate-950">
-      <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Personalize Suvyon</p><h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Your account, your controls.</h2><p className="mt-2 text-sm text-slate-600">Manage appearance, profile details, and account security.</p></div>
+    <div className="page-enter settings-grid text-slate-950">
+      <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Personalize Suvyon</p><h2 className="mt-1 font-display text-2xl font-bold tracking-tight">Your account, your controls.</h2><p className="mt-2 text-sm text-slate-600">Manage appearance, profile details, and account security.</p></div>
 
       {message && (
         <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -64,17 +64,17 @@ export function SettingsPage() {
         <div className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
       )}
 
-      <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <div className="font-semibold">Appearance</div>
           <p className="mt-1 text-sm text-ink-500">
-            Saved on this device only. Switching themes is a CSS change — nothing extra to host.
+            Choose an accent palette. Your preference is saved on this device.
           </p>
         </div>
         <ThemePicker />
       </div>
 
-      <form className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={saveProfile}>
+      <form className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={saveProfile}>
         <div className="font-semibold">Profile</div>
         <div>
           <label className="label">Email</label>
@@ -95,7 +95,7 @@ export function SettingsPage() {
         </button>
       </form>
 
-      <form className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={changePassword}>
+      <form className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={changePassword}>
         <div className="font-semibold">Change password</div>
         <div>
           <label className="label">Current password</label>
@@ -124,7 +124,7 @@ export function SettingsPage() {
         </button>
       </form>
 
-      <section className="rounded-[24px] border border-rose-200 bg-rose-50/60 p-6 shadow-sm">
+      <section className="rounded-2xl border border-rose-200 bg-rose-50/60 p-6 shadow-sm">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700"><Trash2 size={18} /></span>
           <div>

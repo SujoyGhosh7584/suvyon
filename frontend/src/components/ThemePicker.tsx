@@ -6,12 +6,13 @@ export function ThemePicker({ compact = false }: { compact?: boolean }) {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className={cn("grid gap-2", compact ? "grid-cols-5" : "grid-cols-1 sm:grid-cols-5")}>
+    <div className={cn("grid gap-2", compact ? "grid-cols-5" : "theme-options")}>
       {THEMES.map((item) => (
         <button
           key={item.id}
           type="button"
           title={item.label}
+          aria-pressed={theme === item.id}
           onClick={() => setTheme(item.id)}
           className={cn(
             "overflow-hidden rounded-2xl border text-left text-ink-900 transition",

@@ -330,7 +330,7 @@ class ChatService:
                 final = route_chat(
                     messages,
                     provider_name=response.provider,
-                    model_id=response.model,
+                    model_id=getattr(response, "routing_model", None) or response.model,
                 )
                 mode = self._mode_from_tools(used, extra_sources)
                 return (
@@ -379,7 +379,7 @@ class ChatService:
                 model_id=conversation.model,
                 tools=schemas,
             )
-            pin_provider, pin_model = response.provider, response.model
+            pin_provider, pin_model = response.provider, getattr(response, "routing_model", None) or response.model
             if response.tool_calls:
                 messages.append(
                     LLMMessage(role="assistant", content="", tool_calls=response.tool_calls)
@@ -412,8 +412,9 @@ class ChatService:
                 return
 
         full = ""
+        stream_metadata = {}
         for chunk in route_stream(
-            messages, provider_name=pin_provider, model_id=pin_model
+            messages, provider_name=pin_provider, model_id=pin_model, metadata=stream_metadata
         ):
             full += chunk
             yield chunk
@@ -421,8 +422,8 @@ class ChatService:
         self._auto_stream_state = (
             mode,
             list(dict.fromkeys(extra_sources)),
-            pin_provider,
-            pin_model,
+            stream_metadata.get("provider", pin_provider),
+            stream_metadata.get("model", pin_model),
         )
 
     def _build_contextual_messages(
@@ -741,18 +742,20 @@ class ChatService:
             selected_mode = "chat"
 
         full_content = ""
+        stream_metadata = {}
         for chunk in route_stream(
             llm_messages,
             provider_name=conversation.provider,
             model_id=conversation.model,
+            metadata=stream_metadata,
         ):
             full_content += chunk
             yield chunk
 
         provenance_note = self._build_provenance_note(
             selected_mode,
-            conversation.provider,
-            conversation.model,
+            stream_metadata.get("provider", conversation.provider),
+            stream_metadata.get("model", conversation.model),
             sources=extra_sources if selected_mode in {"rag", "web"} else None,
         )
         if provenance_note:
@@ -762,8 +765,8 @@ class ChatService:
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT.value,
             content=full_content,
-            provider=conversation.provider,
-            model=conversation.model,
+            provider=stream_metadata.get("provider", conversation.provider),
+            model=stream_metadata.get("model", conversation.model),
         )
         try:
             self._messages.create(assistant_msg)

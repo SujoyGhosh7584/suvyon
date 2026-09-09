@@ -37,6 +37,11 @@ class Conversation(Base, BaseModel):
 
     system_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    parent_conversation_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True), ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True, index=True,
+    )
+
     is_pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

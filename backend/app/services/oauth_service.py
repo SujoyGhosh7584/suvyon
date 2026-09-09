@@ -20,9 +20,12 @@ class OAuthService:
             return settings.GITHUB_CLIENT_ID, settings.GITHUB_CLIENT_SECRET, settings.GITHUB_REDIRECT_URI
         raise ValueError("Unsupported OAuth provider.")
 
+    def is_configured(self, provider: str) -> bool:
+        return all(value.strip() for value in self._config(provider))
+
     def authorization(self, provider: str) -> tuple[str, str]:
         client_id, _, redirect_uri = self._config(provider)
-        if not client_id or not redirect_uri:
+        if not self.is_configured(provider):
             raise RuntimeError(f"{provider.title()} login is not configured.")
         nonce = secrets.token_urlsafe(32)
         state = jwt.encode(

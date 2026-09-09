@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 96" fill="none">
+  <title>Suvyon — connected possibilities</title>
+  <rect width="96" height="96" rx="25" fill="#101629"/>
+  <path d="M68 25H40c-12 0-20 7-20 17s8 16 20 16h16c5 0 8 2 8 6s-3 7-9 7H27" stroke="#7590FF" stroke-width="11" stroke-linecap="round"/>
+  <path d="M28 71h28c12 0 20-7 20-17s-8-16-20-16H40c-5 0-8-2-8-6s3-7 9-7h17" stroke="#F4F7FF" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="72" cy="24" r="7" fill="#D4FA75"/>
+<text x="118" y="65" font-family="Arial,Helvetica,sans-serif" font-size="53" font-weight="700" letter-spacing="-2.8" fill="#101629">suvyon</text></svg>

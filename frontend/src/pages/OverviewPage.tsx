@@ -20,22 +20,22 @@ export function OverviewPage() {
   ];
 
   return (
-    <div className="space-y-5 text-slate-950">
+    <div className="overview-modern space-y-4 text-slate-950">
       <section className="grid gap-4 xl:grid-cols-[1.45fr_.55fr]">
-        <div className="relative overflow-hidden rounded-[28px] bg-[#111522] p-6 text-white shadow-xl md:p-8">
+        <div className="relative overflow-hidden rounded-2xl bg-[#111522] p-5 text-white">
           <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-indigo-500/30 blur-3xl" />
           <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="relative">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.22em] text-indigo-300"><span className="ai-live-dot" /> Workspace intelligence ready</div>
-            <h2 className="text-balance mt-5 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-4xl">What will you move forward in {workspace?.name || "this workspace"}?</h2>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.22em] text-indigo-300"> {workspace?.name || "Your workspace"}</div>
+            <h2 className="text-balance mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight md:text-3xl">Make your next move.</h2>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-300">Start a conversation, launch a specialist mission, or add trusted knowledge for more precise answers.</p>
-            <div className="mt-7 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Link to={`/app/w/${workspaceId}/chat`} className="btn-primary"><MessageSquare size={16} /> Ask Suvyon</Link>
               <Link to={`/app/w/${workspaceId}/agents`} className="rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-white/15"><Bot className="mr-2 inline" size={16} />Launch agent</Link>
             </div>
           </div>
         </div>
-        <Link to={`/app/w/${workspaceId}/knowledge`} className="group flex min-h-[220px] flex-col justify-between overflow-hidden rounded-[28px] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+        <Link to={`/app/w/${workspaceId}/knowledge`} className="overview-knowledge group flex min-h-[180px] flex-col justify-between overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-6 shadow-sm transition hover:border-indigo-300">
           <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-indigo-700 shadow-sm"><Plus size={20} /></span>
           <div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-indigo-600">Improve answer quality</p><h3 className="mt-2 font-display text-2xl font-bold">Add knowledge</h3><p className="mt-2 text-sm text-slate-600">Upload project files, guides, or research.</p><ArrowUpRight className="mt-5 text-indigo-700 transition group-hover:-translate-y-1 group-hover:translate-x-1" size={20} /></div>
         </Link>
@@ -43,15 +43,15 @@ export function OverviewPage() {
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {metrics.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm md:p-5">
+          <div key={label} className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm md:p-4">
             <div className="flex items-start justify-between"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${color}`}><Icon size={17} /></span><span className="font-display text-3xl font-bold tracking-tight text-slate-950">{value}</span></div>
-            <p className="mt-5 text-xs font-semibold text-slate-500">{label}</p>
+            <p className="mt-3 text-xs font-semibold text-slate-500">{label}</p>
           </div>
         ))}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
-        <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-500">Continue working</p><h3 className="mt-1 font-display text-lg font-bold">Recent conversations</h3></div><Link to={`/app/w/${workspaceId}/chat`} className="text-xs font-bold text-indigo-700">View all</Link></div>
           <div className="mt-5 space-y-2">
             {conversations.slice(0, 4).map((conversation) => <Link key={conversation.id} to={`/app/w/${workspaceId}/chat/${conversation.id}`} className="group flex items-center gap-3 rounded-2xl border border-transparent px-3 py-3 transition hover:border-slate-200 hover:bg-slate-50"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600"><MessageSquare size={17} /></span><span className="min-w-0 flex-1 truncate text-sm font-semibold">{conversation.title}</span><ArrowRight size={15} className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-indigo-600" /></Link>)}
@@ -59,7 +59,7 @@ export function OverviewPage() {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
           <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-500">Your AI team</p><h3 className="mt-1 font-display text-lg font-bold">Agent missions</h3></div>
           <div className="mt-5 space-y-2">
             {agents.slice(0, 4).map((agent) => {

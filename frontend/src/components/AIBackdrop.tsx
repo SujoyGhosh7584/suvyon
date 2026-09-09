@@ -16,10 +16,6 @@ export function AIBackdrop({ className }: { className?: string }) {
 
 export function BrandOrb({ compact = false }: { compact?: boolean }) {
   return (
-    <span className={cn("brand-orb", compact ? "h-9 w-9" : "h-11 w-11")} aria-hidden="true">
-      <span className="brand-orb-ring" />
-      <span className="brand-orb-core">S</span>
-      <span className="brand-orb-pulse" />
-    </span>
+    <img src="/brand/suvyon-mark.svg" alt="" aria-hidden="true" className={cn("brand-mark shrink-0", compact ? "h-8 w-8" : "h-10 w-10")} />
   );
 }

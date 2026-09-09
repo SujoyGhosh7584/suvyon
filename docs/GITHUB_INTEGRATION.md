@@ -27,6 +27,26 @@ Create a GitHub OAuth App and configure:
 Only `read:user user:email` is requested. Repository access is deliberately
 not requested by the login application.
 
+For the current production deployment, set these in Render:
+
+```text
+GITHUB_REDIRECT_URI=https://suvyonbackend.onrender.com/api/v1/auth/oauth/github/callback
+FRONTEND_URL=https://suvyon-ten.vercel.app
+```
+
+Set the OAuth App's Authorization callback URL to that same backend callback.
+Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from the OAuth App in Render;
+the repository GitHub App credentials do not replace these login credentials.
+Local `.env` values are not uploaded to Render. For local development, use a
+separate OAuth App with `http://localhost:8000/api/v1/auth/oauth/github/callback`
+and keep the frontend API hostname consistent with the callback hostname so
+the browser returns the OAuth state cookie.
+
+Check `/api/v1/auth/oauth/providers`: `github` should be `true` only when all
+three login settings are populated. If sign-in returns to localhost from
+production, correct `FRONTEND_URL`. If GitHub rejects the redirect, check the
+OAuth App callback against `GITHUB_REDIRECT_URI`.
+
 ## GitHub repository access
 
 Create a GitHub App with setup URL:

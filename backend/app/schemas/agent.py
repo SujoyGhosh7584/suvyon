@@ -54,6 +54,8 @@ class AgentMessageResponse(BaseSchema):
 class AgentRunRequest(BaseSchema):
     content: str = Field(..., min_length=1, max_length=20_000)
     history: list[AgentHistoryItem] | None = Field(default=None, max_length=40)
+    provider: str | None = Field(default=None, max_length=100)
+    model: str | None = Field(default=None, max_length=100)
 
     @field_validator("history")
     @classmethod
@@ -77,7 +79,26 @@ class AgentRunResponse(BaseSchema):
 
 class AgentEmailSendRequest(PendingEmailDraft):
     confirmed: Literal[True]
+    run_id: UUID | None = None
 
 
 class AgentEmailSendResponse(BaseSchema):
     message: str
+
+
+class SavedAgentRunResponse(BaseSchema):
+    id: UUID
+    agent_id: UUID
+    status: str
+    input: str
+    content: str
+    events: list[dict]
+    provider: str | None
+    model: str | None
+    pending_email: PendingEmailDraft | None
+    config: dict
+
+    @field_validator('config', mode='before')
+    @classmethod
+    def public_selection(cls, value):
+        return {key: value.get(key) for key in ('provider', 'model')}

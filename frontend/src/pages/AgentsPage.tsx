@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, MessageSquareX, Pencil, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
 import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
 import { MessageContent } from "@/components/MessageContent";
-import { StatusBubble } from "@/components/StatusBubble";
+import { AgentActivity, useAgentExecution } from "@/components/AgentActivity";
 import { getErrorMessage } from "@/lib/api";
 import { AGENT_TEMPLATES, TEMPLATE_ICONS, TOOL_DETAILS } from "@/lib/agentTemplates";
 import { sendOnEnter } from "@/lib/keyboard";
@@ -29,7 +29,7 @@ export function AgentsPage() {
   const [error, setError] = useState("");
 
   const [message, setMessage] = useState("");
-  const [running, setRunning] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<PendingEmailDraft | null>(null);
   const [emailError, setEmailError] = useState("");
   const [notice, setNotice] = useState("");
@@ -74,13 +74,9 @@ export function AgentsPage() {
     .filter(Boolean)
     .map((tool) => TOOL_DETAILS[tool]?.name || tool.replace(/_/g, " "))
     .join(" · ");
-  const statusSteps = usesStudio
-    ? ["Directing the scene…", "Rendering visuals…", "Packaging the reply…"]
-    : usesEmail
-      ? ["Drafting the email…", "Checking send approval…", "Writing a reply…"]
-      : usesWebSearch
-        ? ["Searching the web…", "Reading sources…", "Writing an answer…"]
-        : ["Thinking…", "Preparing a reply…"];
+  const execution = useAgentExecution(workspaceId, agentId, selectedAgent, setPendingEmail);
+  const running = starting || execution.running;
+
 
   function applyTemplate(id: (typeof AGENT_TEMPLATES)[number]["id"]) {
     const template = AGENT_TEMPLATES.find((item) => item.id === id);
@@ -175,10 +171,11 @@ export function AgentsPage() {
   });
 
   const sendEmail = useMutation({
-    mutationFn: (draft: PendingEmailDraft) => agentsApi.sendEmail(workspaceId, agentId!, draft),
+    mutationFn: (draft: PendingEmailDraft) => agentsApi.sendEmail(workspaceId, agentId!, draft, execution.draftRunId),
     onSuccess: (result) => {
       setPendingEmail(null);
       setEmailError("");
+      queryClient.invalidateQueries({ queryKey: ["agent-runs", workspaceId, agentId] });
       setNotice(result.message);
       queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
         ...current,
@@ -190,8 +187,8 @@ export function AgentsPage() {
 
   async function runAgent(e: FormEvent) {
     e.preventDefault();
-    if (!agentId || !message.trim()) return;
-    setRunning(true);
+    if (!agentId || !message.trim() || running) return;
+    setStarting(true);
     setError("");
     const userMessage = message.trim();
     setMessage("");
@@ -200,25 +197,19 @@ export function AgentsPage() {
       { role: "user", content: userMessage },
     ]);
     try {
-      const result = await agentsApi.run(workspaceId, agentId, {
-        content: userMessage,
-      });
-      queryClient.setQueryData<ChatHistoryItem[]>(historyQueryKey, (current = []) => [
-        ...current,
-        { role: "assistant", content: result.content },
-      ]);
-      if (result.pending_email) setPendingEmail(result.pending_email);
+      await execution.start(userMessage);
+      queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } catch (err) {
       setError(getErrorMessage(err));
       queryClient.invalidateQueries({ queryKey: historyQueryKey });
     } finally {
-      setRunning(false);
+      setStarting(false);
     }
   }
 
   return (
     <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
-      <aside className="flex w-72 shrink-0 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+      <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
           <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Your AI team</p><div className="font-display font-bold text-slate-950">Agent missions</div></div>
           <button
@@ -270,7 +261,7 @@ export function AgentsPage() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {showCreate ? (
           <div className="overflow-y-auto p-6">
             <h2 className="text-xl font-semibold">{editingId ? "Edit agent" : "Create an agent"}</h2>
@@ -359,7 +350,8 @@ export function AgentsPage() {
                     }}
                   >
                     <option value="">Auto</option>
-                    {providers.map((p) => (
+                    {provider && !providers.includes(provider) && <option value={provider}>{provider} ? unavailable</option>}
+              {providers.map((p) => (
                       <option key={p} value={p}>
                         {p}
                       </option>
@@ -374,7 +366,8 @@ export function AgentsPage() {
                     onChange={(e) => setModel(e.target.value)}
                   >
                     <option value="">Default</option>
-                    {providerModels.map((m) => (
+                    {model && !providerModels.some((m) => m.model_id === model) && <option value={model}>{model} ? unavailable</option>}
+              {providerModels.map((m) => (
                       <option key={m.model_id} value={m.model_id}>
                         {m.display_name}
                       </option>
@@ -515,7 +508,7 @@ export function AgentsPage() {
                   )}
                 </div>
               ))}
-              <StatusBubble active={running} steps={statusSteps} />
+              <AgentActivity execution={execution} models={models} />
               <div ref={bottomRef} />
             </div>
             <form onSubmit={runAgent} className="border-t border-teal-100 bg-white/80 p-4">
@@ -551,6 +544,7 @@ export function AgentsPage() {
           error={emailError}
           onSend={(draft) => {
             setEmailError("");
+      queryClient.invalidateQueries({ queryKey: ["agent-runs", workspaceId, agentId] });
             sendEmail.mutate(draft);
           }}
           onSaveDraft={(draft) => {
@@ -560,6 +554,7 @@ export function AgentsPage() {
           onReject={() => {
             setPendingEmail(null);
             setEmailError("");
+      queryClient.invalidateQueries({ queryKey: ["agent-runs", workspaceId, agentId] });
             setNotice("Email rejected. Nothing was sent.");
           }}
         />

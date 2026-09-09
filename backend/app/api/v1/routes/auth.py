@@ -31,8 +31,8 @@ oauth_service = OAuthService()
 @router.get("/oauth/providers")
 def oauth_providers() -> dict[str, bool]:
     return {
-        "google": bool(settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET),
-        "github": bool(settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET),
+        "google": oauth_service.is_configured("google"),
+        "github": oauth_service.is_configured("github"),
     }
 
 

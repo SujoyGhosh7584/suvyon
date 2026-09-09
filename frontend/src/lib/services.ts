@@ -16,6 +16,7 @@ import type {
   GitHubProposal,
   GitHubRepositoryOption,
   RepositoryAnswer,
+  SavedAgentRun,
 } from "@/types/api";
 
 export const authApi = {
@@ -73,6 +74,10 @@ export const workspacesApi = {
 };
 
 export const conversationsApi = {
+  branch: (workspaceId: string, conversationId: string, payload: { title: string; through_message_id?: string | null }) =>
+    api.post<Conversation>(`/workspaces/${workspaceId}/conversations/${conversationId}/branch`, payload).then((r) => r.data),
+  merge: (workspaceId: string, payload: { conversation_ids: string[]; title: string; focus: string; provider?: string | null; model?: string | null }) =>
+    api.post<Conversation>(`/workspaces/${workspaceId}/conversations/merge`, payload).then((r) => r.data),
   list: (workspaceId: string) =>
     api
       .get<Conversation[]>(`/workspaces/${workspaceId}/conversations`)
@@ -149,6 +154,9 @@ export const conversationsApi = {
 };
 
 export const agentsApi = {
+  runs: (workspaceId: string, agentId: string) => api.get<SavedAgentRun[]>(`/workspaces/${workspaceId}/agents/${agentId}/runs`).then((r) => r.data),
+  startRun: (workspaceId: string, agentId: string, payload: { content: string; provider: string | null; model: string | null }) => api.post<SavedAgentRun>(`/workspaces/${workspaceId}/agents/${agentId}/runs`, payload).then((r) => r.data),
+  stopRun: (workspaceId: string, agentId: string, runId: string) => api.post<SavedAgentRun>(`/workspaces/${workspaceId}/agents/${agentId}/runs/${runId}/stop`).then((r) => r.data),
   list: (workspaceId: string) =>
     api.get<Agent[]>(`/workspaces/${workspaceId}/agents`).then((r) => r.data),
   tools: (workspaceId: string) =>
@@ -212,11 +220,12 @@ export const agentsApi = {
     workspaceId: string,
     agentId: string,
     payload: PendingEmailDraft,
+    runId?: string,
   ) =>
     api
       .post<{ message: string }>(
         `/workspaces/${workspaceId}/agents/${agentId}/email/send`,
-        { ...payload, confirmed: true },
+          { ...payload, confirmed: true, run_id: runId },
       )
       .then((r) => r.data),
 };

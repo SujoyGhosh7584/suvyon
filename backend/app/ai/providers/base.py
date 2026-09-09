@@ -20,6 +20,7 @@ class LLMResponse:
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
     tool_calls: list[dict] | None = None
+    routing_model: str | None = None
 
 
 @dataclass
