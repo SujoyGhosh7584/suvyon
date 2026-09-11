@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bot, ChevronDown, FileText, Github, LayoutDashboard, MessageSquare, UserRound } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandOrb } from "@/components/AIBackdrop";
+import { WorkspaceCommandPalette } from "@/components/WorkspaceCommandPalette";
 import { useAuth } from "@/context/AuthContext";
 import { workspacesApi } from "@/lib/services";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ export function MobileShell() {
   const location = useLocation();
   const currentSection = links.find((link) => location.pathname.includes(`/${link.to}`))?.to || "overview";
   const immersive = currentSection === "chat" || currentSection === "agents";
+  const focusedTask = /\/(chat|agents)\/[^/]+\/?$/.test(location.pathname);
 
   const { data: workspace } = useQuery({
     queryKey: ["workspace", workspaceId],
@@ -33,8 +35,8 @@ export function MobileShell() {
   const initials = (user?.full_name || "S").split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="mobile-app workspace-mobile relative flex h-[100dvh] flex-col overflow-hidden bg-[#080a12] text-slate-950">
-      <header className="relative z-20 flex h-[56px] shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] text-white">
+    <div className={cn("mobile-app workspace-mobile relative flex h-[100dvh] flex-col overflow-hidden text-slate-950", focusedTask && "workspace-mobile-focused")}>
+      {!focusedTask && <header className="relative z-20 flex h-[56px] shrink-0 items-center justify-between px-4 pt-[env(safe-area-inset-top)] text-white">
         <button type="button" className="flex min-w-0 items-center gap-3" onClick={() => navigate("/app")}>
           <BrandOrb compact />
           <span className="min-w-0 text-left">
@@ -45,7 +47,7 @@ export function MobileShell() {
           </span>
         </button>
         <div className="flex items-center gap-2">
-
+          <WorkspaceCommandPalette compact />
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-xs font-bold"
@@ -54,15 +56,15 @@ export function MobileShell() {
             {initials}
           </button>
         </div>
-      </header>
+      </header>}
 
-      <main className="relative z-10 min-h-0 flex-1 overflow-hidden rounded-t-[16px] bg-[#f7f8fc] pb-[calc(70px+env(safe-area-inset-bottom))] shadow-[0_-20px_70px_rgba(0,0,0,.25)]">
+      <main className={cn("relative z-10 min-h-0 flex-1 overflow-hidden shadow-[0_-20px_70px_rgba(0,0,0,.25)]", focusedTask ? "pb-0" : "rounded-t-[16px] pb-[calc(70px+env(safe-area-inset-bottom))]")}>
         <div className={cn("h-full", immersive ? "overflow-hidden" : "overflow-y-auto px-4 pb-5 pt-4")}>
           <Outlet />
         </div>
       </main>
 
-      <nav className="absolute inset-x-0 bottom-0 pb-[max(.4rem,env(safe-area-inset-bottom))] z-30 rounded-none border border-slate-200/80 bg-white/90 px-2 py-1.5 shadow-[0_-2px_16px_rgba(15,23,42,.04)] backdrop-blur-2xl">
+      {!focusedTask && <nav className="absolute inset-x-0 bottom-0 pb-[max(.4rem,env(safe-area-inset-bottom))] z-30 rounded-none border border-ink-200/80 bg-white/90 px-2 py-1.5 shadow-[0_-2px_16px_rgba(15,23,42,.04)] backdrop-blur-2xl">
         <div className="grid grid-cols-6 items-end">
           {links.map(({ to, label, icon: Icon, ...item }) => (
             <NavLink
@@ -88,7 +90,7 @@ export function MobileShell() {
             </NavLink>
           ))}
         </div>
-      </nav>
+      </nav>}
     </div>
   );
 }

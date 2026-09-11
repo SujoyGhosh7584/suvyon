@@ -173,9 +173,9 @@ class GeminiProvider(BaseLLMProvider):
         suffix = "?alt=sse" if stream else ""
         return f"{_GEMINI_API_URL}/models/{model}:{action}{suffix}"
 
-    def _headers(self) -> dict:
+    def _headers(self, api_key: str | None = None) -> dict:
         return {
-            "x-goog-api-key": settings.GEMINI_API_KEY,
+            "x-goog-api-key": api_key or settings.GEMINI_API_KEY,
             "Content-Type": "application/json",
         }
 
@@ -206,11 +206,11 @@ class GeminiProvider(BaseLLMProvider):
         kwargs.pop("tool_choice", None)
         return payload
 
-    def _post_generate(self, model: str, payload: dict) -> dict:
+    def _post_generate(self, model: str, payload: dict, api_key: str | None = None) -> dict:
         with httpx.Client(timeout=60) as client:
             response = client.post(
                 self._url(model),
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=payload,
             )
             if response.is_error:
@@ -225,13 +225,14 @@ class GeminiProvider(BaseLLMProvider):
             return response.json()
 
     def chat(self, messages: list[LLMMessage], model: str, **kwargs) -> LLMResponse:
+        api_key = kwargs.pop("_api_key", None)
         system_prompt, contents = _to_gemini_messages(messages)
         if not contents:
             raise RuntimeError("Gemini request has no conversation contents.")
 
         payload = self._build_payload(contents, system_prompt, **kwargs)
         try:
-            data = self._post_generate(model, payload)
+            data = self._post_generate(model, payload, api_key)
         except RuntimeError as exc:
             message = str(exc).lower()
             if "thinking" in message and "generationConfig" in payload:
@@ -242,7 +243,7 @@ class GeminiProvider(BaseLLMProvider):
                     payload["generationConfig"] = gen
                 else:
                     payload.pop("generationConfig", None)
-                data = self._post_generate(model, payload)
+                data = self._post_generate(model, payload, api_key)
             else:
                 raise
 
@@ -275,6 +276,7 @@ class GeminiProvider(BaseLLMProvider):
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
         metadata = kwargs.pop("_metadata", None)
+        api_key = kwargs.pop("_api_key", None)
         system_prompt, contents = _to_gemini_messages(messages)
         payload = self._build_payload(contents, system_prompt, **kwargs)
 
@@ -282,7 +284,7 @@ class GeminiProvider(BaseLLMProvider):
             with client.stream(
                 "POST",
                 self._url(model, stream=True),
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=payload,
             ) as response:
                 if response.is_error:

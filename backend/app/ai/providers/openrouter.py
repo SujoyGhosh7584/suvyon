@@ -42,9 +42,9 @@ _MODELS = [
 class OpenRouterProvider(BaseLLMProvider):
     provider_name = "openrouter"
 
-    def _headers(self) -> dict:
+    def _headers(self, api_key: str | None = None) -> dict:
         return {
-            "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+            "Authorization": f"Bearer {api_key or settings.OPENROUTER_API_KEY}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://suvyon.app",
             "X-Title": "Suvyon",
@@ -91,10 +91,11 @@ class OpenRouterProvider(BaseLLMProvider):
         return payload
 
     def chat(self, messages: list[LLMMessage], model: str, **kwargs) -> LLMResponse:
+        api_key = kwargs.pop("_api_key", None)
         with httpx.Client(timeout=60) as client:
             response = client.post(
                 f"{_OPENROUTER_API_URL}/chat/completions",
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=self._build_payload(messages, model, stream=False, **kwargs),
             )
             response.raise_for_status()
@@ -134,11 +135,12 @@ class OpenRouterProvider(BaseLLMProvider):
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
         metadata = kwargs.pop("_metadata", None)
+        api_key = kwargs.pop("_api_key", None)
         with httpx.Client(timeout=120) as client:
             with client.stream(
                 "POST",
                 f"{_OPENROUTER_API_URL}/chat/completions",
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=self._build_payload(messages, model, stream=True, **kwargs),
             ) as response:
                 response.raise_for_status()

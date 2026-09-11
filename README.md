@@ -32,7 +32,7 @@ Render’s **free** web service sleeps when idle. The first request after sleep 
 - **Chat** — Auto mode can call tools (Wikipedia, web search, image generation URLs, knowledge search). Select one shared knowledge base or attach private files that only that conversation can access.
 - **Knowledge (RAG)** — Upload documents, chunk + embed (Gemini embeddings when configured), retrieve with pgvector.
 - **Agents** — Saved agent configs with tools (email, research, studio helpers), including a Blindspot Agent for assumption mapping, pre-mortems, and low-cost validation experiments.
-- **Models** — Route across Groq, Gemini, and OpenRouter depending on which API keys are set.
+- **Models** — Secure per-user BYOK and routing across nine free/free-trial providers: Groq, Gemini, OpenRouter, Cerebras, SambaNova, Hugging Face, Mistral, Cohere, and NVIDIA NIM.
 - **Accounts** — Register sends a 6-digit email OTP (same SMTP as agent mail). Verify before the workspace opens. Login includes **Forgot password?** (OTP, then new password). JWT access + refresh tokens stay in the browser.
 
 Image generation uses public Pollinations URLs (proxied by the API). It does **not** persist generated files on the server. Knowledge **file bodies** on Render live on an ephemeral disk; they do not survive restarts the way the database does.
@@ -48,7 +48,7 @@ Image generation uses public Pollinations URLs (proxied by the API). It does **n
   FastAPI  (Render or localhost:8000)
            │
            ├─ PostgreSQL + pgvector  (local or Supabase)
-           ├─ Groq / Gemini / OpenRouter
+           ├─ Multi-provider LLM router (9 BYOK providers)
            └─ Optional: Tavily, SMTP, Pollinations (images)
 ```
 
@@ -154,6 +154,7 @@ Edit `backend/.env` (never commit this file):
 | `BACKEND_CORS_ORIGINS` | `http://localhost:3000,https://localhost:3000` |
 | `GROQ_API_KEY` | From [Groq Console](https://console.groq.com) |
 | `GEMINI_API_KEY` | From [Google AI Studio](https://aistudio.google.com) (needed for RAG) |
+| `OPENROUTER_API_KEY` | Optional shared fallback; users can save their own key in Settings |
 | `APP_ENV` | `development` |
 
 Full list and production differences: [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md).
@@ -247,6 +248,8 @@ Do **not** copy `.env` to GitHub. Set secrets in the host dashboards.
 | `GROQ_API_KEY` | Groq |
 | `GEMINI_API_KEY` | Gemini |
 | `OPENROUTER_API_KEY` | Optional |
+| `CEREBRAS_API_KEY`, `SAMBANOVA_API_KEY`, `HUGGINGFACE_API_KEY` | Optional shared fallbacks |
+| `MISTRAL_API_KEY`, `COHERE_API_KEY`, `NVIDIA_API_KEY` | Optional shared fallbacks |
 
 **Why you must update these when URLs change**
 

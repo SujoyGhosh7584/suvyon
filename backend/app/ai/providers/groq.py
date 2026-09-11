@@ -63,9 +63,9 @@ def _parse_failed_tool_generation(failed_generation: str) -> list[dict] | None:
 class GroqProvider(BaseLLMProvider):
     provider_name = "groq"
 
-    def _headers(self) -> dict:
+    def _headers(self, api_key: str | None = None) -> dict:
         return {
-            "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+            "Authorization": f"Bearer {api_key or settings.GROQ_API_KEY}",
             "Content-Type": "application/json",
         }
 
@@ -109,10 +109,11 @@ class GroqProvider(BaseLLMProvider):
         return payload
 
     def chat(self, messages: list[LLMMessage], model: str, **kwargs) -> LLMResponse:
+        api_key = kwargs.pop("_api_key", None)
         with httpx.Client(timeout=60) as client:
             response = client.post(
                 f"{_GROQ_API_URL}/chat/completions",
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=self._build_payload(messages, model, stream=False, **kwargs),
             )
             if response.status_code >= 400:
@@ -169,11 +170,12 @@ class GroqProvider(BaseLLMProvider):
 
     def stream(self, messages: list[LLMMessage], model: str, **kwargs) -> Iterator[str]:
         metadata = kwargs.pop("_metadata", None)
+        api_key = kwargs.pop("_api_key", None)
         with httpx.Client(timeout=120) as client:
             with client.stream(
                 "POST",
                 f"{_GROQ_API_URL}/chat/completions",
-                headers=self._headers(),
+                headers=self._headers(api_key),
                 json=self._build_payload(messages, model, stream=True, **kwargs),
             ) as response:
                 response.raise_for_status()

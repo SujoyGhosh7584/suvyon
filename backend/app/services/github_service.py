@@ -19,6 +19,7 @@ from app.core.token_blacklist import blacklist_token, is_blacklisted
 from app.models.github_project import GitHubChangeProposal, GitHubInstallation, GitHubProject
 from app.models.user import User
 from app.models.workspace import Workspace
+from app.services.api_key_service import ApiKeyService
 
 _TEXT_EXTENSIONS = {
     ".py", ".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".txt", ".yml", ".yaml",
@@ -35,6 +36,10 @@ _DENIED_CHANGE_NAMES = {
 class GitHubService:
     def __init__(self, session: Session) -> None:
         self.session = session
+        self.api_keys: dict[str, str] = {}
+
+    def use_user_api_keys(self, user_id: UUID) -> None:
+        self.api_keys = ApiKeyService(self.session).decrypted_for_user(user_id)
 
     def _app_jwt(self) -> str:
         if not settings.GITHUB_APP_ID or not settings.GITHUB_APP_PRIVATE_KEY:
@@ -272,7 +277,7 @@ class GitHubService:
         response = route_chat([
             LLMMessage(role="system", content="Answer only from the supplied repository files. Cite filenames in backticks. Clearly say when evidence is missing."),
             LLMMessage(role="user", content=f"Repository: {project.full_name}\nQuestion: {question}\n\n{context}"),
-        ])
+        ], api_keys=self.api_keys)
         return response.content, paths
 
     def documentation(self, project: GitHubProject, instructions: str) -> tuple[str, list[str]]:
@@ -280,7 +285,7 @@ class GitHubService:
         response = route_chat([
             LLMMessage(role="system", content="Create accurate Markdown documentation from repository evidence. Cite relevant file paths and do not invent commands or capabilities."),
             LLMMessage(role="user", content=f"Repository: {project.full_name}\nInstructions: {instructions}\n\n{context}"),
-        ])
+        ], api_keys=self.api_keys)
         return response.content, paths
 
     def propose(self, project: GitHubProject, user_id: UUID, instruction: str) -> GitHubChangeProposal:
@@ -293,7 +298,7 @@ class GitHubService:
                 "Return at most 5 complete text files. Never edit secrets, lock files, generated files, or .github/workflows."
             )),
             LLMMessage(role="user", content=f"Repository: {project.full_name}\nRequest: {instruction}\n\n{context}"),
-        ])
+        ], api_keys=self.api_keys)
         raw = response.content.strip()
         if raw.startswith("```"):
             raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.I | re.S)

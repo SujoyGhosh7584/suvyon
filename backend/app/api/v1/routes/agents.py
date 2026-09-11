@@ -213,7 +213,8 @@ def start_saved_run(
     agent = _get_agent_or_404(agent_id, workspace_id, agent_service)
     _require_active_agent(agent)
     try:
-        run = create_run(session, agent, request)
+        from app.services.api_key_service import ApiKeyService
+        run = create_run(session, agent, request, ApiKeyService(session).decrypted_for_user(current_user.id))
     except IntegrityError:
         session.rollback()
         raise HTTPException(status_code=409, detail='This agent already has an active run. Stop it or wait for it to finish.')

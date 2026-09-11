@@ -15,6 +15,7 @@ from app.repositories.oauth_account_repository import OAuthAccountRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.agent_service import AgentService
+from app.services.api_key_service import ApiKeyService
 from app.services.auth_service import AuthService
 from app.services.otp_service import OtpService
 from app.services.chat_service import ChatService
@@ -23,6 +24,10 @@ from app.services.knowledge_base_service import KnowledgeBaseService
 from app.services.github_service import GitHubService
 from app.services.user_service import UserService
 from app.services.workspace_service import WorkspaceService
+
+
+def get_api_key_service(db: Annotated[Session, Depends(get_db)]) -> ApiKeyService:
+    return ApiKeyService(db)
 
 
 def get_agent_repository(

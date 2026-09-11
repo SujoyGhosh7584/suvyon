@@ -72,6 +72,12 @@ JWTs are signed with this key. Changing it in production **invalidates all sessi
 | `GROQ_API_KEY` | For chat | Your Groq key | Same or dedicated key |
 | `GEMINI_API_KEY` | For RAG embeddings | Your Gemini key | Same or dedicated |
 | `OPENROUTER_API_KEY` | Optional | If you use OpenRouter | Same |
+| `CEREBRAS_API_KEY` | Optional | Shared Cerebras fallback | Same |
+| `SAMBANOVA_API_KEY` | Optional | Shared SambaNova fallback | Same |
+| `HUGGINGFACE_API_KEY` | Optional | Shared Hugging Face fallback | Same |
+| `MISTRAL_API_KEY` | Optional | Shared Mistral fallback | Same |
+| `COHERE_API_KEY` | Optional | Shared Cohere fallback | Same |
+| `NVIDIA_API_KEY` | Optional | Shared NVIDIA NIM fallback | Same |
 | `TAVILY_API_KEY` | Optional | Web search | Same |
 | `SERPER_API_KEY` | Optional | Web search | Same |
 | `BRAVE_API_KEY` | Optional | Web search | Same |
@@ -83,7 +89,7 @@ JWTs are signed with this key. Changing it in production **invalidates all sessi
 | `RESEND_API_KEY` | Production email on Render free | Leave empty | Resend API key (HTTPS) |
 | `SENDGRID_API_KEY` | Production email on Render free | Leave empty | SendGrid API key (HTTPS) |
 
-Chat needs **at least one** of Groq, Gemini, or OpenRouter. Knowledge upload embeddings need **Gemini** (or OpenRouter nomic embed as fallback).
+Chat needs at least one shared provider key above, or a user can add a personal provider key in Settings. Knowledge upload embeddings still need **Gemini** (or OpenRouter nomic embed as fallback).
 
 ### Email provider precedence
 

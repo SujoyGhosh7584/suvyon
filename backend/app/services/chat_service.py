@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from uuid import UUID
 
+from sqlalchemy import inspect
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -68,6 +69,18 @@ class ChatService:
         self._conversations = conversation_repository
         self._messages = message_repository
         self._session = session
+        self._api_keys: dict[str, str] = {}
+
+    def use_api_keys(self, api_keys: dict[str, str]) -> None:
+        """Attach decrypted credentials to this request-scoped service instance."""
+        self._api_keys = api_keys
+
+    def use_user_api_keys(self, user_id: UUID) -> None:
+        if not self._session or not self._session.bind or not inspect(self._session.bind).has_table("user_api_keys"):
+            self._api_keys = {}
+            return
+        from app.services.api_key_service import ApiKeyService
+        self._api_keys = ApiKeyService(self._session).decrypted_for_user(user_id)
 
     # ------------------------------------------------------------------
     # Conversations
@@ -298,6 +311,7 @@ class ChatService:
                 messages,
                 provider_name=conversation.provider,
                 model_id=conversation.model,
+                api_keys=getattr(self, "_api_keys", {}),
                 tools=schemas or None,
             )
             last_provider, last_model = response.provider, response.model
@@ -331,6 +345,7 @@ class ChatService:
                     messages,
                     provider_name=response.provider,
                     model_id=getattr(response, "routing_model", None) or response.model,
+                    api_keys=getattr(self, "_api_keys", {}),
                 )
                 mode = self._mode_from_tools(used, extra_sources)
                 return (
@@ -377,6 +392,7 @@ class ChatService:
                 messages,
                 provider_name=conversation.provider,
                 model_id=conversation.model,
+                api_keys=getattr(self, "_api_keys", {}),
                 tools=schemas,
             )
             pin_provider, pin_model = response.provider, getattr(response, "routing_model", None) or response.model
@@ -414,7 +430,8 @@ class ChatService:
         full = ""
         stream_metadata = {}
         for chunk in route_stream(
-            messages, provider_name=pin_provider, model_id=pin_model, metadata=stream_metadata
+            messages, provider_name=pin_provider, model_id=pin_model,
+            metadata=stream_metadata, api_keys=getattr(self, "_api_keys", {})
         ):
             full += chunk
             yield chunk
@@ -632,6 +649,7 @@ class ChatService:
             llm_messages,
             provider_name=conversation.provider,
             model_id=conversation.model,
+            api_keys=getattr(self, "_api_keys", {}),
         )
 
         provenance_note = self._build_provenance_note(
@@ -748,6 +766,7 @@ class ChatService:
             provider_name=conversation.provider,
             model_id=conversation.model,
             metadata=stream_metadata,
+            api_keys=getattr(self, "_api_keys", {}),
         ):
             full_content += chunk
             yield chunk

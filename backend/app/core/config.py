@@ -74,6 +74,21 @@ class Settings(BaseSettings):
 
     GEMINI_API_KEY: str = ""
 
+    CEREBRAS_API_KEY: str = ""
+
+    SAMBANOVA_API_KEY: str = ""
+
+    HUGGINGFACE_API_KEY: str = ""
+
+    MISTRAL_API_KEY: str = ""
+
+    COHERE_API_KEY: str = ""
+
+    NVIDIA_API_KEY: str = ""
+
+    # Keep stable across deploys or previously saved user keys cannot be decrypted.
+    CREDENTIAL_ENCRYPTION_KEY: str = ""
+
     # Zero-cost mode filters the registry to models explicitly priced at zero.
     ZERO_COST_MODE: bool = True
 

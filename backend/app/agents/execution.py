@@ -11,7 +11,7 @@ from app.tools.registry import get_tool_schemas
 
 
 def execute_agent(agent, user_content, history=None, *, emit=None, should_stop=None,
-                  max_turns=8, max_calls=12, seconds=120):
+                  max_turns=8, max_calls=12, seconds=120, api_keys=None):
     emit = emit or (lambda event: None)
     should_stop = should_stop or (lambda: False)
     started = time.monotonic()
@@ -55,7 +55,9 @@ def execute_agent(agent, user_content, history=None, *, emit=None, should_stop=N
         if stopped:
             return stopped
         try:
-            response = route_chat(messages, provider_name=routing_provider, model_id=routing_model, tools=schemas or None)
+            response = route_chat(messages, provider_name=routing_provider,
+                                  model_id=routing_model, api_keys=api_keys,
+                                  tools=schemas or None)
         except Exception as exc:
             event('error', summary=str(exc)[:1000])
             return result('failed', f'The model request failed. {str(exc)[:1000]}')

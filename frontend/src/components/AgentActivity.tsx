@@ -63,7 +63,7 @@ export function useAgentExecution(workspaceId: string, agentId: string | undefin
 export function AgentActivity({ execution, models }: { execution: ReturnType<typeof useAgentExecution>; models: ModelInfo[] }) {
   const { runs, running, choice, setChoice } = execution;
   const knownChoice = !choice || models.some((m) => `${m.provider}|${m.model_id}` === choice);
-  return <section aria-label="Agent execution" className="space-y-3 rounded-2xl border border-teal-200 bg-white p-4 text-slate-900">
+  return <section aria-label="Agent execution" className="message-bubble-assistant w-full space-y-3 rounded-2xl border border-accent/20 bg-white p-3 text-slate-900">
     <label className="block text-xs font-semibold">Model for the next task
       <select className="input mt-1 text-sm" value={choice} disabled={running} onChange={(e) => setChoice(e.target.value)}>
         <option value="">Auto · choose an available model</option>
@@ -71,10 +71,9 @@ export function AgentActivity({ execution, models }: { execution: ReturnType<typ
         {models.map((m) => <option key={`${m.provider}|${m.model_id}`} value={`${m.provider}|${m.model_id}`}>{m.provider} · {m.display_name}</option>)}
       </select>
     </label>
-    <p className="text-xs text-slate-500">Explicit selections never fall back to another provider. Router/latest aliases may resolve to a different model version; actual responses are recorded below.</p>
     {execution.error && <p role="alert" className="text-sm text-red-700">{execution.error}</p>}
     {running && <button type="button" className="btn-outline text-sm" onClick={() => void execution.stop()}><Square size={14} /> Stop task</button>}
-    {runs.slice(0, 10).map((run, index) => <details key={run.id} open={index === 0} className="rounded-xl border border-slate-200 p-3">
+    {runs.filter((run) => active(run.status) || run.status === "awaiting_approval").slice(0, 1).map((run) => <details key={run.id} open className="rounded-xl border border-accent/20 p-3">
       <summary className="cursor-pointer text-sm font-medium">
         <span className="inline-flex items-center gap-2">{active(run.status) ? <LoaderCircle size={14} className="animate-spin" /> : run.status === "completed" ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}{run.status.replace(/_/g, " ")}</span>
         <span className="ml-2 font-normal text-slate-500">{run.input.slice(0, 70)}</span>

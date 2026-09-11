@@ -87,6 +87,14 @@ export function MobileAgentsPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, running]);
 
+  useEffect(() => {
+    if (!showCreate || !models.length) return;
+    if (models.some((item) => item.provider === provider && item.model_id === model)) return;
+    const first = models.find((item) => item.provider === provider) || models[0];
+    setProvider(first.provider);
+    setModel(first.model_id);
+  }, [model, models, provider, showCreate]);
+
   const createAgent = useMutation({
     mutationFn: () =>
       agentsApi.create(workspaceId, {
@@ -352,7 +360,7 @@ export function MobileAgentsPage() {
           <MessageSquareX size={19} />
         </button>
       </div>
-      <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
+      <div className="chat-transcript flex-1 space-y-3 overflow-y-auto px-3 py-4">
         {history.length === 0 && !running && (
           <p className="px-2 text-center text-sm text-ink-500">
             Say hi to this agent.
@@ -365,10 +373,10 @@ export function MobileAgentsPage() {
           <div
             key={`${item.role}-${idx}`}
             className={cn(
-              "max-w-[88%] rounded-[1.35rem] px-3.5 py-2.5 text-sm leading-relaxed",
+              "message-bubble rounded-[1.35rem] px-3.5 py-2.5 text-sm leading-relaxed",
               item.role === "user"
-                ? "ml-auto rounded-br-md bg-rose-500 text-white"
-                : "rounded-bl-md bg-white text-ink-900 shadow-sm ring-1 ring-rose-100",
+                ? "message-bubble-user ml-auto rounded-br-md bg-rose-500 text-white"
+                : "message-bubble-assistant rounded-bl-md bg-white text-ink-900 shadow-sm ring-1 ring-rose-100",
             )}
           >
             {item.role === "assistant" ? <MessageContent content={item.content} /> : item.content}

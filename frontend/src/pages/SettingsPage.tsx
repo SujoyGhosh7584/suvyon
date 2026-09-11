@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { ThemePicker } from "@/components/ThemePicker";
+import { ApiKeysSettings } from "@/components/ApiKeysSettings";
 import { useAuth } from "@/context/AuthContext";
 import { getErrorMessage } from "@/lib/api";
 import { authApi, usersApi } from "@/lib/services";
@@ -73,6 +74,8 @@ export function SettingsPage() {
         </div>
         <ThemePicker />
       </div>
+
+      <ApiKeysSettings />
 
       <form className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4" onSubmit={saveProfile}>
         <div className="font-semibold">Profile</div>
