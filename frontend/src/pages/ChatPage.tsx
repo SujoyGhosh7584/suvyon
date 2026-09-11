@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   Edit2,
-  PanelLeftClose,
+  Menu,
   Plus,
   Send,
   SlidersHorizontal,
@@ -17,7 +17,6 @@ import { ChatAttachments } from "@/components/ChatAttachments";
 import { ConversationUniverses } from "@/components/ConversationUniverses";
 import { ConversationSourceMessage } from "@/components/ConversationSourceMessage";
 import { KnowledgeScopePicker } from "@/components/KnowledgeScopePicker";
-import { SidebarExpandTab } from "@/components/SidebarExpandTab";
 import { StatusBubble } from "@/components/StatusBubble";
 import { getErrorMessage } from "@/lib/api";
 import { sendOnEnter } from "@/lib/keyboard";
@@ -222,24 +221,16 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
+    <div className={cn("flex h-full min-h-0 text-slate-950 transition-[gap] duration-300", isSidebarCollapsed ? "gap-0" : "gap-3")}>
       <aside
         className={cn(
-          "relative flex shrink-0 flex-col rounded-2xl border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-500",
-          isSidebarCollapsed ? "w-14 overflow-visible" : "w-64 overflow-hidden",
+          "relative flex shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-950 shadow-sm transition-all duration-300",
+          isSidebarCollapsed ? "w-0 -translate-x-4 border-0 opacity-0" : "w-72 translate-x-0 opacity-100",
         )}
       >
-        {isSidebarCollapsed && (
-          <div className="flex justify-center border-b border-slate-200 py-2">
-            <SidebarExpandTab
-              label="Expand chats panel"
-              onClick={() => setIsSidebarCollapsed(false)}
-            />
-          </div>
-        )}
         <div className="flex items-center justify-between border-b border-slate-200 p-3">
-          {!isSidebarCollapsed && <div className="px-1"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">History</p><div className="font-display font-bold">Conversations</div></div>}
-          <div className={cn("flex items-center gap-1", isSidebarCollapsed && "mx-auto")}>
+          <div className="flex min-w-0 items-center gap-2"><button type="button" className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(true)} title="Close chat history" aria-label="Close chat history"><Menu size={18} /></button><div className="min-w-0 px-1"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">History</p><div className="truncate font-display font-bold">Conversations</div></div></div>
+          <div className="flex items-center gap-1">
             <button
               type="button"
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white"
@@ -248,22 +239,11 @@ export function ChatPage() {
             >
               <Plus size={16} />
             </button>
-            {!isSidebarCollapsed && (
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100"
-                onClick={() => setIsSidebarCollapsed(true)}
-                title="Collapse chats panel"
-              >
-                <PanelLeftClose size={16} />
-              </button>
-            )}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {!isSidebarCollapsed &&
-            conversations.map((c) => (
+          {conversations.map((c) => (
               <div
                 key={c.id}
                 className={cn(
@@ -338,23 +318,7 @@ export function ChatPage() {
                 )}
               </div>
             ))}
-          {isSidebarCollapsed &&
-            conversations.map((c) => (
-              <Link
-                key={c.id}
-                to={`/app/w/${workspaceId}/chat/${c.id}`}
-                title={c.title}
-                className={cn(
-                  "mb-2 flex h-9 w-9 items-center justify-center rounded-xl font-medium text-xs transition",
-                  c.id === conversationId
-                    ? "bg-violet-500 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200",
-                )}
-              >
-                {c.title.charAt(0).toUpperCase()}
-              </Link>
-            ))}
-          {!isSidebarCollapsed && conversations.length === 0 && (
+          {conversations.length === 0 && (
             <p className="px-2 py-4 text-sm text-slate-500">No conversations yet.</p>
           )}
         </div>
@@ -364,6 +328,7 @@ export function ChatPage() {
         {activeConversation && <ConversationUniverses key={activeConversation.id} workspaceId={workspaceId} conversation={activeConversation} conversations={conversations} messages={messages} provider={provider} model={model} disabled={messagesLoading || sendMessage.isPending || isSending} />}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/70 bg-white/55 p-3 backdrop-blur-xl md:px-4">
           <div className="flex items-center gap-2">
+            {isSidebarCollapsed && <button type="button" className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(false)} title="Open chat history" aria-label="Open chat history"><Menu size={18} /></button>}
             {activeConversation && editingId !== activeConversation.id ? (
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-ink-900 max-w-[200px] truncate">
@@ -472,7 +437,7 @@ export function ChatPage() {
           </div>
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_70%_0%,rgba(124,58,237,.09),transparent_42%)] p-5">
+        <div className="chat-transcript flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_70%_0%,rgba(124,58,237,.09),transparent_42%)] p-5">
           {!conversationId && (
             <div className="flex h-full items-center justify-center">
               <div className="max-w-2xl text-center">
@@ -503,10 +468,10 @@ export function ChatPage() {
             <div
               key={m.id}
               className={cn(
-                "max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                "message-bubble rounded-2xl px-4 py-3 text-sm leading-relaxed",
                 m.role === "user"
-                  ? "ml-auto bg-violet-600 text-white"
-                  : "bg-violet-50 text-ink-900",
+                  ? "message-bubble-user ml-auto bg-violet-600 text-white"
+                  : "message-bubble-assistant bg-violet-50 text-ink-900",
               )}
             >
               {m.role === "assistant" ? (
@@ -544,9 +509,6 @@ export function ChatPage() {
               {error}
             </div>
           )}
-          <div className="mb-3 text-xs text-ink-500">
-            Enter to send · Shift+Enter for a new line. Auto mode can search the web or your docs.
-          </div>
           <div className="flex items-end gap-2">
             {conversationId && <ChatAttachments workspaceId={workspaceId} conversationId={conversationId} />}
             {(mode === "rag" || mode === "auto") && (

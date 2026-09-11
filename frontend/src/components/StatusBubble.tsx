@@ -24,7 +24,7 @@ export function StatusBubble({
   if (!active) return null;
 
   return (
-    <div className="shimmer-line flex max-w-3xl items-center gap-3 rounded-2xl border border-accent/20 bg-white/75 px-4 py-3 text-sm text-ink-800 shadow-sm backdrop-blur-xl">
+    <div className="message-bubble-assistant shimmer-line flex items-center gap-3 rounded-2xl border border-accent/20 bg-white/75 px-4 py-3 text-sm text-ink-800 shadow-sm backdrop-blur-xl">
       <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-violet-700 text-white shadow-glow">
         <Globe size={16} />
         <Loader2 size={28} className="absolute animate-spin text-accent/40" />

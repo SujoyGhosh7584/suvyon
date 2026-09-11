@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, MessageSquareX, Pencil, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
+import { Bot, Menu, MessageSquareX, Pencil, Plus, Send, ShieldCheck, Trash2 } from "lucide-react";
 import { EmailApprovalDialog } from "@/components/EmailApprovalDialog";
 import { MessageContent } from "@/components/MessageContent";
 import { AgentActivity, useAgentExecution } from "@/components/AgentActivity";
@@ -18,6 +18,7 @@ export function AgentsPage() {
   const queryClient = useQueryClient();
 
   const [showCreate, setShowCreate] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<(typeof AGENT_TEMPLATES)[number]["id"]>("interview");
   const [name, setName] = useState<string>(AGENT_TEMPLATES[0].name);
@@ -111,6 +112,14 @@ export function AgentsPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [history, running]);
+
+  useEffect(() => {
+    if (!showCreate || editingId || !models.length) return;
+    if (models.some((item) => item.provider === provider && item.model_id === model)) return;
+    const first = models.find((item) => item.provider === provider) || models[0];
+    setProvider(first.provider);
+    setModel(first.model_id);
+  }, [editingId, model, models, provider, showCreate]);
 
   const createAgent = useMutation({
     mutationFn: () =>
@@ -208,10 +217,10 @@ export function AgentsPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-9.5rem)] min-h-[560px] gap-4 text-slate-950">
-      <aside className="flex w-64 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className={cn("flex h-full min-h-0 text-slate-950 transition-[gap] duration-300", isSidebarCollapsed ? "gap-0" : "gap-3")}>
+      <aside className={cn("flex shrink-0 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300", isSidebarCollapsed ? "w-0 -translate-x-4 border-0 opacity-0" : "w-72 translate-x-0 opacity-100")}>
         <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Your AI team</p><div className="font-display font-bold text-slate-950">Agent missions</div></div>
+          <div className="flex min-w-0 items-center gap-2"><button type="button" className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(true)} title="Close agent list" aria-label="Close agent list"><Menu size={18} /></button><div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.18em] text-indigo-600">Your AI team</p><div className="truncate font-display font-bold text-slate-950">Agent missions</div></div></div>
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white transition hover:bg-indigo-700"
@@ -261,9 +270,10 @@ export function AgentsPage() {
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        {isSidebarCollapsed && <button type="button" className="sidebar-toggle absolute left-3 top-3 z-30" onClick={() => setIsSidebarCollapsed(false)} title="Open agent list" aria-label="Open agent list"><Menu size={18} /></button>}
         {showCreate ? (
-          <div className="overflow-y-auto p-6">
+          <div className={cn("overflow-y-auto p-6", isSidebarCollapsed && "pt-16")}>
             <h2 className="text-xl font-semibold">{editingId ? "Edit agent" : "Create an agent"}</h2>
             <p className="mt-1 text-sm text-ink-500">
               Choose the outcome you want. Suvyon configures the AI capabilities for you.
@@ -440,7 +450,7 @@ export function AgentsPage() {
           </div>
         ) : (
           <>
-            <div className="border-b border-white/70 bg-white/55 p-4 backdrop-blur-xl">
+            <div className={cn("border-b border-white/70 bg-white/55 p-4 backdrop-blur-xl", isSidebarCollapsed && "pl-16")}>
               <div className="flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-600 text-white">
                   <Bot size={16} />
@@ -469,7 +479,7 @@ export function AgentsPage() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.11),transparent_42%)] p-5">
+            <div className="chat-transcript flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.11),transparent_42%)] p-5">
               {notice && (
                 <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                   <ShieldCheck size={17} /> {notice}
@@ -480,7 +490,7 @@ export function AgentsPage() {
                   <Bot className="mx-auto text-accent" size={30} />
                   <h3 className="mt-3 font-display text-xl font-bold">Start a mission</h3>
                   <p className="mt-2 text-sm text-ink-500">
-                  Ask this agent something. Press Enter to send, Shift+Enter for a new line.
+                  Describe the outcome you want and the agent will handle the steps.
                   {usesWebSearch ? " Live questions will search the web first." : ""}
                   {usesEmail
                     ? " Emails open in an editable approval card before anything is sent."
@@ -495,10 +505,10 @@ export function AgentsPage() {
                 <div
                   key={`${item.role}-${idx}`}
                   className={cn(
-                    "max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                    "message-bubble rounded-2xl px-4 py-3 text-sm leading-relaxed",
                     item.role === "user"
-                      ? "ml-auto bg-teal-800 text-white"
-                      : "bg-white text-ink-900 shadow-sm ring-1 ring-teal-100",
+                      ? "message-bubble-user ml-auto bg-teal-800 text-white"
+                      : "message-bubble-assistant bg-white text-ink-900 shadow-sm ring-1 ring-teal-100",
                   )}
                 >
                   {item.role === "assistant" ? (

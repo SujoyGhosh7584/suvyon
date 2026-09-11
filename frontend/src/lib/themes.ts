@@ -18,6 +18,11 @@ export function isThemeId(value: string | null): value is ThemeId {
 
 export function applyTheme(theme: ThemeId) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme === "dawn" ? "light" : "dark";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute(
+    "content",
+    getComputedStyle(document.documentElement).getPropertyValue("--app-chrome").trim() || "#101629",
+  );
 }
 
 export function readStoredTheme(): ThemeId {

@@ -15,17 +15,34 @@ from collections.abc import Iterator
 from app.ai.providers.base import BaseLLMProvider, LLMMessage, LLMResponse
 from app.ai.registry import allowed_models, get_available_providers, get_provider
 
+
+def _available_providers(api_keys: dict[str, str] | None = None):
+    # Preserve compatibility with registry substitutes that expose the original signature.
+    return get_available_providers(api_keys) if api_keys else get_available_providers()
+
 # Default model per provider when none is specified
 _PROVIDER_DEFAULTS: dict[str, str] = {
     "groq": "openai/gpt-oss-20b",
     "gemini": "gemini-flash-latest",
     "openrouter": "openrouter/free",
+    "cerebras": "gpt-oss-120b",
+    "sambanova": "Meta-Llama-3.3-70B-Instruct",
+    "huggingface": "openai/gpt-oss-120b:fastest",
+    "mistral": "mistral-small-latest",
+    "cohere": "command-a-plus-05-2026",
+    "nvidia": "meta/llama-3.1-8b-instruct",
 }
 
 _TOOL_MODEL_DEFAULTS: dict[str, str] = {
     "groq": "openai/gpt-oss-20b",
     "gemini": "gemini-flash-latest",
     "openrouter": "openrouter/free",
+    "cerebras": "gpt-oss-120b",
+    "sambanova": "Meta-Llama-3.3-70B-Instruct",
+    "huggingface": "openai/gpt-oss-120b:fastest",
+    "mistral": "mistral-small-latest",
+    "cohere": "command-a-plus-05-2026",
+    "nvidia": "meta/llama-3.1-8b-instruct",
 }
 
 def _default_model_for(provider_name: str, *, tools: bool) -> str:
@@ -53,6 +70,7 @@ def _resolve(
     model_id: str | None,
     *,
     tools: bool = False,
+    api_keys: dict[str, str] | None = None,
 ) -> tuple[BaseLLMProvider, str]:
     """
     Resolve a (provider, model) pair intelligently.
@@ -61,13 +79,13 @@ def _resolve(
     provider_name = provider_name.strip() if provider_name else None
     model_id = model_id.strip() if model_id else None
 
-    available_providers = get_available_providers()
+    available_providers = _available_providers(api_keys)
     if not available_providers:
-        raise ValueError("No LLM providers are configured. Please check your API keys in .env.")
+        raise ValueError("No AI provider is configured. Add an API key in Settings.")
 
     if provider_name:
         provider = get_provider(provider_name)
-        if not provider or not provider.is_available():
+        if not provider or provider not in available_providers:
             raise ValueError(f"Selected provider '{provider_name}' is unavailable. Choose another provider or Auto.")
         if model_id:
             if not _provider_owns_model(provider, model_id):
@@ -92,8 +110,13 @@ def _resolve(
     return provider, default_model
 
 
-def _invoke(provider, messages, model, **kwargs):
-    response = provider.chat(messages, model, **kwargs)
+def _invoke(provider, messages, model, api_keys=None, **kwargs):
+    response = provider.chat(
+        messages,
+        model,
+        _api_key=(api_keys or {}).get(provider.provider_name),
+        **kwargs,
+    )
     response.routing_model = model
     return response
 
@@ -102,6 +125,7 @@ def route_chat(
     messages: list[LLMMessage],
     provider_name: str | None = None,
     model_id: str | None = None,
+    api_keys: dict[str, str] | None = None,
     **kwargs,
 ) -> LLMResponse:
     """Send a chat request. Explicit provider is not silently swapped to Groq."""
@@ -110,18 +134,20 @@ def route_chat(
     has_tools = bool(kwargs.get("tools"))
 
     if provider_name or model_id:
-        provider, model = _resolve(provider_name, model_id, tools=has_tools)
+        provider, model = _resolve(
+            provider_name, model_id, tools=has_tools, api_keys=api_keys
+        )
         try:
-            return _invoke(provider, messages, model, **kwargs)
+            return _invoke(provider, messages, model, api_keys=api_keys, **kwargs)
         except Exception as exc:
             raise RuntimeError(
                 f"Selected model {provider.provider_name}/{model} failed. "
                 f"No other model was substituted. {exc}"
             ) from exc
 
-    available = get_available_providers()
+    available = _available_providers(api_keys)
     if not available:
-        raise ValueError("No LLM providers are configured. Please check your API keys in .env.")
+        raise ValueError("No AI provider is configured. Add an API key in Settings.")
 
     providers_to_try = [
         (p, _allowed_default_for(p, tools=has_tools)) for p in available
@@ -132,7 +158,7 @@ def route_chat(
         if not model:
             continue
         try:
-            return _invoke(provider, messages, model, **kwargs)
+            return _invoke(provider, messages, model, api_keys=api_keys, **kwargs)
         except Exception as exc:
             errors.append(f"{provider.provider_name}/{model}: {exc}")
             continue
@@ -145,13 +171,20 @@ def route_stream(
     provider_name: str | None = None,
     model_id: str | None = None,
     metadata: dict | None = None,
+    api_keys: dict[str, str] | None = None,
     **kwargs,
 ) -> Iterator[str]:
     """Stream a chat response from the resolved provider."""
     provider, model = _resolve(
-        provider_name, model_id, tools=bool(kwargs.get("tools"))
+        provider_name, model_id, tools=bool(kwargs.get("tools")), api_keys=api_keys
     )
     if metadata is None:
         metadata = {}
     metadata.update(provider=provider.provider_name, model=model)
-    yield from provider.stream(messages, model, _metadata=metadata, **kwargs)
+    yield from provider.stream(
+        messages,
+        model,
+        _metadata=metadata,
+        _api_key=(api_keys or {}).get(provider.provider_name),
+        **kwargs,
+    )

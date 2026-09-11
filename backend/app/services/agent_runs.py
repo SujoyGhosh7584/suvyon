@@ -1,10 +1,12 @@
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from app.models.agent_run import AgentRun
 from app.models.agent_message import AgentMessage
+from app.models.workspace import Workspace
 from app.agents.execution import execute_agent
 from app.ai.router import _resolve
+from app.services.api_key_service import ApiKeyService
 
 ACTIVE = {'queued', 'running', 'stopping'}
 
@@ -23,12 +25,12 @@ def expire_runs(session, agent_id):
     session.commit()
 
 
-def create_run(session, agent, request):
+def create_run(session, agent, request, api_keys=None):
     expire_runs(session, agent.id)
     provider = request.provider if 'provider' in request.model_fields_set else agent.provider
     model = request.model if 'model' in request.model_fields_set else agent.model
     # Validate explicit selections before starting work; never substitute another model.
-    _resolve(provider, model, tools=bool(agent.tools))
+    _resolve(provider, model, tools=bool(agent.tools), api_keys=api_keys)
     run = AgentRun(agent_id=agent.id, workspace_id=agent.workspace_id, input=request.content,
         status='queued', content='', events=[], expires_at=now() + timedelta(seconds=120),
         config=dict(instructions=agent.instructions, tools=agent.tools, provider=provider, model=model))
@@ -52,6 +54,8 @@ def perform_run(run_id, session_factory=None):
             return
         run.status = 'running'
         config, content, agent_id = dict(run.config), run.input, run.agent_id
+        workspace = session.get(Workspace, run.workspace_id)
+        owner_id = workspace.owner_id if workspace else None
         deadline = run.expires_at.replace(tzinfo=timezone.utc) if run.expires_at.tzinfo is None else run.expires_at
         from uuid import UUID
         history = session.scalars(select(AgentMessage).where(AgentMessage.agent_id == agent_id,
@@ -59,6 +63,8 @@ def perform_run(run_id, session_factory=None):
             .order_by(AgentMessage.created_at.desc(), AgentMessage.id.desc()).limit(40)).all()
         history = [dict(role=m.role, content=m.content) for m in reversed(history)]
         session.commit()
+        has_key_table = inspect(session.connection()).has_table("user_api_keys")
+        api_keys = ApiKeyService(session).decrypted_for_user(owner_id) if owner_id and has_key_table else {}
 
         def check():
             session.expire_all()
@@ -77,7 +83,8 @@ def perform_run(run_id, session_factory=None):
             session.commit()
 
         try:
-            result = execute_agent(SimpleNamespace(**config), content, history, emit=emit, should_stop=check,
+            result = execute_agent(SimpleNamespace(**config), content, history, emit=emit,
+                                   should_stop=check, api_keys=api_keys,
                                    seconds=max(0, (deadline - now()).total_seconds()))
         except Exception:
             session.rollback()

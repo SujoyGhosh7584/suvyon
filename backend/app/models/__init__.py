@@ -19,6 +19,7 @@ from app.models.otp_code import OtpCode
 from app.models.oauth_account import OAuthAccount
 from app.models.tool import Tool
 from app.models.user import User
+from app.models.user_api_key import UserApiKey
 from app.models.user_settings import UserSettings
 from app.models.workspace import Workspace
 
@@ -39,6 +40,7 @@ __all__ = [
     "OAuthAccount",
     "Tool",
     "User",
+    "UserApiKey",
     "UserSettings",
     "Workspace",
 ]

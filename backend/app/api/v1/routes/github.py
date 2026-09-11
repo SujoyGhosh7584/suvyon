@@ -134,6 +134,7 @@ def ask_project(
     github_service: Annotated[GitHubService, Depends(get_github_service)],
 ):
     _workspace(workspace_id, current_user, workspace_service)
+    github_service.use_user_api_keys(current_user.id)
     project = _project(project_id, workspace_id, current_user, github_service)
     content, files = github_service.answer(project, request.question)
     return RepositoryAnswer(content=content, files=files)
@@ -149,6 +150,7 @@ def document_project(
     github_service: Annotated[GitHubService, Depends(get_github_service)],
 ):
     _workspace(workspace_id, current_user, workspace_service)
+    github_service.use_user_api_keys(current_user.id)
     project = _project(project_id, workspace_id, current_user, github_service)
     content, files = github_service.documentation(project, request.instructions)
     return RepositoryAnswer(content=content, files=files)
@@ -164,6 +166,7 @@ def propose_change(
     github_service: Annotated[GitHubService, Depends(get_github_service)],
 ):
     _workspace(workspace_id, current_user, workspace_service)
+    github_service.use_user_api_keys(current_user.id)
     project = _project(project_id, workspace_id, current_user, github_service)
     try:
         return github_service.propose(project, current_user.id, request.instruction)

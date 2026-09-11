@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Check, Copy, ExternalLink, Pause, Play, Volume2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Maximize2, Pause, Play, Volume2, X } from "lucide-react";
 import { extractSources, htmlToMarkdown, type SourceLink } from "@/lib/messageFormat";
 import { cn } from "@/lib/utils";
 
@@ -77,8 +78,21 @@ function ChatImage({
   })();
   const [mode, setMode] = useState<"proxy" | "direct" | "failed">(needsProxy ? "proxy" : "direct");
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const resolved = mode === "direct" ? original : proxiedImageSrc(original);
   const openHref = needsProxy ? proxiedImageSrc(original) : original;
+
+  useEffect(() => {
+    if (!expanded) return;
+    const close = (event: KeyboardEvent) => event.key === "Escape" && setExpanded(false);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", close);
+    };
+  }, [expanded]);
 
   if (!original) return null;
   if (mode === "failed") {
@@ -94,26 +108,41 @@ function ChatImage({
   }
 
   return (
-    <div className="relative">
+    <div className="group relative">
       {loading && (
         <div className="absolute inset-0 animate-pulse rounded-2xl bg-ink-100" />
       )}
-      <img
-        src={resolved}
-        alt={alt || ""}
-        className={className}
-        referrerPolicy="no-referrer"
-        onLoad={() => setLoading(false)}
-        onError={() => {
-          if (mode === "proxy") {
-            setMode("direct");
-            setLoading(true);
-          } else {
-            setMode("failed");
-            setLoading(false);
-          }
-        }}
-      />
+      <button type="button" className="relative block w-full cursor-zoom-in overflow-hidden rounded-2xl" onClick={() => setExpanded(true)} aria-label={`View ${alt || "image"} full screen`}>
+        <img
+          src={resolved}
+          alt={alt || ""}
+          className={className}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            if (mode === "proxy") {
+              setMode("direct");
+              setLoading(true);
+            } else {
+              setMode("failed");
+              setLoading(false);
+            }
+          }}
+        />
+        <span className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur transition group-hover:opacity-100 group-focus-within:opacity-100"><Maximize2 size={15} /></span>
+      </button>
+      {expanded && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label={alt || "Generated image preview"} onClick={() => setExpanded(false)}>
+          <img src={resolved} alt={alt || ""} className="max-h-[calc(100dvh-5rem)] max-w-full object-contain" referrerPolicy="no-referrer" onClick={(event) => event.stopPropagation()} />
+          <div className="absolute right-3 top-[max(.75rem,env(safe-area-inset-top))] flex gap-2">
+            <a href={openHref} target="_blank" rel="noreferrer" className="flex h-10 items-center gap-2 rounded-full bg-white/15 px-3 text-xs font-semibold text-white backdrop-blur hover:bg-white/25" onClick={(event) => event.stopPropagation()}><ExternalLink size={15} /> Original</a>
+            <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25" onClick={() => setExpanded(false)} aria-label="Close image preview"><X size={18} /></button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }
@@ -121,7 +150,9 @@ function ChatImage({
 function markdownComponents() {
   return {
     img: ({ src, alt }: { src?: string; alt?: string }) => (
-      <ChatImage src={src} alt={alt} className="my-3 max-h-[28rem] w-full rounded-2xl object-cover ring-1 ring-ink-100" />
+      <div className="my-3">
+        <ChatImage src={src} alt={alt} className="h-auto max-h-[70dvh] w-full rounded-2xl object-contain ring-1 ring-ink-100" />
+      </div>
     ),
     a: ({ href, children }: { href?: string; children?: ReactNode }) => (
       <a
@@ -147,9 +178,12 @@ function markdownComponents() {
       );
     },
     table: ({ children }: { children?: ReactNode }) => (
-      <div className="my-3 overflow-x-auto rounded-2xl ring-1 ring-ink-100">
+      <div className="message-table my-3 overflow-x-auto rounded-2xl ring-1 ring-ink-100">
         <table className="min-w-full text-left text-sm">{children}</table>
       </div>
+    ),
+    p: ({ children }: { children?: ReactNode }) => (
+      <p className="message-paragraph my-1.5">{children}</p>
     ),
     th: ({ children }: { children?: ReactNode }) => (
       <th className="bg-ink-50 px-3 py-2 font-semibold text-ink-700">{children}</th>
@@ -339,7 +373,7 @@ export function MessageContent({ content }: { content: string }) {
   }, [prepared]);
 
   return (
-    <div className={cn("space-y-1 text-sm leading-relaxed")}>
+    <div className={cn("message-content min-w-0 space-y-1 text-sm leading-relaxed")}>
       {parts.map((part, index) => {
         if (part.type === "storyboard") return <StoryboardPlayer key={index} board={part.board} />;
         if (part.type === "speak") return <SpeakButton key={index} text={part.text} />;

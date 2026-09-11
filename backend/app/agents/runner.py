@@ -255,14 +255,14 @@ def _synthesize_answer(
     return _fallback_from_tool_results(tool_results, user_content)
 
 
-def run_agent(agent, user_content, history=None, *, pending_email=None):
+def run_agent(agent, user_content, history=None, *, pending_email=None, api_keys=None):
     from app.agents.execution import execute_agent
-    result = execute_agent(agent, user_content, history)
+    result = execute_agent(agent, user_content, history, api_keys=api_keys)
     if pending_email is not None and result['pending_email']:
         pending_email[:] = [result['pending_email']]
     return result['content']
 
 
-def stream_agent(agent, user_content, history=None):
+def stream_agent(agent, user_content, history=None, *, api_keys=None):
     from app.agents.execution import execute_agent
-    yield execute_agent(agent, user_content, history)['content']
+    yield execute_agent(agent, user_content, history, api_keys=api_keys)['content']

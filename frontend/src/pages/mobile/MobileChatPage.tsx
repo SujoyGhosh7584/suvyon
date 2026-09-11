@@ -383,7 +383,7 @@ export function MobileChatPage() {
         </div>
       )}
 
-      <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
+      <div className="chat-transcript flex-1 space-y-3 overflow-y-auto px-3 py-4">
         {messagesLoading && <p className="text-center text-sm text-ink-500">Loading…</p>}
         {!messagesLoading && visibleMessages.length === 0 && (
           <div className="flex flex-col items-center px-6 py-10 text-center">
@@ -396,10 +396,10 @@ export function MobileChatPage() {
           <div
             key={m.id}
             className={cn(
-              "max-w-[88%] rounded-[1.35rem] px-3.5 py-2.5 text-sm leading-relaxed",
+              "message-bubble rounded-[1.35rem] px-3.5 py-2.5 text-sm leading-relaxed",
               m.role === "user"
-                ? "ml-auto rounded-br-md bg-[var(--primary)] text-white"
-                : "rounded-bl-md bg-white text-ink-900 shadow-sm ring-1 ring-violet-100",
+                ? "message-bubble-user ml-auto rounded-br-md bg-[var(--primary)] text-white"
+                : "message-bubble-assistant rounded-bl-md bg-white text-ink-900 shadow-sm ring-1 ring-violet-100",
             )}
           >
             {m.role === "assistant" ? (

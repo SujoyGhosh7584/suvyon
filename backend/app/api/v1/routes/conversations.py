@@ -108,6 +108,7 @@ def merge_chats(
     chat_service: Annotated[ChatService, Depends(get_chat_service)],
 ) -> ConversationResponse:
     _get_workspace_or_404(workspace_id, current_user, workspace_service)
+    chat_service.use_user_api_keys(current_user.id)
     try:
         return ConversationResponse.model_validate(merge_conversations(chat_service, workspace_id, request))
     except LookupError as exc:
@@ -274,6 +275,7 @@ def send_message(
     # clears a leftover Groq id so Gemini/OpenRouter can actually run.
     conversation.provider = (request.provider or "").strip() or None
     conversation.model = (request.model or "").strip() or None
+    chat_service.use_user_api_keys(current_user.id)
 
     try:
         assistant_msg = chat_service.send_message(
@@ -309,6 +311,7 @@ def stream_message(
     )
     conversation.provider = (request.provider or "").strip() or None
     conversation.model = (request.model or "").strip() or None
+    chat_service.use_user_api_keys(current_user.id)
 
     def event_stream():
         try:

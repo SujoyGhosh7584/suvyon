@@ -107,6 +107,14 @@ export type ModelInfo = {
   capabilities: string[];
 };
 
+export type ApiKeyProvider = "groq" | "openrouter" | "gemini" | "cerebras" | "sambanova" | "huggingface" | "mistral" | "cohere" | "nvidia";
+
+export type ApiKeyStatus = {
+  provider: ApiKeyProvider;
+  configured: boolean;
+  hint: string | null;
+};
+
 export type ChatHistoryItem = {
   role: "user" | "assistant";
   content: string;

@@ -17,6 +17,8 @@ import type {
   GitHubRepositoryOption,
   RepositoryAnswer,
   SavedAgentRun,
+  ApiKeyProvider,
+  ApiKeyStatus,
 } from "@/types/api";
 
 export const authApi = {
@@ -53,6 +55,13 @@ export const usersApi = {
   updateMe: (payload: { full_name?: string; avatar_url?: string }) =>
     api.patch<User>("/users/me", payload).then((r) => r.data),
   deleteMe: () => api.delete("/users/me", { data: { confirmation: "DELETE" } }),
+};
+
+export const apiKeysApi = {
+  list: () => api.get<ApiKeyStatus[]>("/users/me/api-keys").then((r) => r.data),
+  save: (provider: ApiKeyProvider, api_key: string) =>
+    api.put<ApiKeyStatus>(`/users/me/api-keys/${provider}`, { api_key }).then((r) => r.data),
+  remove: (provider: ApiKeyProvider) => api.delete(`/users/me/api-keys/${provider}`),
 };
 
 export const workspacesApi = {

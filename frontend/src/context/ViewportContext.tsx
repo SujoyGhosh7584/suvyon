@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
-const MOBILE_QUERY = "(max-width: 767px)";
+const MOBILE_QUERY = "(max-width: 767px), (max-height: 560px) and (max-width: 1024px) and (orientation: landscape)";
 
 const ViewportContext = createContext<boolean | undefined>(undefined);
 

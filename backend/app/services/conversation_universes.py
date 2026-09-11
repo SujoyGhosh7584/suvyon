@@ -80,9 +80,10 @@ def merge_conversations(chat, workspace_id, request: ConversationMerge):
         "Do not claim access to attachments or invent evidence. Follow the user's merge focus."
     )
     prompt = f"Merge focus: {request.focus.strip()}\n\nSource conversations (JSON):\n{evidence}"
+    routing = {"api_keys": chat._api_keys} if getattr(chat, "_api_keys", {}) else {}
     result = route_chat(
         [LLMMessage(role="system", content=instructions), LLMMessage(role="user", content=prompt)],
-        provider_name=request.provider, model_id=request.model,
+        provider_name=request.provider, model_id=request.model, **routing,
     )
     if not result.content.strip():
         raise ValueError("The model returned an empty synthesis. Please try again.")
