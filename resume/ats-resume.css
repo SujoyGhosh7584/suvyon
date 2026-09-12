@@ -1,0 +1,111 @@
+@page {
+  size: A4;
+  margin: 11mm 13mm 11mm 13mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #ffffff;
+}
+
+body {
+  max-width: 184mm;
+  margin: 0 auto;
+  color: #111827;
+  background: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 9.4pt;
+  line-height: 1.27;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+h2#selected-genai-project {
+  break-before: page;
+  page-break-before: always;
+}
+
+h1 {
+  margin: 0 0 2pt;
+  color: #111827;
+  font-size: 20pt;
+  line-height: 1;
+  letter-spacing: 0.4pt;
+  text-align: center;
+}
+
+h1 + p {
+  margin: 0 0 4pt;
+  font-size: 9.7pt;
+  letter-spacing: 0.25pt;
+  text-align: center;
+}
+
+h1 + p + p {
+  margin: 0 0 8pt;
+  line-height: 1.35;
+  text-align: center;
+}
+
+h2 {
+  margin: 8pt 0 4pt;
+  padding-bottom: 1.5pt;
+  border-bottom: 0.8pt solid #334155;
+  color: #1e3a5f;
+  font-size: 10.4pt;
+  line-height: 1.05;
+  letter-spacing: 0.55pt;
+  page-break-after: avoid;
+}
+
+h3 {
+  margin: 5pt 0 1pt;
+  color: #111827;
+  font-size: 10pt;
+  line-height: 1.12;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 0 0 3.5pt;
+}
+
+h3 + p {
+  margin-bottom: 3pt;
+  page-break-after: avoid;
+}
+
+ul {
+  margin: 2pt 0 4pt 14pt;
+  padding: 0;
+}
+
+li {
+  margin: 0 0 2pt;
+  padding-left: 1.5pt;
+}
+
+a {
+  color: #164e78;
+  text-decoration: none;
+}
+
+strong {
+  font-weight: 700;
+}
+
+h2, h3, p, li {
+  orphans: 2;
+  widows: 2;
+}
+
+@media print {
+  body {
+    max-width: none;
+  }
+}
