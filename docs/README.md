@@ -11,6 +11,7 @@ Practical guides for running and hosting Suvyon. Architecture decisions live und
 | [Resend migration runbook](RESEND_MIGRATION_RUNBOOK.md) | Future checklist for replacing SendGrid without breaking OTP or agent email |
 | [Deployment](DEPLOYMENT.md) | GitHub, Supabase, Render, Vercel, live URLs, CORS |
 | [Troubleshooting](TROUBLESHOOTING.md) | CORS, Vercel `@/lib` ignore, Render sleep, migrations |
+| [UI, BYOK, and responsive behavior](UI_BYOK_AND_RESPONSIVE_BEHAVIOR.md) | Collapsible drawers, fluid answer widths, themes, user API-key security, providers, and deployment |
 
 **Production (this project)**
 

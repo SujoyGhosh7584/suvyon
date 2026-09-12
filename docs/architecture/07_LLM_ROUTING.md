@@ -297,3 +297,13 @@ The LLM Routing Architecture aims to provide:
 The Suvyon LLM Routing Architecture establishes a resilient and provider-independent mechanism for selecting, executing, and managing AI models.
 
 By abstracting provider-specific implementations and preserving conversation context within the platform, Suvyon delivers a consistent user experience while remaining adaptable to future AI technologies.
+
+---
+
+# 21. Implemented BYOK Provider Addendum
+
+The running provider registry now supports Groq, Google Gemini, OpenRouter, Cerebras, SambaNova, Hugging Face, Mistral, Cohere, and NVIDIA NIM. The additional providers use a shared OpenAI Chat Completions-compatible adapter where possible.
+
+Routing receives a per-user provider-to-key mapping. Providers backed by a user key are considered before providers that only have shared environment credentials. An explicit provider/model remains strict; automatic selection may try the next configured provider after an invocation failure.
+
+This implementation does not yet perform weighted load balancing, quota prediction, circuit-breaking, or health-score routing. Free-tier models are curated in code and must be reviewed as provider catalogues and quotas change.

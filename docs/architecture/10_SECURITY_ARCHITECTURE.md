@@ -347,3 +347,20 @@ The security architecture aims to provide:
 The Security Architecture establishes a secure foundation for Suvyon by protecting users, knowledge, AI interactions, and infrastructure through layered security controls.
 
 Every component of the platform must adhere to these principles to ensure that Version 1.0 remains secure, reliable, and production-ready.
+
+---
+
+# 24. Implemented User-Credential Controls
+
+Per-user AI provider keys add the following controls:
+
+- credentials are encrypted at rest with Fernet;
+- key hints reveal only the final four characters;
+- decrypted values remain server-side and are scoped to the authenticated user;
+- provider names are allow-listed in both request validation and the credential service;
+- account and workspace authorization still run before model invocation;
+- user credentials override shared provider keys only for that user's request;
+- deleting a saved key removes the encrypted database row;
+- a stable, dedicated `CREDENTIAL_ENCRYPTION_KEY` is required in production.
+
+Operational improvements still recommended are managed KMS envelope encryption, audit events for create/replace/delete, credential validation on save, rotation workflows, revocation detection, rate limits on credential endpoints, and secret scanning that never logs request bodies.

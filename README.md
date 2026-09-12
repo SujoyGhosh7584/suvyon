@@ -34,6 +34,7 @@ Render’s **free** web service sleeps when idle. The first request after sleep 
 - **Agents** — Saved agent configs with tools (email, research, studio helpers), including a Blindspot Agent for assumption mapping, pre-mortems, and low-cost validation experiments.
 - **Models** — Secure per-user BYOK and routing across nine free/free-trial providers: Groq, Gemini, OpenRouter, Cerebras, SambaNova, Hugging Face, Mistral, Cohere, and NVIDIA NIM.
 - **Accounts** — Register sends a 6-digit email OTP (same SMTP as agent mail). Verify before the workspace opens. Login includes **Forgot password?** (OTP, then new password). JWT access + refresh tokens stay in the browser.
+- **Responsive workspace UI** — Desktop drawers collapse completely, focused tasks use the released canvas, structured AI answers expand for tables/code/images, and phone layouts adapt to portrait and short landscape aspect ratios. [Behavior and BYOK details](docs/UI_BYOK_AND_RESPONSIVE_BEHAVIOR.md).
 
 Image generation uses public Pollinations URLs (proxied by the API). It does **not** persist generated files on the server. Knowledge **file bodies** on Render live on an ephemeral disk; they do not survive restarts the way the database does.
 

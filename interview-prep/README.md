@@ -17,15 +17,19 @@ Use this order:
 |---|---|---|
 | 0. Plan | [Complete 12-week study plan](00-study-plan/COMPLETE_STUDY_PLAN.md) | Cover the full interview surface beyond Suvyon |
 | 1. Core | [GenAI foundations](01-foundations/GENAI_FOUNDATIONS.md) | Explain transformers, inference, prompting, embeddings, and hallucination |
+| 1a. Advanced core | [Advanced GenAI foundations](01-foundations/ADVANCED_GENAI_FOUNDATIONS.md) | Defend post-training, adaptation, inference internals, multimodal systems, evaluation, and safety |
 | 2. Grounding | [RAG guide](02-rag/RAG_INTERVIEW_GUIDE.md) | Design and evaluate an ingestion/retrieval pipeline |
 | 3. Agency | [Agentic AI guide](03-agents/AGENTIC_AI_INTERVIEW_GUIDE.md) | Explain tool calling, agent loops, state, safety, and failure handling |
 | 4. Project | [Suvyon deep dive](04-suvyon-deep-dive/SUVYON_ARCHITECTURE.md) | Give a confident project walkthrough backed by code |
 | 4a. Explore | [Interactive Suvyon project explorer](project-explorer/README.md) | Click through every runtime flow and open exact source lines |
 | 5. Design | [Production system design](05-system-design/PRODUCTION_DESIGN.md) | Scale, secure, observe, and evaluate the system |
 | 6. Engineering | [Python/API/data guide](05-system-design/ENGINEERING_FOUNDATIONS.md) | Defend backend, async, database, and testing decisions |
+| 6a. Operate | [Evaluation, LLMOps, and safety](05-system-design/EVALUATION_LLMOPS_AND_SAFETY.md) | Build release gates, observability, reliability, cost controls, and threat models |
 | 7. Drill | [Quick question bank](06-question-bank/QUESTIONS_AND_ANSWERS.md) | Rehearse 30-second answers and identify weak topics |
 | 8. Deep answers | [Core AI](06-question-bank/DETAILED_CORE_QA.md), [RAG and agents](06-question-bank/DETAILED_RAG_AGENT_QA.md), [production and project](06-question-bank/DETAILED_PRODUCTION_PROJECT_QA.md) | Deliver two-to-five-minute answers and handle follow-ups |
+| 8a. Advanced drill | [Advanced GenAI Q&A](06-question-bank/ADVANCED_GENAI_QA.md) | Practice modern training, inference, RAG, agents, multimodal, evaluation, security, and design questions |
 | 9. Perform | [Mock interview kit](07-practice/MOCK_INTERVIEW.md) | Practice project pitches and interview rounds |
+| 10. Prove readiness | [21-day interview readiness lab](07-practice/INTERVIEW_READINESS_LAB.md) | Complete coding, whiteboard, mock, project, and behavioral gates |
 
 ## The answer framework
 
@@ -82,6 +86,11 @@ Do not read all answers repeatedly. Use this loop for five questions per study d
 - [ ] Discuss latency, cost, security, observability, and failure recovery.
 - [ ] Give evidence-based answers using tests and code paths.
 - [ ] Complete at least three timed mock interviews.
+- [ ] Explain SFT, RLHF, DPO, LoRA/QLoRA, quantization, distillation, and MoE with selection trade-offs.
+- [ ] Explain prefill, decode, KV-cache pressure, batching, FlashAttention, PagedAttention, and speculative decoding.
+- [ ] Build an evaluation release gate using deterministic, model-based, human, offline, and online evidence appropriately.
+- [ ] Threat-model prompt injection, data leakage, tool authorization, multimodal inputs, and BYOK credential storage.
+- [ ] Complete the [final readiness gate](07-practice/INTERVIEW_READINESS_LAB.md#12-final-readiness-gate) twice in consecutive mock loops.
 
 ## Important accuracy rule
 

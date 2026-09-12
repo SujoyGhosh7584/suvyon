@@ -157,3 +157,30 @@ The system is deliberately a modular monolith for low operational cost. My next 
 **How do you avoid provider lock-in?** Provider-neutral domain objects and adapters, application-owned history, and centralized model selection. I still test each adapter because tool and streaming semantics vary.
 
 **What was technically difficult?** Coordinating auto tool selection, explicit RAG/web modes, streaming, provider fallback, persisted history, and trustworthy provenance while keeping the orchestration bounded.
+
+## Current product update: responsive workspace and per-user provider keys
+
+The following implementation was added after the original project pitch above. Preserve the earlier pitch as the historical baseline, but use this update when describing the current system.
+
+### Modern responsive workspace
+
+- Navigation uses fully collapsible three-bar drawers so closed navigation does not reserve unused screen width.
+- The active chat or agent task expands into the available viewport; assistant responses use a fluid width that grows on landscape displays and becomes full-width on portrait phones.
+- Drawer behavior, composer controls, message actions, and image layouts adapt to phone, tablet, and desktop aspect ratios.
+- Execution progress is shown for the current running task and removed from completed historical messages, while completed answers and history remain available.
+- Generated images preserve their aspect ratio, open in a full-size viewer, and expose the original artifact for download.
+- Theme selection is persisted and applied through root-level theme variables so all pages and overlays receive the selected palette.
+
+### BYOK model access
+
+Authenticated users can store an individual key for nine providers: Groq, Google Gemini, OpenRouter, Cerebras, SambaNova, Hugging Face, Mistral, Cohere, and NVIDIA NIM. The backend encrypts each key at rest, returns only configuration state and a masked hint, and decrypts it only for an authorized provider request. User credentials take precedence over server credentials for that user.
+
+Groq, Gemini, and OpenRouter keep specialized adapters. The additional OpenAI-compatible providers share an adapter that normalizes messages, tools, structured tool calls, token usage, and provider errors. Explicit provider/model selection is validated and is not silently replaced; automatic selection can attempt configured providers sequentially.
+
+This is still sequential failover rather than predictive health-, cost-, or latency-aware routing. Provider free tiers and model catalogues are external constraints and can change, so the application catalogue must be maintained and live calls must handle quota, entitlement, and retirement errors.
+
+### Updated 30-second pitch
+
+“I built Suvyon, a responsive multi-LLM workspace using React, FastAPI, PostgreSQL, and pgvector. It combines chat, document-grounded RAG, bounded tool-using agents, and image generation. The current product supports encrypted per-user API keys across nine providers, provider-aware model validation and failover, full-width task workspaces, persistent themes, and mobile-first drawers. My engineering focus is making probabilistic model behavior measurable, secure, and usable through evaluation, permission boundaries, observability, and explicit failure handling.”
+
+For the implementation-level contract, review [UI, BYOK, and responsive behavior](../../docs/UI_BYOK_AND_RESPONSIVE_BEHAVIOR.md).

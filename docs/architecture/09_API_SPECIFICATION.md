@@ -383,3 +383,18 @@ The API layer aims to provide:
 The API architecture provides a secure, modular, and scalable communication layer between the frontend, backend, AI orchestration engine, and supporting services.
 
 A standardized API design ensures maintainability, simplifies client development, and supports future platform evolution without disrupting existing integrations.
+
+---
+
+# 28. Implemented User Provider-Key APIs
+
+The authenticated user API also exposes:
+
+| Method | Endpoint | Result |
+|---|---|---|
+| `GET` | `/api/v1/users/me/api-keys` | Supported providers with `configured` and masked `hint` fields |
+| `PUT` | `/api/v1/users/me/api-keys/{provider}` | Creates or replaces one encrypted provider credential |
+| `DELETE` | `/api/v1/users/me/api-keys/{provider}` | Deletes the user's credential for that provider |
+| `GET` | `/api/v1/models` | Models reachable through the user's credentials or shared fallbacks |
+
+The full credential is accepted only in a write request and is never returned. Unsupported provider path values and short keys produce validation errors.

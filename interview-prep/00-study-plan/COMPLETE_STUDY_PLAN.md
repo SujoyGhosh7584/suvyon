@@ -317,3 +317,14 @@ Copy this row for every week:
 
 AI tooling changes quickly. Each month, sample 10 target job descriptions, count repeated requirements, and update 20% of the plan based on evidence. Keep fundamentals stable, but refresh model/provider APIs, frameworks, MCP, security guidance, and cloud offerings from official documentation. Continue two coding sessions, one system design, one Suvyon code tour, and one mock interview every week until an offer is accepted.
 
+## Advanced GenAI extension and final readiness sprint
+
+The 12-week plan remains the complete foundation. Add this extension without replacing any earlier deliverable:
+
+1. Read [Advanced GenAI Foundations](../01-foundations/ADVANCED_GENAI_FOUNDATIONS.md) and explain post-training, parameter-efficient adaptation, inference internals, multimodal generation, evaluation, and safety without notes.
+2. Read [Evaluation, LLMOps, and Safety](../05-system-design/EVALUATION_LLMOPS_AND_SAFETY.md), then create a release gate and threat model for one Suvyon feature.
+3. Drill [Advanced GenAI Q&A](../06-question-bank/ADVANCED_GENAI_QA.md) in 30-second, two-minute, and whiteboard formats.
+4. Complete the [21-day Interview Readiness Lab](../07-practice/INTERVIEW_READINESS_LAB.md), or its seven-day compressed variant after finishing the core plan.
+5. Pass two consecutive full mock loops with no core-area score below 2/4 and an overall average of at least 3/4.
+
+The pass condition is performance, not reading completion: implement timed exercises, draw unseen systems, defend trade-offs, cite real project evidence, and identify uncertainty instead of guessing.

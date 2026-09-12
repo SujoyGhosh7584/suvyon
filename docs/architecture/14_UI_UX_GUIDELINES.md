@@ -330,3 +330,23 @@ The UI and UX aim to achieve:
 The UI and UX guidelines establish a consistent design language for Suvyon.
 
 By prioritizing usability, accessibility, performance, and visual consistency, the platform delivers a premium experience while supporting long-term scalability and future feature expansion.
+
+---
+
+# 25. Implemented Responsive Workspace Addendum
+
+The current interface adds these requirements without replacing any earlier guideline:
+
+- Desktop navigation uses a full drawer controlled by a three-line menu button.
+- Closing navigation must release its complete width; a reduced icon rail must not remain.
+- Chat history and agent lists use the same complete-collapse behavior independently.
+- Focused chat and agent screens consume the remaining viewport instead of using fixed-height content cards.
+- Assistant bubbles size against their actual container, including after drawers close.
+- Structured answers such as tables, source lists, code, storyboards, and images may use nearly the entire available width.
+- Prose retains a readable character measure even when its containing response is wide.
+- Mobile selection considers width, orientation, and short landscape viewports instead of width alone.
+- Focused mobile tasks remove surrounding navigation while preserving safe-area padding.
+- Redundant keyboard instructions should not occupy permanent composer space.
+- Theme accents must reach navigation, focus states, buttons, and branded surfaces while content contrast remains accessible.
+
+Implementation details and breakpoints are recorded in [UI, BYOK, and responsive behavior](../UI_BYOK_AND_RESPONSIVE_BEHAVIOR.md).

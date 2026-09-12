@@ -101,3 +101,24 @@ Alembic then refuses to start: it sees a version ID in `alembic_version` that is
 Do not stamp the version backward unless you also drop `otp_codes`; otherwise a later upgrade will try to create the table twice.
 
 An email transport is required for new sign-ups. Locally, set `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and `SMTP_FROM_EMAIL`. On Render free, prefer `RESEND_API_KEY` or `SENDGRID_API_KEY` plus `SMTP_FROM_EMAIL`. Check spam. Wait 60 seconds before resend. Codes expire in 10 minutes.
+
+## Provider saved but no models appear
+
+1. Confirm the latest API-key migration ran with `alembic upgrade head`.
+2. Confirm the frontend points to the same backend where the key was saved.
+3. Refresh `/api/v1/models` after saving; the UI invalidates this query automatically.
+4. Check whether the provider retired the curated model or exhausted the account's free quota.
+5. Confirm `ZERO_COST_MODE=true` is not filtering a model whose declared application price is nonzero.
+6. Never paste the key into logs. Replace or revoke it from the provider dashboard if exposure is suspected.
+
+## Existing user keys stopped decrypting
+
+`CREDENTIAL_ENCRYPTION_KEY` or its fallback `SECRET_KEY` changed. Restore the previous encryption secret. If the previous value is unavailable, the ciphertext cannot be recovered; affected users must delete and save new provider keys.
+
+## A collapsed drawer still consumes screen width
+
+Confirm the latest frontend assets are deployed and clear the service-worker/browser cache if an old bundle is retained. The current drawer state uses zero width and removes the inter-panel gap. The workspace-navigation preference is stored under `suvyon-navigation-open` in local storage.
+
+## Responses remain narrow on a wide screen
+
+Confirm the response has the `message-bubble-assistant` class and its scroll container has `chat-transcript`. The fluid layout permits wide structured output while individual prose paragraphs remain intentionally constrained for readability. Tables should expand within the response and scroll horizontally only when their content exceeds the available canvas.

@@ -82,3 +82,18 @@ Prepare real stories for provider model retirement, RAG retrieval diversity, ema
 - Prepare questions about the employer's evaluation, observability, data governance, model strategy, and autonomy boundaries.
 - Do not memorize provider SKU names; explain capability and routing principles.
 
+## Advanced GenAI round — 60 minutes
+
+1. Derive scaled dot-product attention and explain long-sequence bottlenecks.
+2. Compare pretraining, SFT, RLHF, DPO, LoRA, QLoRA, quantization, and distillation.
+3. Explain prefill, decode, KV-cache memory, continuous batching, FlashAttention, PagedAttention, and speculative decoding.
+4. Design and evaluate hybrid, permission-aware, multi-hop RAG.
+5. Threat-model an agent that reads untrusted documents and can call write tools.
+6. Design an offline-to-online evaluation and rollout process for a model change.
+7. Explain a multimodal/image-generation request from input processing through original-size delivery.
+
+## Advanced score requirements
+
+Use the 0–4 rubric and practice schedule in the [Interview Readiness Lab](INTERVIEW_READINESS_LAB.md). A strong answer includes definition, mechanism, selection criteria, failure mode, measurement, and relevant project evidence. Pass two consecutive mixed loops with an average of at least 3/4 and no core-area score below 2/4.
+
+Use [Advanced GenAI Q&A](../06-question-bank/ADVANCED_GENAI_QA.md) for follow-up questions and [Evaluation, LLMOps, and Safety](../05-system-design/EVALUATION_LLMOPS_AND_SAFETY.md) for production-depth drills.

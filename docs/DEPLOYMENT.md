@@ -149,3 +149,19 @@ Both authentication OTPs and confirmed agent emails use the same backend deliver
 When the SendGrid trial approaches expiry, use the [Resend migration runbook](RESEND_MIGRATION_RUNBOOK.md) rather than switching providers on the final day.
 
 If the UI loads but login fails, CORS or `VITE_API_BASE_URL` is wrong. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+---
+
+## 7. BYOK and refreshed UI deployment additions
+
+These are additional deployment steps; all earlier steps still apply.
+
+1. Confirm the deployed commit contains `a8b9c0d1e2f3_user_api_keys.py`.
+2. Run `alembic upgrade head` before users open Settings.
+3. Add a long, random `CREDENTIAL_ENCRYPTION_KEY` to Render and keep it stable across deployments.
+4. Optionally configure any shared provider keys from [Environment variables](ENVIRONMENT.md). Users can operate with personal keys when no shared chat key is present.
+5. Redeploy the frontend so the provider settings, collapsible drawers, fluid response widths, and orientation-aware mobile query are included in the Vite bundle.
+6. Smoke-test saving, replacing, and removing one user key; confirm the browser only receives a masked hint.
+7. Test chat with both workspace and chat-history drawers closed at desktop, portrait-phone, and landscape-phone sizes.
+
+Do not rotate `CREDENTIAL_ENCRYPTION_KEY` like a disposable application secret. A planned rotation requires decrypting every row with the old key and encrypting it with the new key.
